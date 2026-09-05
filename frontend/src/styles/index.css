@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: var(--color-bg-primary);
+  --color-bg-secondary: var(--color-bg-secondary);
+  --color-bg-tertiary: var(--color-bg-tertiary);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-border: var(--color-border);
+  --color-border-light: var(--color-border-light);
+  --color-accent: var(--color-accent);
+  --color-accent-light: var(--color-accent-light);
+  --color-success: var(--color-success);
+  --color-danger: var(--color-danger);
+}
+
+:root {
+  /* Light theme - calm, neutral palette */
+  --color-bg-primary: #FAFAFA;
+  --color-bg-secondary: #FFFFFF;
+  --color-bg-tertiary: #F5F5F5;
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-border: #E5E7EB;
+  --color-border-light: #F3F4F6;
+  --color-accent: #6366F1;  /* Muted indigo - not loud */
+  --color-accent-light: #EEF2FF;
+  --color-success: #10B981;
+  --color-danger: #EF4444;
+  --color-shadow: rgba(0, 0, 0, 0.05);
+}
+
+.dark {
+  --color-bg-primary: #111827;
+  --color-bg-secondary: #1F2937;
+  --color-bg-tertiary: #374151;
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #D1D5DB;
+  --color-text-muted: #9CA3AF;
+  --color-border: #374151;
+  --color-border-light: #1F2937;
+  --color-accent: #818CF8;
+  --color-accent-light: #1E1B4B;
+  --color-success: #34D399;
+  --color-danger: #F87171;
+  --color-shadow: rgba(0, 0, 0, 0.3);
+}
+
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition-property: color, background-color;
+  transition-duration: 200ms;
+}

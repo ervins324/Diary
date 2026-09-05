@@ -1,0 +1,72 @@
+# School Diary — Docker Compose Orchestration
+# Runs PostgreSQL, FastAPI backend, and Nginx frontend
+# Usage: docker compose up --build
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-diary}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-diary_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-diary}
+    volumes:
+      # Persistent data volume so DB survives container restarts
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Ensure the DB is ready before dependents start
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-diary} -d ${POSTGRES_DB:-diary}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - diary-net
+
+  # ── FastAPI Backend API ──────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database connection (async driver for SQLAlchemy)
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://diary:diary_secret@db:5432/diary}
+      # Alembic needs a sync URL (auto-derived in env.py, but we also pass it)
+      ALEMBIC_DATABASE_URL: ${ALEMBIC_DATABASE_URL:-postgresql://diary:diary_secret@db:5432/diary}
+      # Semester anchor date for numerator/denominator week calculation
+      SEMESTER_ANCHOR_DATE: ${SEMESTER_ANCHOR_DATE:-2026-09-01}
+      # Gemini API key for AI schedule parsing (optional)
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # CORS origins (frontend URL)
+      CORS_ORIGINS: ${CORS_ORIGINS:-["*"]}
+    networks:
+      - diary-net
+
+  # ── Nginx Frontend (SPA + Reverse Proxy) ────────────────────
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      # Expose the app on host port 8080
+      - "${WEB_PORT:-8080}:80"
+    networks:
+      - diary-net
+
+# ── Persistent Volumes ───────────────────────────────────────
+volumes:
+  pgdata:
+    driver: local
+
+# ── Internal Network ─────────────────────────────────────────
+networks:
+  diary-net:
+    driver: bridge
