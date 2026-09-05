@@ -9,7 +9,8 @@ from app.schemas.homework import HomeworkRead, HomeworkCreate, HomeworkUpdate
 
 router = APIRouter(prefix="/api/v1/homework", tags=["homework"])
 
-@router.get("/", response_model=list[HomeworkRead])
+@router.get("", response_model=list[HomeworkRead])
+@router.get("/", response_model=list[HomeworkRead], include_in_schema=False)
 async def list_homework(
     target_date: date | None = Query(None, alias="date"),
     subject_id: uuid.UUID | None = Query(None),
@@ -25,7 +26,8 @@ async def list_homework(
     result = await db.execute(stmt)
     return result.scalars().all()
 
-@router.post("/", response_model=HomeworkRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=HomeworkRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=HomeworkRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_homework(hw_in: HomeworkCreate, db: AsyncSession = Depends(get_db)):
     """Create a new homework entry."""
     hw = HomeworkEntry(**hw_in.model_dump())

@@ -17,7 +17,8 @@ from app.services.ai_parser import parse_schedule_image
 router = APIRouter(prefix="/api/v1/schedule", tags=["schedule"])
 
 
-@router.get("/", response_model=list[DaySchedule])
+@router.get("", response_model=list[DaySchedule])
+@router.get("/", response_model=list[DaySchedule], include_in_schema=False)
 async def get_schedule(
     start_date: date,
     end_date: date,

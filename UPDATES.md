@@ -1,5 +1,14 @@
 # School Diary — Changelog
 
+## v1.0.2 — 2026-09-05
+
+### 🛠️ API Routing & AI Engine Fixes
+- **Eliminated 307 Temporary Redirects**:
+  - Configured non-trailing and trailing slash route handlers (`""` and `"/"`) across `schedule`, `subjects`, and `homework` routers so requests like `GET /api/v1/schedule` resolve directly with `200 OK` without intermediate `307 Temporary Redirect` responses.
+- **Google GenAI SDK 2.x Warning Resolution**:
+  - Explicitly set `automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)` in `GenerateContentConfig` for `ai_parser.py`, eliminating the SDK warning regarding AFC in `Models.generate_content`.
+  - Added dynamic MIME type detection for uploaded schedule images supporting JPEG, PNG, and WebP formats.
+
 ## v1.0.1 — 2026-09-05
 
 ### 🚀 Modern Stack & Dependency Upgrades

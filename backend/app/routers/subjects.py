@@ -8,13 +8,15 @@ from app.schemas.subject import SubjectRead, SubjectCreate, SubjectUpdate
 
 router = APIRouter(prefix="/api/v1/subjects", tags=["subjects"])
 
-@router.get("/", response_model=list[SubjectRead])
+@router.get("", response_model=list[SubjectRead])
+@router.get("/", response_model=list[SubjectRead], include_in_schema=False)
 async def list_subjects(db: AsyncSession = Depends(get_db)):
     """Get all subjects."""
     result = await db.execute(select(Subject))
     return result.scalars().all()
 
-@router.post("/", response_model=SubjectRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SubjectRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=SubjectRead, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_subject(subject_in: SubjectCreate, db: AsyncSession = Depends(get_db)):
     """Create a new subject."""
     subject = Subject(**subject_in.model_dump())
