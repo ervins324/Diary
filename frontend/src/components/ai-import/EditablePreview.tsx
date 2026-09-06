@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
 import type { AiParsedDay, AiParsedLesson } from '../../types';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface EditablePreviewProps {
   data: AiParsedDay[];
@@ -7,6 +8,7 @@ interface EditablePreviewProps {
 }
 
 export function EditablePreview({ data, onChange }: EditablePreviewProps) {
+  const { t } = useLanguage();
   
   const updateLesson = (dayIndex: number, lessonIndex: number, field: keyof AiParsedLesson, value: any) => {
     const newData = [...data];
@@ -40,15 +42,15 @@ export function EditablePreview({ data, onChange }: EditablePreviewProps) {
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full h-full overflow-y-auto overflow-x-auto min-h-0 max-h-[50vh] md:max-h-[550px]">
       <table className="w-full text-sm text-left border-collapse">
-        <thead className="bg-bg-tertiary text-text-secondary sticky top-0 z-10">
+        <thead className="bg-bg-tertiary text-text-secondary sticky top-0 z-10 shadow-xs">
           <tr>
-            <th className="px-3 py-2 border-b border-border font-medium">#</th>
-            <th className="px-3 py-2 border-b border-border font-medium w-1/3">Subject</th>
-            <th className="px-3 py-2 border-b border-border font-medium">Start</th>
-            <th className="px-3 py-2 border-b border-border font-medium">End</th>
-            <th className="px-3 py-2 border-b border-border font-medium">Cab</th>
+            <th className="px-3 py-2 border-b border-border font-medium w-12">{t('table_num')}</th>
+            <th className="px-3 py-2 border-b border-border font-medium w-1/3">{t('table_subject')}</th>
+            <th className="px-3 py-2 border-b border-border font-medium">{t('table_start')}</th>
+            <th className="px-3 py-2 border-b border-border font-medium">{t('table_end')}</th>
+            <th className="px-3 py-2 border-b border-border font-medium w-20">{t('table_cab')}</th>
             <th className="px-3 py-2 border-b border-border font-medium w-10"></th>
           </tr>
         </thead>
@@ -123,7 +125,7 @@ export function EditablePreview({ data, onChange }: EditablePreviewProps) {
               {day.lessons.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-3 py-4 text-center text-text-muted text-sm border-b border-border-light">
-                    No lessons parsed for this day.
+                    {t('no_lessons_parsed_day')}
                   </td>
                 </tr>
               )}

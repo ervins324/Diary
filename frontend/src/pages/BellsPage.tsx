@@ -12,9 +12,11 @@ import {
 } from 'lucide-react';
 import { useBells, useSaveBellSlot, useDeleteBellSlot } from '../hooks/useBells';
 import { AiBellsImportModal } from '../components/ai-import/AiBellsImportModal';
+import { useLanguage } from '../i18n/LanguageContext';
 import type { BellSlot } from '../types';
 
 export function BellsPage() {
+  const { t } = useLanguage();
   const { data: bells, isLoading } = useBells();
   const saveMutation = useSaveBellSlot();
   const deleteMutation = useDeleteBellSlot();
@@ -91,7 +93,7 @@ export function BellsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Delete this lesson bell slot?')) {
+    if (window.confirm(t('delete_bell_confirm'))) {
       await deleteMutation.mutateAsync(id);
     }
   };
@@ -107,10 +109,10 @@ export function BellsPage() {
             <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
               <Bell size={20} />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Bell Schedule</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary">{t('bell_schedule')}</h1>
           </div>
           <p className="text-sm text-text-secondary mt-1">
-            School lesson bells and break intervals (Розклад дзвінків)
+            {t('bell_schedule_desc')}
           </p>
         </div>
 
@@ -120,7 +122,7 @@ export function BellsPage() {
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 bg-accent/10 hover:bg-accent/20 text-accent font-medium rounded-lg text-sm transition-colors"
           >
             <Sparkles size={16} />
-            <span>AI Image Parse</span>
+            <span>{t('ai_image_parse')}</span>
           </button>
           <button
             onClick={() => {
@@ -136,7 +138,7 @@ export function BellsPage() {
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 bg-accent hover:bg-accent/90 text-white font-medium rounded-lg text-sm transition-colors shadow-xs"
           >
             <Plus size={16} />
-            <span>Add Lesson</span>
+            <span>{t('add_lesson')}</span>
           </button>
         </div>
       </div>
@@ -144,10 +146,10 @@ export function BellsPage() {
       {/* Add New Lesson Inline Form */}
       {isAdding && (
         <div className="bg-accent-light/40 border border-accent/40 rounded-xl p-4 animate-in fade-in duration-200">
-          <h3 className="text-sm font-semibold text-text-primary mb-3">Add Lesson Bell Interval</h3>
+          <h3 className="text-sm font-semibold text-text-primary mb-3">{t('add_lesson_interval')}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
-              <label className="text-xs text-text-secondary block mb-1">Lesson Order (#)</label>
+              <label className="text-xs text-text-secondary block mb-1">{t('lesson_order')}</label>
               <input
                 type="number"
                 min="1"
@@ -157,17 +159,17 @@ export function BellsPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-text-secondary block mb-1">Label / Title</label>
+              <label className="text-xs text-text-secondary block mb-1">{t('label_title')}</label>
               <input
                 type="text"
                 value={addForm.name || ''}
-                placeholder="1 урок"
+                placeholder={`1 ${t('lesson_label')}`}
                 onChange={e => setAddForm({ ...addForm, name: e.target.value })}
                 className="w-full bg-bg-secondary border border-border rounded-lg px-3 py-1.5 text-sm focus:border-accent focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-xs text-text-secondary block mb-1">Start Time</label>
+              <label className="text-xs text-text-secondary block mb-1">{t('start_time')}</label>
               <input
                 type="time"
                 value={addForm.start_time}
@@ -176,7 +178,7 @@ export function BellsPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-text-secondary block mb-1">End Time</label>
+              <label className="text-xs text-text-secondary block mb-1">{t('end_time')}</label>
               <input
                 type="time"
                 value={addForm.end_time}
@@ -190,7 +192,7 @@ export function BellsPage() {
               onClick={() => setIsAdding(false)}
               className="px-3 py-1.5 text-xs text-text-muted hover:text-text-primary rounded-lg transition-colors"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               onClick={handleSaveAdd}
@@ -198,7 +200,7 @@ export function BellsPage() {
               className="px-4 py-1.5 bg-accent hover:bg-accent/90 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
             >
               {saveMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-              Save Lesson
+              {t('save_lesson')}
             </button>
           </div>
         </div>
@@ -208,29 +210,29 @@ export function BellsPage() {
       {isLoading ? (
         <div className="flex justify-center items-center py-20 text-text-muted gap-2">
           <Loader2 size={20} className="animate-spin" />
-          <span>Loading bell schedule...</span>
+          <span>{t('loading_bells')}</span>
         </div>
       ) : sortedBells.length === 0 ? (
         <div className="bg-bg-secondary border border-border rounded-xl p-10 text-center flex flex-col items-center">
           <div className="w-14 h-14 rounded-full bg-bg-tertiary flex items-center justify-center text-text-muted mb-3">
             <Clock size={28} />
           </div>
-          <h3 className="text-base font-semibold text-text-primary">No Bell Schedule Configured</h3>
+          <h3 className="text-base font-semibold text-text-primary">{t('no_bells_configured')}</h3>
           <p className="text-sm text-text-secondary mt-1 max-w-md">
-            Upload a photo of your school's bell timetable or add lessons manually to personalize lesson durations and breaks.
+            {t('no_bells_desc')}
           </p>
           <div className="flex gap-3 mt-5">
             <button
               onClick={() => setIsAiModalOpen(true)}
               className="px-4 py-2 bg-accent hover:bg-accent/90 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
             >
-              <Sparkles size={16} /> Import from Photo
+              <Sparkles size={16} /> {t('import_from_photo')}
             </button>
             <button
               onClick={() => setIsAdding(true)}
               className="px-4 py-2 bg-bg-tertiary hover:bg-border text-text-primary rounded-lg text-sm font-medium transition-colors"
             >
-              Add Manually
+              {t('add_manually')}
             </button>
           </div>
         </div>
@@ -250,7 +252,7 @@ export function BellsPage() {
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <div>
-                          <label className="text-[11px] text-text-muted">Order (#)</label>
+                          <label className="text-[11px] text-text-muted">{t('table_num')}</label>
                           <input
                             type="number"
                             min="1"
@@ -260,7 +262,7 @@ export function BellsPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[11px] text-text-muted">Label</label>
+                          <label className="text-[11px] text-text-muted">{t('label_title')}</label>
                           <input
                             type="text"
                             value={editForm.name || ''}
@@ -269,7 +271,7 @@ export function BellsPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[11px] text-text-muted">Start</label>
+                          <label className="text-[11px] text-text-muted">{t('start_time')}</label>
                           <input
                             type="time"
                             value={editForm.start_time}
@@ -278,7 +280,7 @@ export function BellsPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[11px] text-text-muted">End</label>
+                          <label className="text-[11px] text-text-muted">{t('end_time')}</label>
                           <input
                             type="time"
                             value={editForm.end_time}
@@ -292,13 +294,13 @@ export function BellsPage() {
                           onClick={() => setEditingId(null)}
                           className="px-2.5 py-1 text-xs text-text-muted hover:text-text-primary rounded"
                         >
-                          Cancel
+                          {t('cancel')}
                         </button>
                         <button
                           onClick={handleSaveEdit}
                           className="px-3 py-1 bg-accent hover:bg-accent/90 text-white rounded text-xs font-medium flex items-center gap-1"
                         >
-                          <Check size={14} /> Save
+                          <Check size={14} /> {t('save')}
                         </button>
                       </div>
                     </div>
@@ -310,14 +312,14 @@ export function BellsPage() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-text-primary text-sm truncate">
-                            {slot.name || `${slot.lesson_order} урок`}
+                            {slot.name || `${slot.lesson_order} ${t('lesson_label')}`}
                           </p>
                           <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
                             <span className="font-mono text-text-secondary font-medium">
                               {slot.start_time.substring(0, 5)} – {slot.end_time.substring(0, 5)}
                             </span>
                             <span>•</span>
-                            <span>{duration} min</span>
+                            <span>{duration} {t('min')}</span>
                           </div>
                         </div>
                       </div>
@@ -348,7 +350,7 @@ export function BellsPage() {
                     <div className="h-px bg-border flex-1" />
                     <div className="flex items-center gap-1 bg-bg-tertiary border border-border px-2.5 py-0.5 rounded-full text-[11px] text-text-secondary font-medium shrink-0">
                       <Coffee size={12} className="text-accent" />
-                      <span>{breakMinutes} min break</span>
+                      <span>{breakMinutes} {t('min_break')}</span>
                     </div>
                     <div className="h-px bg-border flex-1" />
                   </div>

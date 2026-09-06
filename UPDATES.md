@@ -1,5 +1,25 @@
 # School Diary — Changelog
 
+## v1.2.0 — 2026-09-06
+
+### 🇺🇦 Ukrainian Localization, Clipboard Paste, Modal Scrolling & Schedule Refinements
+- **Ukrainian Localization (`uk`) & Language Switcher**:
+  - Added comprehensive Ukrainian (`uk`) and English (`en`) translation system (`frontend/src/i18n/translations.ts` and `LanguageContext.tsx`).
+  - Added language toggle in `SettingsPage.tsx` with `localStorage` persistence, defaulting to Ukrainian.
+  - Fully translated navigation tabs, headers, timetable cards, bell tables, settings, and modal controls.
+- **Clipboard Image Paste (`Ctrl+V`)**:
+  - Enabled clipboard image paste in `FileDropzone.tsx`, allowing instant screenshot pasting into both schedule and bell timetable AI import modals.
+- **Edit Schedule Screen Scrolling Fix**:
+  - Restructured `AiImportModal.tsx` and `EditablePreview.tsx` with dedicated scroll containers (`min-h-0`, `max-h-[50vh] md:max-h-[550px] overflow-y-auto`) to ensure smooth table scrolling on desktop and mobile.
+- **Removed Saturday from Diary View**:
+  - Streamlined `DiaryPage.tsx` to a standard 5-day school week (Monday to Friday), with Monday–Wednesday in the left column and Thursday–Friday in the right column.
+- **Smart Ukrainian Subject Canonical Naming**:
+  - Added canonical Ukrainian subject abbreviation dictionary in `backend/app/routers/schedule.py` (e.g., "Українська мова" -> "Укр мова", "Українська література" -> "Укр літ", "Англійська мова" -> "Англ мова", "Фізична культура" -> "Фізра").
+  - Auto-assigns distinct pastel palette colors during automatic subject creation.
+- **Gemini 3.5 Flash Ukrainian System Instructions & 24h Time Format**:
+  - Rewrote system instructions in `backend/app/services/ai_parser.py` completely in Ukrainian.
+  - Enforced strict 24-hour time format (`HH:MM`, no AM/PM) for both timetable and bell schedule image analysis.
+
 ## v1.1.0 — 2026-09-06
 
 ### 🔔 Bell Schedule ("Розклад Дзвінків"), AI Photo Parse & Default Dark Theme

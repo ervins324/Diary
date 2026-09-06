@@ -1,16 +1,19 @@
 import { NavLink } from 'react-router-dom';
 import { Calendar, BookOpen, Bell, BarChart3, Settings } from 'lucide-react';
 import { cn } from '../../lib/utils';
-
-const navItems = [
-  { to: '/', icon: Calendar, label: 'Daily' },
-  { to: '/diary', icon: BookOpen, label: 'Diary' },
-  { to: '/bells', icon: Bell, label: 'Bells' },
-  { to: '/stats', icon: BarChart3, label: 'Stats' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
-];
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export function BottomNav() {
+  const { t } = useLanguage();
+
+  const navItems = [
+    { to: '/', icon: Calendar, label: t('nav_daily') },
+    { to: '/diary', icon: BookOpen, label: t('nav_diary') },
+    { to: '/bells', icon: Bell, label: t('nav_bells') },
+    { to: '/stats', icon: BarChart3, label: t('nav_stats') },
+    { to: '/settings', icon: Settings, label: t('nav_settings') },
+  ];
+
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-bg-secondary border-t border-border flex items-center justify-around z-50 pb-safe">
       {navItems.map((item) => (

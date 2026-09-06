@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Loader2, Sparkles, Plus, Trash2, Check } from 'lucide-react';
 import { FileDropzone } from './FileDropzone';
 import { useAiParseBells, useBulkCommitBells } from '../../hooks/useBells';
+import { useLanguage } from '../../i18n/LanguageContext';
 import type { AiParsedBellSlot } from '../../types';
 
 interface AiBellsImportModalProps {
@@ -10,6 +11,7 @@ interface AiBellsImportModalProps {
 }
 
 export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps) {
+  const { t } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [slots, setSlots] = useState<AiParsedBellSlot[]>([]);
@@ -87,14 +89,14 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 md:p-6 overflow-y-auto">
       <div className="bg-bg-secondary border border-border rounded-xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-border">
+        <div className="flex justify-between items-center p-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
               <Sparkles size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">Import Bell Schedule via AI</h2>
-              <p className="text-xs text-text-muted">Upload a photo of your school's bell timetable (розклад дзвінків)</p>
+              <h2 className="text-lg font-semibold text-text-primary">{t('import_bells_ai')}</h2>
+              <p className="text-xs text-text-muted">{t('import_bells_desc')}</p>
             </div>
           </div>
           <button
@@ -115,10 +117,10 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
               {parseMutation.isError && (
                 <div className="mt-4 p-3.5 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm w-full text-left">
                   <p className="font-semibold flex items-center gap-1.5">
-                    <span>⚠️</span> Parsing failed
+                    <span>⚠️</span> {t('parsing_failed')}
                   </p>
                   <p className="text-xs mt-1 text-danger/90 break-words font-mono">
-                    {(parseMutation.error as any)?.response?.data?.detail || parseMutation.error.message || 'Unknown error'}
+                    {(parseMutation.error as any)?.response?.data?.detail || parseMutation.error.message || t('unknown_error')}
                   </p>
                 </div>
               )}
@@ -131,12 +133,12 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
                 {parseMutation.isPending ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    <span>Analyzing Image with Gemini 3.5 Flash...</span>
+                    <span>{t('analyzing_bells')}</span>
                   </>
                 ) : (
                   <>
                     <Sparkles size={18} />
-                    <span>Extract Bell Schedule</span>
+                    <span>{t('extract_bells_btn')}</span>
                   </>
                 )}
               </button>
@@ -147,7 +149,7 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
               {/* Image Preview (Left side on desktop) */}
               {previewUrl && (
                 <div className="w-full md:w-5/12 flex flex-col gap-2">
-                  <h3 className="text-sm font-medium text-text-primary">Source Image</h3>
+                  <h3 className="text-sm font-medium text-text-primary">{t('source_image')}</h3>
                   <div className="bg-bg-tertiary rounded-lg border border-border overflow-hidden h-64 md:h-[450px] flex items-center justify-center p-2">
                     <img
                       src={previewUrl}
@@ -162,13 +164,13 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
               <div className="flex-1 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-medium text-text-primary">
-                    Extracted Bell Slots ({slots.length})
+                    {t('extracted_bells')} ({slots.length})
                   </h3>
                   <button
                     onClick={handleAddSlot}
                     className="text-xs text-accent hover:bg-accent/10 px-2.5 py-1 rounded-md flex items-center gap-1 font-medium transition-colors"
                   >
-                    <Plus size={14} /> Add Lesson
+                    <Plus size={14} /> {t('add_lesson')}
                   </button>
                 </div>
 
@@ -176,10 +178,10 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
                   <table className="w-full text-left text-sm">
                     <thead className="bg-bg-tertiary text-text-secondary text-xs uppercase border-b border-border">
                       <tr>
-                        <th className="px-3 py-2 w-14">#</th>
-                        <th className="px-3 py-2">Label</th>
-                        <th className="px-3 py-2 w-28">Start</th>
-                        <th className="px-3 py-2 w-28">End</th>
+                        <th className="px-3 py-2 w-14">{t('table_num')}</th>
+                        <th className="px-3 py-2">{t('label_title')}</th>
+                        <th className="px-3 py-2 w-28">{t('table_start')}</th>
+                        <th className="px-3 py-2 w-28">{t('table_end')}</th>
                         <th className="px-2 py-2 w-10 text-center"></th>
                       </tr>
                     </thead>
@@ -199,7 +201,7 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
                             <input
                               type="text"
                               value={slot.name || ''}
-                              placeholder={`${slot.order} урок`}
+                              placeholder={`${slot.order} ${t('lesson_label')}`}
                               onChange={e => handleUpdateSlot(index, 'name', e.target.value)}
                               className="w-full bg-transparent border border-border rounded px-2 py-0.5 text-sm focus:border-accent focus:outline-none"
                             />
@@ -240,7 +242,7 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
                     onClick={() => setSlots([])}
                     className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary rounded-lg transition-colors"
                   >
-                    Re-upload
+                    {t('re_upload')}
                   </button>
                   <button
                     onClick={handleCommit}
@@ -252,7 +254,7 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
                     ) : (
                       <Check size={16} />
                     )}
-                    Save Bell Schedule
+                    {t('save_bell_schedule')}
                   </button>
                 </div>
               </div>

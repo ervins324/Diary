@@ -4,9 +4,11 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { getWeekDates, formatTime, cn } from '../lib/utils';
 import { HomeworkInline } from '../components/homework/HomeworkInline';
+import { useLanguage } from '../i18n/LanguageContext';
 import type { DaySchedule, LessonSlot } from '../types';
 
 export function DiaryPage() {
+  const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const { start, end } = getWeekDates(currentDate);
@@ -22,8 +24,8 @@ export function DiaryPage() {
   const getDayData = (index: number): DaySchedule | undefined => {
     return schedule?.find(day => {
       try {
-        // Assume date is 'yyyy-MM-dd', parse it to get weekday (1=Mon..6=Sat)
-        // Note: JS Date getDay: 0=Sun, 1=Mon. Our index is 0..5 (Mon..Sat).
+        // Assume date is 'yyyy-MM-dd', parse it to get weekday (1=Mon..5=Fri)
+        // Note: JS Date getDay: 0=Sun, 1=Mon. Our index is 0..4 (Mon..Fri).
         const d = parseISO(day.date);
         let dayOfWeek = d.getDay();
         if (dayOfWeek === 0) dayOfWeek = 7; // Treat Sun as 7
@@ -34,11 +36,19 @@ export function DiaryPage() {
     });
   };
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  // 5 days: Monday through Friday (Saturday excluded as requested)
+  const dayKeys: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday'> = [
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+  ];
+  // 3 days in left column (Mon, Tue, Wed), 2 days in right column (Thu, Fri)
   const leftColDays = [0, 1, 2];
-  const rightColDays = [3, 4, 5];
+  const rightColDays = [3, 4];
 
-  const renderDayCard = (dayIndex: number, dayName: string) => {
+  const renderDayCard = (dayIndex: number, dayKey: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday') => {
     const dayData = getDayData(dayIndex);
     const isToday = dayData?.date === todayStr;
 
@@ -54,7 +64,7 @@ export function DiaryPage() {
           "px-4 py-2 border-b border-border flex justify-between items-center rounded-t-lg",
           isToday ? "bg-accent-light text-accent" : "bg-bg-tertiary text-text-primary"
         )}>
-          <span className="font-semibold">{dayName}</span>
+          <span className="font-semibold">{t(dayKey)}</span>
           {dayData?.date && (
             <span className="text-sm opacity-80">{format(parseISO(dayData.date), 'dd.MM')}</span>
           )}
@@ -63,7 +73,7 @@ export function DiaryPage() {
         <div className="p-2 flex-1 flex flex-col gap-1 overflow-y-auto">
           {!dayData || dayData.lessons.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-sm text-text-muted italic">
-              No lessons
+              {t('no_lessons')}
             </div>
           ) : (
             dayData.lessons.map((lesson: LessonSlot) => (
@@ -77,7 +87,7 @@ export function DiaryPage() {
                       {lesson.subject.name}
                     </span>
                     {lesson.cabinet && (
-                      <span className="text-xs text-text-muted whitespace-nowrap">Cab {lesson.cabinet}</span>
+                      <span className="text-xs text-text-muted whitespace-nowrap">{t('cabinet_short')} {lesson.cabinet}</span>
                     )}
                   </div>
                   <div className="text-[11px] text-text-muted">
@@ -88,7 +98,7 @@ export function DiaryPage() {
                       <HomeworkInline key={hw.id} homework={hw} />
                     ))}
                     {(!lesson.homework || lesson.homework.length === 0) && (
-                      <span className="text-xs text-text-muted italic">No homework</span>
+                      <span className="text-xs text-text-muted italic">{t('no_homework')}</span>
                     )}
                   </div>
                 </div>
@@ -109,7 +119,7 @@ export function DiaryPage() {
         </button>
         
         <div className="flex flex-col items-center text-center cursor-pointer" onClick={handleCurrentWeek}>
-          <h1 className="text-xl font-bold text-text-primary">Week</h1>
+          <h1 className="text-xl font-bold text-text-primary">{t('week')}</h1>
           <span className="text-sm text-text-muted">
             {format(parseISO(start), 'MMM d')} - {format(parseISO(end), 'MMM d, yyyy')}
           </span>
@@ -128,21 +138,21 @@ export function DiaryPage() {
           </div>
         ) : (
           <>
-            {/* Desktop View */}
+            {/* Desktop View (Mon-Wed left, Thu-Fri right) */}
             <div className="hidden md:grid grid-cols-2 gap-6 h-full items-start">
               <div className="flex flex-col gap-4">
-                {leftColDays.map(index => renderDayCard(index, days[index]))}
+                {leftColDays.map(index => renderDayCard(index, dayKeys[index]))}
               </div>
               <div className="flex flex-col gap-4">
-                {rightColDays.map(index => renderDayCard(index, days[index]))}
+                {rightColDays.map(index => renderDayCard(index, dayKeys[index]))}
               </div>
             </div>
 
             {/* Mobile View */}
             <div className="md:hidden flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 h-full w-full">
-              {days.map((dayName, index) => (
+              {dayKeys.map((dayKey, index) => (
                 <div key={index} className="w-full shrink-0 snap-center">
-                  {renderDayCard(index, dayName)}
+                  {renderDayCard(index, dayKey)}
                 </div>
               ))}
             </div>

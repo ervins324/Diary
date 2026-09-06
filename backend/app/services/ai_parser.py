@@ -53,27 +53,46 @@ async def parse_schedule_image(
     )
 
     system_instruction = (
-        "You are an assistant that extracts school schedules from images. "
-        "Return the parsed schedule as a JSON object matching this schema:\n"
+        "Ти — асистент, який точно розпізнає та витягує шкільний розклад уроків зі зображень "
+        "(фотографій, скріншотів розкладів, таблиць тощо).\n"
+        "Поверни розпізнаний розклад уроків у вигляді JSON-об'єкта за такою схемою:\n"
         "{\n"
         '  "days": [\n'
         "    {\n"
-        '      "day_of_week": int (1 for Monday, 7 for Sunday),\n'
-        '      "day_name": string (e.g. "Monday"),\n'
+        '      "day_of_week": int (1 для Понеділка, 2 для Вівторка, 3 для Середи, 4 для Четверга, 5 для П\'ятниці, 6 для Суботи, 7 для Неділі),\n'
+        '      "day_name": string (наприклад, "Понеділок", "Вівторок", "Середа", "Четвер", "П\'ятниця", "Субота"),\n'
         '      "lessons": [\n'
         "        {\n"
-        '          "order": int (lesson number, starting at 1),\n'
-        '          "subject_name": string,\n'
-        '          "start_time": string (HH:MM format, or null if not visible in image),\n'
-        '          "end_time": string (HH:MM format, or null if not visible in image),\n'
-        '          "cabinet": string (optional, null if not present)\n'
+        '          "order": int (порядковий номер уроку, починаючи з 1),\n'
+        '          "subject_name": string (назва предмета),\n'
+        '          "start_time": string (час початку у 24-годинному форматі HH:MM, наприклад "08:30", або null якщо час не вказано на зображенні),\n'
+        '          "end_time": string (час закінчення у 24-годинному форматі HH:MM, наприклад "09:15", або null якщо час не вказано на зображенні),\n'
+        '          "cabinet": string (номер кабінету чи аудиторії, якщо вказано, або null)\n'
         "        }\n"
         "      ]\n"
         "    }\n"
         "  ]\n"
-        "}\n"
-        "If exact times are not visible in the timetable, set start_time and end_time to null. "
-        "Ensure all output is strictly valid JSON."
+        "}\n\n"
+        "Обов'язкові вимоги:\n"
+        "1. Завжди використовуй виключно 24-годинний формат часу HH:MM (наприклад, 08:30, 11:25, 14:00). Жодних AM/PM.\n"
+        "2. Якщо точний час уроку не надруковано на зображенні, обов'язково встанови start_time і end_time як null (система автоматично підставить шкільний розклад дзвінків).\n"
+        "3. Для скорочення довгих назв шкільних предметів обов'язково використовуй загальноприйняті стислі форми:\n"
+        "   - Українська мова -> Укр мова\n"
+        "   - Українська література -> Укр літ\n"
+        "   - Англійська мова / Іноземна мова -> Англ мова\n"
+        "   - Фізична культура / Фізвиховання -> Фізра (або Фіз культура)\n"
+        "   - Зарубіжна література -> Зар літ\n"
+        "   - Всесвітня історія -> Всесв іст\n"
+        "   - Історія України -> Іст України\n"
+        "   - Інформатика -> Інформ\n"
+        "   - Геометрія -> Геом\n"
+        "   - Алгебра -> Алг\n"
+        "   - Біологія -> Біол\n"
+        "   - Географія -> Геогр\n"
+        "   - Образотворче мистецтво -> Мистецтво\n"
+        "   - Трудове навчання -> Труд навч\n"
+        "   - Основи здоров'я -> Осн здоров'я\n"
+        "4. Виводь виключно чистий валідний JSON без додаткового пояснювального тексту."
     )
 
     try:
@@ -187,19 +206,23 @@ async def parse_bells_image(
     )
 
     system_instruction = (
-        "You are an assistant that extracts school bell schedules (розклад дзвінків) from images. "
-        "Return the parsed bell schedule as a JSON object matching this schema:\n"
+        "Ти — асистент, який точно витягує розклад шкільних дзвінків (час початку та закінчення кожного уроку) "
+        "зі зображень (фотографій розкладу дзвінків, оголошень, таблиць).\n"
+        "Поверни розпізнаний розклад дзвінків у вигляді JSON-об'єкта за такою схемою:\n"
         "{\n"
         '  "slots": [\n'
         "    {\n"
-        '      "order": int (lesson number, e.g. 1, 2, 3...),\n'
-        '      "start_time": string (HH:MM format, 24-hour e.g. "08:30"),\n'
-        '      "end_time": string (HH:MM format, 24-hour e.g. "09:15"),\n'
-        '      "name": string (optional, e.g. "1 урок" or null)\n'
+        '      "order": int (порядковий номер уроку: 1, 2, 3...),\n'
+        '      "start_time": string (час початку уроку у 24-годинному форматі HH:MM, наприклад "08:30"),\n'
+        '      "end_time": string (час закінчення уроку у 24-годинному форматі HH:MM, наприклад "09:15"),\n'
+        '      "name": string (назва, наприклад "1 урок", або null)\n'
         "    }\n"
         "  ]\n"
-        "}\n"
-        "Order the slots by ascending lesson order. Ensure all output is strictly valid JSON."
+        "}\n\n"
+        "Обов'язкові вимоги:\n"
+        "1. Завжди використовуй 24-годинний формат часу (HH:MM, наприклад 08:30, 13:20). Без AM/PM.\n"
+        "2. Сортуй уроки за зростанням номеру (order).\n"
+        "3. Виводь виключно чистий валідний JSON без зайвих слів."
     )
 
     try:

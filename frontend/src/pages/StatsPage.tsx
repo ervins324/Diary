@@ -5,9 +5,11 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { fetchWeeklyStats } from '../api/client';
 import { getWeekDates } from '../lib/utils';
+import { useLanguage } from '../i18n/LanguageContext';
 import type { WeeklyStat } from '../types';
 
 export function StatsPage() {
+  const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const { start, end } = getWeekDates(currentDate);
 
@@ -39,7 +41,7 @@ export function StatsPage() {
         <div className="bg-bg-secondary border border-border p-3 rounded-lg shadow-lg">
           <p className="font-semibold text-text-primary mb-1">{data.subject_name}</p>
           <p className="text-sm text-text-secondary">
-            Duration: <span className="font-medium text-text-primary">{hours}h {mins}m</span>
+            {t('duration')}: <span className="font-medium text-text-primary">{hours}{t('hours_short')} {mins}{t('minutes_short')}</span>
           </p>
         </div>
       );
@@ -56,7 +58,7 @@ export function StatsPage() {
         </button>
         
         <div className="flex flex-col items-center text-center">
-          <h1 className="text-xl font-bold text-text-primary">Weekly Statistics</h1>
+          <h1 className="text-xl font-bold text-text-primary">{t('weekly_stats')}</h1>
           <span className="text-sm text-text-muted">
             {format(parseISO(start), 'MMM d')} - {format(parseISO(end), 'MMM d, yyyy')}
           </span>
@@ -75,7 +77,7 @@ export function StatsPage() {
           </div>
         ) : chartData.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
-            <p className="text-text-muted text-lg mb-2">No data for this week</p>
+            <p className="text-text-muted text-lg mb-2">{t('no_data_week')}</p>
           </div>
         ) : (
           <>
@@ -108,13 +110,13 @@ export function StatsPage() {
             {/* Summary */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-bg-secondary p-4 rounded-xl border border-border shadow-sm flex flex-col items-center text-center">
-                <span className="text-sm text-text-secondary mb-1">Total Hours</span>
+                <span className="text-sm text-text-secondary mb-1">{t('total_hours')}</span>
                 <span className="text-2xl font-bold text-text-primary">
-                  {Math.floor(totalMinutes / 60)}<span className="text-lg text-text-muted font-normal">h</span> {totalMinutes % 60}<span className="text-lg text-text-muted font-normal">m</span>
+                  {Math.floor(totalMinutes / 60)}<span className="text-lg text-text-muted font-normal">{t('hours_short')}</span> {totalMinutes % 60}<span className="text-lg text-text-muted font-normal">{t('minutes_short')}</span>
                 </span>
               </div>
               <div className="bg-bg-secondary p-4 rounded-xl border border-border shadow-sm flex flex-col items-center text-center">
-                <span className="text-sm text-text-secondary mb-1">Busiest Subject</span>
+                <span className="text-sm text-text-secondary mb-1">{t('busiest_subject')}</span>
                 <span className="text-xl font-bold text-text-primary truncate w-full" style={{ color: busiestSubject?.color_hex || 'inherit' }}>
                   {busiestSubject?.subject_name}
                 </span>

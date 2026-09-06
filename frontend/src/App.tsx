@@ -8,6 +8,8 @@ import { StatsPage } from './pages/StatsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useTheme } from './hooks/useTheme';
 
+import { LanguageProvider } from './i18n/LanguageContext';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -22,19 +24,21 @@ function App() {
   useTheme();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<DailyPage />} />
-            <Route path="/diary" element={<DiaryPage />} />
-            <Route path="/bells" element={<BellsPage />} />
-            <Route path="/stats" element={<StatsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
-        </Layout>
-      </Router>
-    </QueryClientProvider>
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<DailyPage />} />
+              <Route path="/diary" element={<DiaryPage />} />
+              <Route path="/bells" element={<BellsPage />} />
+              <Route path="/stats" element={<StatsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+          </Layout>
+        </Router>
+      </QueryClientProvider>
+    </LanguageProvider>
   );
 }
 
