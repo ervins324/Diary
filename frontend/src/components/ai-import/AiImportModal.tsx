@@ -102,7 +102,14 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
             <div className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full py-10">
               <FileDropzone onFileSelect={setFile} selectedFile={file} />
               {parseMutation.isError && (
-                <p className="mt-4 text-danger text-sm">Failed to parse image. Please try again.</p>
+                <div className="mt-4 p-3.5 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm w-full max-w-lg text-left">
+                  <p className="font-semibold flex items-center gap-1.5">
+                    <span>⚠️</span> Parsing failed
+                  </p>
+                  <p className="text-xs mt-1 text-danger/90 break-words">
+                    {(parseMutation.error as any)?.response?.data?.detail || parseMutation.error.message || 'Unknown error occurred'}
+                  </p>
+                </div>
               )}
               <button
                 onClick={handleParse}

@@ -11,8 +11,11 @@ from app.schemas.schedule import (
     DaySchedule, AiParseResponse, BulkCommitRequest,
     ScheduleRuleCreate, BulkCommitByNameRequest, BulkCommitByNameRule,
 )
+import logging
 from app.services.schedule_service import get_schedule_for_range
 from app.services.ai_parser import parse_schedule_image
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/schedule", tags=["schedule"])
 
@@ -35,11 +38,24 @@ async def get_schedule(
 @router.post("/ai-parse", response_model=AiParseResponse)
 async def ai_parse(file: UploadFile = File(...)):
     """
-    Parse a schedule image using Gemini 2.0 Flash AI.
+    Parse a schedule image using Gemini 3.5 Flash AI.
     Returns structured JSON for client-side review — does NOT write to DB.
     """
+    logger.info(f"POST /api/v1/schedule/ai-parse received file: '{file.filename}' (content_type={file.content_type})")
     image_bytes = await file.read()
-    return await parse_schedule_image(image_bytes, file.filename or "upload.jpg", settings.GEMINI_API_KEY)
+    if not image_bytes:
+        logger.warning("Empty file uploaded to /ai-parse")
+        raise HTTPException(status_code=400, detail="Uploaded file is empty (0 bytes)")
+
+    logger.info(f"Read {len(image_bytes)} bytes for schedule image. Calling AI parser...")
+    result = await parse_schedule_image(
+        image_bytes=image_bytes,
+        filename=file.filename or "upload.jpg",
+        api_key=settings.GEMINI_API_KEY,
+        content_type=file.content_type,
+    )
+    logger.info(f"Successfully parsed schedule image: extracted {len(result.days)} day(s)")
+    return result
 
 
 @router.post("/bulk-commit", status_code=status.HTTP_200_OK)

@@ -1,5 +1,20 @@
 # School Diary — Changelog
 
+## v1.0.3 — 2026-09-06
+
+### 🔍 Logging & Diagnostics Overhaul
+- **Centralized Backend Logging**:
+  - Configured structured logging with timestamps, logger names, and standard log levels in `main.py`.
+  - Added request/response lifecycle logging middleware tracking HTTP method, path, and response status codes.
+  - Added a global FastAPI exception handler ensuring any unhandled server errors log full tracebacks to stdout.
+- **AI Parser Diagnostics (`ai_parser.py`)**:
+  - Added fine-grained logging for AI parse operations (filename, MIME type, payload size in bytes, extraction results).
+  - Explicitly handled `google.genai.errors.APIError` with status code mapping (400, 401, 403, 404, 429, 502, 503) instead of masking everything under generic 500 errors.
+  - Added automatic markdown code block stripping (` ```json `) to prevent JSON decode failures.
+  - Added raw response logging when Gemini returns malformed JSON or validation fails.
+- **Frontend Error Visibility (`AiImportModal.tsx`)**:
+  - Updated error display to extract and render the exact backend error message (`error.response.data.detail`) directly in the modal, giving immediate feedback if an image cannot be processed, API key is missing, or quota is exceeded.
+
 ## v1.0.2 — 2026-09-05
 
 ### 🛠️ API Routing & AI Engine Fixes

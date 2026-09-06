@@ -3,3 +3,4 @@
 3. Log important new features that you add to the UPDATES.md file, specifying the current date and application version. I need this to later include in my platform update changelog. 
 4. When designing the UI, adapt it for mobile version immediatly
 5. Always reply to me in english.
+6. Gemini flash 2.5 is outdated, use 3.5 instead
