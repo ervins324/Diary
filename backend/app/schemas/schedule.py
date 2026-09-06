@@ -97,3 +97,10 @@ class BulkCommitByNameRequest(BaseModel):
     """Request body for bulk-commit-by-name endpoint."""
     week_type: str
     rules: list[BulkCommitByNameRule]
+
+
+# ── Direct JSON parse request (used when user pastes JSON from external AI) ──
+class JsonScheduleParseRequest(BaseModel):
+    """Request body containing raw JSON string from external AI or user."""
+    raw_json: str
+

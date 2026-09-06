@@ -1,5 +1,22 @@
 # School Diary — Changelog
 
+## v1.5.0 — 2026-09-06
+
+### 📋 Direct JSON Schedule Import (No Gemini API Key Required)
+- **Direct JSON Parsing Endpoint (`POST /api/v1/schedule/parse-json`)**:
+  - Added dedicated endpoint allowing users to submit timetable JSON directly (from external AI chats like ChatGPT, Claude, Gemini Web, DeepSeek, etc.).
+  - Strips markdown code fences (` ```json `), supports either root `{"days": [...]}` object or top-level array `[...]`.
+  - Enriches any missing or `null` start/end lesson times automatically from the database's `bell_schedules` table (or standard defaults).
+  - Eliminates the requirement for a configured backend `GEMINI_API_KEY` for timetable importing.
+- **Enhanced AI Import Modal UI**:
+  - Added tab switcher between **Photo (AI)** and **JSON from AI**.
+  - Added **"Copy Prompt for AI"** button that copies a pre-formatted system prompt and JSON schema with 1-click.
+  - Added JSON input textarea with `.json` file upload support.
+  - Side-by-side review mode displays the source JSON formatted in a scrollable viewer next to the interactive `EditablePreview` table and week type selector (`numerator`, `denominator`, `both`).
+  - Mobile-adapted responsive layout with touch-friendly tabs and buttons.
+- **Localization**:
+  - Added complete English (`en`) and Ukrainian (`uk`) translations for all new JSON import controls, tooltips, and placeholders.
+
 ## v1.4.0 — 2026-09-06
 
 ### 🔔 Dynamic Bell Schedule Time Integration

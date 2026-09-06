@@ -71,6 +71,12 @@ export const aiParseSchedule = async (file: File): Promise<{ days: AiParsedDay[]
   return data;
 };
 
+/* Parse user-submitted schedule JSON directly (from external AI, no API key needed) */
+export const parseScheduleJson = async (rawJson: string): Promise<{ days: AiParsedDay[] }> => {
+  const { data } = await api.post('/schedule/parse-json', { raw_json: rawJson });
+  return data;
+};
+
 /* Bulk commit schedule rules using subject IDs (manual entry) */
 export const bulkCommitSchedule = async (scheduleData: { week_type: string; rules: unknown[] }): Promise<void> => {
   await api.post('/schedule/bulk-commit', scheduleData);

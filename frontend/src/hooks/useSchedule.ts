@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchSchedule,
   aiParseSchedule,
+  parseScheduleJson,
   bulkCommitSchedule,
   bulkCommitByName,
   fetchScheduleRules,
@@ -21,6 +22,13 @@ export const useSchedule = (startDate: string, endDate: string) => {
 export const useAiParse = () => {
   return useMutation({
     mutationFn: aiParseSchedule,
+  });
+};
+
+/* Hook for parsing user-submitted schedule JSON directly (no API key needed) */
+export const useParseScheduleJson = () => {
+  return useMutation({
+    mutationFn: parseScheduleJson,
   });
 };
 

@@ -99,7 +99,7 @@ async def parse_schedule_image(
         # Generate structured JSON output with automatic function calling disabled
         # to avoid the SDK warning regarding AFC in Models.generate_content
         response = client.models.generate_content(
-            model='gemini-3.5-flash',
+            model='gemini-3.8-flash',
             contents=[
                 types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                 "Extract the schedule from this image and provide the structured JSON.",

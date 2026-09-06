@@ -7,11 +7,12 @@ from app.database import get_db
 from app.config import settings
 from app.models.schedule_rule import ScheduleRule, WeekType
 from app.models.subject import Subject
+import json
 from app.models.bell_schedule import BellSchedule
 from app.schemas.schedule import (
     DaySchedule, AiParseResponse, BulkCommitRequest,
     ScheduleRuleCreate, ScheduleRuleRead, BulkCommitByNameRequest, BulkCommitByNameRule,
-    get_default_bell_times,
+    get_default_bell_times, JsonScheduleParseRequest,
 )
 import logging
 from app.services.schedule_service import get_schedule_for_range
@@ -63,6 +64,15 @@ async def ai_parse(
     )
     logger.info(f"Successfully parsed schedule image: extracted {len(result.days)} day(s)")
 
+    # Enrich missing lesson times using DB bells or hardcoded fallback
+    return await apply_bell_times_fallback(result, db)
+
+
+async def apply_bell_times_fallback(result: AiParseResponse, db: AsyncSession) -> AiParseResponse:
+    """
+    Helper function to fill in missing lesson start_time and end_time
+    using the bell_schedules table if configured, otherwise falling back to standard hardcoded bell times.
+    """
     # Query imported bell schedule from database to use as time fallback
     bell_stmt = select(BellSchedule).order_by(BellSchedule.lesson_order)
     bell_result = await db.execute(bell_stmt)
@@ -94,6 +104,65 @@ async def ai_parse(
                     lesson.end_time = get_default_bell_times(lesson.order)[1]
 
     return result
+
+
+@router.post("/parse-json", response_model=AiParseResponse)
+async def parse_schedule_json(
+    request: JsonScheduleParseRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Parse a JSON string representing schedule days and lessons,
+    typically obtained from an external AI (ChatGPT, Claude, Gemini Web, etc.).
+    Validates structure, enriches missing bell times from database, and returns
+    for client review without requiring a backend GEMINI_API_KEY.
+    """
+    raw_text = request.raw_json.strip()
+    if not raw_text:
+        raise HTTPException(status_code=400, detail="Empty JSON payload received")
+
+    # Strip markdown code fences if wrapped in ```json ... ``` or ``` ... ```
+    if raw_text.startswith("```json"):
+        raw_text = raw_text[7:]
+    elif raw_text.startswith("```"):
+        raw_text = raw_text[3:]
+    if raw_text.endswith("```"):
+        raw_text = raw_text[:-3]
+    raw_text = raw_text.strip()
+
+    # Parse JSON
+    try:
+        data = json.loads(raw_text)
+    except json.JSONDecodeError as e:
+        logger.warning(f"Failed to decode JSON from request: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid JSON format: {str(e)}"
+        )
+
+    # Normalize if the top-level object is a list of days: [{"day_of_week": ...}]
+    if isinstance(data, list):
+        data = {"days": data}
+
+    if not isinstance(data, dict) or "days" not in data:
+        raise HTTPException(
+            status_code=422,
+            detail="JSON structure must contain a 'days' array with lesson details."
+        )
+
+    # Validate against Pydantic schema
+    try:
+        validated = AiParseResponse.model_validate(data)
+    except Exception as e:
+        logger.warning(f"Validation failed for user-submitted schedule JSON: {e}")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Schedule JSON validation error: {str(e)}"
+        )
+
+    # Enrich missing lesson times from bell_schedules table
+    return await apply_bell_times_fallback(validated, db)
+
 
 
 @router.post("/bulk-commit", status_code=status.HTTP_200_OK)
