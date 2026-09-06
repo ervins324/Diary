@@ -7,9 +7,11 @@ from app.database import get_db
 from app.config import settings
 from app.models.schedule_rule import ScheduleRule, WeekType
 from app.models.subject import Subject
+from app.models.bell_schedule import BellSchedule
 from app.schemas.schedule import (
     DaySchedule, AiParseResponse, BulkCommitRequest,
     ScheduleRuleCreate, ScheduleRuleRead, BulkCommitByNameRequest, BulkCommitByNameRule,
+    get_default_bell_times,
 )
 import logging
 from app.services.schedule_service import get_schedule_for_range
@@ -36,10 +38,15 @@ async def get_schedule(
 
 
 @router.post("/ai-parse", response_model=AiParseResponse)
-async def ai_parse(file: UploadFile = File(...)):
+async def ai_parse(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
     """
     Parse a schedule image using Gemini 3.5 Flash AI.
     Returns structured JSON for client-side review — does NOT write to DB.
+    Missing lesson times are populated from the bell_schedules table (if available),
+    falling back to hardcoded defaults when no bells exist in the database.
     """
     logger.info(f"POST /api/v1/schedule/ai-parse received file: '{file.filename}' (content_type={file.content_type})")
     image_bytes = await file.read()
@@ -55,6 +62,37 @@ async def ai_parse(file: UploadFile = File(...)):
         content_type=file.content_type,
     )
     logger.info(f"Successfully parsed schedule image: extracted {len(result.days)} day(s)")
+
+    # Query imported bell schedule from database to use as time fallback
+    bell_stmt = select(BellSchedule).order_by(BellSchedule.lesson_order)
+    bell_result = await db.execute(bell_stmt)
+    bell_rows = bell_result.scalars().all()
+
+    # Build lesson_order → (start_time, end_time) lookup from DB bells
+    db_bell_times: dict[int, tuple[str, str]] = {}
+    for bell in bell_rows:
+        db_bell_times[bell.lesson_order] = (
+            bell.start_time.strftime("%H:%M"),
+            bell.end_time.strftime("%H:%M"),
+        )
+
+    bell_source = "database" if db_bell_times else "hardcoded defaults"
+    logger.info(f"Bell schedule fallback source: {bell_source} ({len(db_bell_times)} slots from DB)")
+
+    # Post-process: fill missing start_time/end_time using DB bells → hardcoded fallback
+    for day in result.days:
+        for lesson in day.lessons:
+            if not lesson.start_time or not lesson.start_time.strip():
+                if lesson.order in db_bell_times:
+                    lesson.start_time = db_bell_times[lesson.order][0]
+                else:
+                    lesson.start_time = get_default_bell_times(lesson.order)[0]
+            if not lesson.end_time or not lesson.end_time.strip():
+                if lesson.order in db_bell_times:
+                    lesson.end_time = db_bell_times[lesson.order][1]
+                else:
+                    lesson.end_time = get_default_bell_times(lesson.order)[1]
+
     return result
 
 

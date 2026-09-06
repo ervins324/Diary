@@ -1,5 +1,18 @@
 # School Diary — Changelog
 
+## v1.4.0 — 2026-09-06
+
+### 🔔 Dynamic Bell Schedule Time Integration
+- **Backend: Database-Driven Bell Time Fallback**:
+  - Refactored `POST /api/v1/schedule/ai-parse` to query the `bell_schedules` database table when AI-parsed lesson times are missing.
+  - Removed hardcoded time population from the Pydantic `AiParsedLesson` model validator; time assignment now happens in the router endpoint where the DB session is available.
+  - 3-tier fallback chain: AI-extracted times → imported bell schedule from DB → hardcoded `DEFAULT_BELL_TIMES` as last resort.
+  - Added structured logging indicating which bell time source is being used (database vs hardcoded defaults).
+- **Frontend: Bell-Aware Schedule Editing**:
+  - `AiImportModal.tsx`, `ScheduleEditorModal.tsx`, and `EditablePreview.tsx` now fetch imported bell schedule data via `useBells()` hook.
+  - All time fallbacks (commit handlers, new lesson defaults, rule loading) use imported bell times instead of hardcoded values.
+  - Adding a new lesson in the editable preview table now auto-fills the correct start/end time based on the imported bell schedule for that lesson order.
+
 ## v1.3.0 — 2026-09-06
 
 ### ⚙️ Standalone Schedule Editor, Subject Export & Data Management Danger Zone

@@ -1,6 +1,6 @@
 import uuid
 from datetime import time, date
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict
 from app.schemas.subject import SubjectRead
 from app.schemas.homework import HomeworkRead
 
@@ -72,20 +72,6 @@ class AiParsedLesson(BaseModel):
     start_time: str | None = None
     end_time: str | None = None
     cabinet: str | None = None
-
-    @model_validator(mode="after")
-    def populate_default_times(self) -> "AiParsedLesson":
-        """
-        If the AI parser returned null or empty for start_time/end_time
-        (common when timetables only show subject names without lesson hour columns),
-        automatically populate sensible default bell times based on the lesson order.
-        """
-        def_start, def_end = get_default_bell_times(self.order)
-        if not self.start_time or not self.start_time.strip():
-            self.start_time = def_start
-        if not self.end_time or not self.end_time.strip():
-            self.end_time = def_end
-        return self
 
 class AiParsedDay(BaseModel):
     day_of_week: int

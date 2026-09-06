@@ -1,13 +1,15 @@
 import { Plus, Trash2 } from 'lucide-react';
-import type { AiParsedDay, AiParsedLesson } from '../../types';
+import type { AiParsedDay, AiParsedLesson, BellSlot } from '../../types';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 interface EditablePreviewProps {
   data: AiParsedDay[];
   onChange: (data: AiParsedDay[]) => void;
+  /* Optional bell schedule slots for smart default times when adding new lessons */
+  bellSlots?: BellSlot[];
 }
 
-export function EditablePreview({ data, onChange }: EditablePreviewProps) {
+export function EditablePreview({ data, onChange, bellSlots }: EditablePreviewProps) {
   const { t } = useLanguage();
   
   const updateLesson = (dayIndex: number, lessonIndex: number, field: keyof AiParsedLesson, value: any) => {
@@ -25,11 +27,16 @@ export function EditablePreview({ data, onChange }: EditablePreviewProps) {
       ? Math.max(...newData[dayIndex].lessons.map(l => l.order)) + 1 
       : 1;
     
+    /* Use imported bell schedule times if available, otherwise fall back to hardcoded defaults */
+    const bellSlot = bellSlots?.find(b => b.lesson_order === newOrder);
+    const defaultStart = bellSlot ? bellSlot.start_time.substring(0, 5) : '08:00';
+    const defaultEnd = bellSlot ? bellSlot.end_time.substring(0, 5) : '08:45';
+
     newData[dayIndex].lessons.push({
       order: newOrder,
       subject_name: 'New Subject',
-      start_time: '08:00',
-      end_time: '08:45',
+      start_time: defaultStart,
+      end_time: defaultEnd,
       cabinet: ''
     });
     onChange(newData);

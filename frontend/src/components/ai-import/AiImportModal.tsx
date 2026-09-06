@@ -3,6 +3,7 @@ import { X, Loader2 } from 'lucide-react';
 import { FileDropzone } from './FileDropzone';
 import { EditablePreview } from './EditablePreview';
 import { useAiParse, useBulkCommitByName } from '../../hooks/useSchedule';
+import { useBells } from '../../hooks/useBells';
 import { useLanguage } from '../../i18n/LanguageContext';
 import type { AiParsedDay } from '../../types';
 
@@ -26,6 +27,8 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
   const parseMutation = useAiParse();
   /* Use bulk-commit-by-name to auto-create subjects from AI-parsed names */
   const commitMutation = useBulkCommitByName();
+  /* Fetch imported bell schedule for smart time fallbacks */
+  const { data: bellSlots } = useBells();
 
   /* Create object URL for image preview */
   useEffect(() => {
@@ -53,14 +56,21 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
   const handleCommit = () => {
     /* Transform parsed data into bulk-commit-by-name format */
     const rules = parsedData.flatMap(day =>
-      day.lessons.map(lesson => ({
-        subject_name: lesson.subject_name,
-        day_of_week: day.day_of_week,
-        lesson_order: lesson.order,
-        start_time: lesson.start_time || '08:30',
-        end_time: lesson.end_time || '09:15',
-        cabinet: lesson.cabinet || null,
-      }))
+      day.lessons.map(lesson => {
+        /* Use imported bell schedule times as fallback, then hardcoded defaults */
+        const bellSlot = bellSlots?.find(b => b.lesson_order === lesson.order);
+        const fallbackStart = bellSlot ? bellSlot.start_time.substring(0, 5) : '08:30';
+        const fallbackEnd = bellSlot ? bellSlot.end_time.substring(0, 5) : '09:15';
+
+        return {
+          subject_name: lesson.subject_name,
+          day_of_week: day.day_of_week,
+          lesson_order: lesson.order,
+          start_time: lesson.start_time || fallbackStart,
+          end_time: lesson.end_time || fallbackEnd,
+          cabinet: lesson.cabinet || null,
+        };
+      })
     );
 
     /* If "both" is selected, commit for both numerator and denominator */
@@ -152,7 +162,7 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
                 </div>
                 
                 <div className="flex-1 border border-border rounded-lg overflow-hidden bg-bg-primary min-h-0 flex flex-col">
-                  <EditablePreview data={parsedData} onChange={setParsedData} />
+                  <EditablePreview data={parsedData} onChange={setParsedData} bellSlots={bellSlots} />
                 </div>
               </div>
             </>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Loader2, Save, Calendar } from 'lucide-react';
 import { EditablePreview } from '../ai-import/EditablePreview';
 import { useScheduleRules, useBulkCommitByName } from '../../hooks/useSchedule';
+import { useBells } from '../../hooks/useBells';
 import { useLanguage } from '../../i18n/LanguageContext';
 import type { AiParsedDay } from '../../types';
 
@@ -26,6 +27,8 @@ export function ScheduleEditorModal({ isOpen, onClose, initialWeekType = 'numera
   
   const { data: rawRules, isLoading } = useScheduleRules(weekType === 'both' ? undefined : weekType);
   const commitMutation = useBulkCommitByName();
+  /* Fetch imported bell schedule for smart time fallbacks */
+  const { data: bellSlots } = useBells();
 
   // Populate editor data when raw rules are loaded or weekType changes
   useEffect(() => {
@@ -49,31 +52,45 @@ export function ScheduleEditorModal({ isOpen, onClose, initialWeekType = 'numera
       return {
         day_of_week: d.day_of_week,
         day_name: dayNames[index],
-        lessons: dayRules.map(r => ({
-          order: r.lesson_order,
-          subject_name: r.subject.name,
-          start_time: (r.start_time || '08:30').substring(0, 5),
-          end_time: (r.end_time || '09:15').substring(0, 5),
-          cabinet: r.cabinet || '',
-        })),
+        lessons: dayRules.map(r => {
+          /* Use imported bell schedule times as fallback, then hardcoded defaults */
+          const bellSlot = bellSlots?.find(b => b.lesson_order === r.lesson_order);
+          const fallbackStart = bellSlot ? bellSlot.start_time.substring(0, 5) : '08:30';
+          const fallbackEnd = bellSlot ? bellSlot.end_time.substring(0, 5) : '09:15';
+
+          return {
+            order: r.lesson_order,
+            subject_name: r.subject.name,
+            start_time: (r.start_time || fallbackStart).substring(0, 5),
+            end_time: (r.end_time || fallbackEnd).substring(0, 5),
+            cabinet: r.cabinet || '',
+          };
+        }),
       };
     });
 
     setScheduleData(groupedDays);
-  }, [rawRules, isOpen, weekType, language]);
+  }, [rawRules, isOpen, weekType, language, bellSlots]);
 
   if (!isOpen) return null;
 
   const handleCommit = async () => {
     const rules = scheduleData.flatMap(day =>
-      day.lessons.map(lesson => ({
-        subject_name: lesson.subject_name,
-        day_of_week: day.day_of_week,
-        lesson_order: lesson.order,
-        start_time: (lesson.start_time || '08:30').substring(0, 5),
-        end_time: (lesson.end_time || '09:15').substring(0, 5),
-        cabinet: lesson.cabinet || null,
-      }))
+      day.lessons.map(lesson => {
+        /* Use imported bell schedule times as fallback, then hardcoded defaults */
+        const bellSlot = bellSlots?.find(b => b.lesson_order === lesson.order);
+        const fallbackStart = bellSlot ? bellSlot.start_time.substring(0, 5) : '08:30';
+        const fallbackEnd = bellSlot ? bellSlot.end_time.substring(0, 5) : '09:15';
+
+        return {
+          subject_name: lesson.subject_name,
+          day_of_week: day.day_of_week,
+          lesson_order: lesson.order,
+          start_time: (lesson.start_time || fallbackStart).substring(0, 5),
+          end_time: (lesson.end_time || fallbackEnd).substring(0, 5),
+          cabinet: lesson.cabinet || null,
+        };
+      })
     );
 
     const weekTypes = weekType === 'both' ? ['numerator', 'denominator'] : [weekType];
@@ -129,7 +146,7 @@ export function ScheduleEditorModal({ isOpen, onClose, initialWeekType = 'numera
             </div>
           ) : (
             <div className="flex-1 border border-border rounded-lg overflow-hidden bg-bg-primary min-h-0 flex flex-col shadow-xs">
-              <EditablePreview data={scheduleData} onChange={setScheduleData} />
+              <EditablePreview data={scheduleData} onChange={setScheduleData} bellSlots={bellSlots} />
             </div>
           )}
         </div>
