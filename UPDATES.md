@@ -1,5 +1,17 @@
 # School Diary — Changelog
 
+## v1.0.4 — 2026-09-06
+
+### ⏰ Resilient AI Timetable Time Parsing & Default Bell Schedule
+- **Flexible Lesson Time Schema**:
+  - Made `start_time` and `end_time` nullable in `AiParsedLesson` (`str | None = None`) to handle timetables that only display subject names and lesson order numbers without explicit start/end hour columns.
+  - Added a Pydantic `model_validator` in `schedule.py` that automatically populates standard school bell times based on the lesson order (e.g., Lesson 1: 08:30–09:15, Lesson 2: 09:25–10:10, Lesson 3: 10:25–11:10, etc.) if omitted by the image.
+- **AI Prompt Guidance**:
+  - Updated the Gemini 3.5 Flash system instruction in `ai_parser.py` instructing the model to pass `null` for `start_time`/`end_time` if exact times are not printed on the timetable, allowing automatic fallback time assignment.
+- **Frontend Safeguards**:
+  - Made time substring operations in `EditablePreview.tsx` null-safe (`(lesson.start_time || '').substring(0, 5)`) to prevent runtime crashes.
+  - Added fallback default times in `AiImportModal.tsx` commit handler.
+
 ## v1.0.3 — 2026-09-06
 
 ### 🔍 Logging & Diagnostics Overhaul

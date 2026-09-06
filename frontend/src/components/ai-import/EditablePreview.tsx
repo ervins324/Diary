@@ -89,7 +89,7 @@ export function EditablePreview({ data, onChange }: EditablePreviewProps) {
                   <td className="px-3 py-1.5">
                     <input 
                       type="time" 
-                      value={lesson.start_time.substring(0, 5)} 
+                      value={(lesson.start_time || '').substring(0, 5)} 
                       onChange={(e) => updateLesson(dayIndex, lessonIndex, 'start_time', e.target.value + ':00')}
                       className="w-full bg-transparent border border-border rounded px-1 py-1 focus:border-accent focus:outline-none"
                     />
@@ -97,7 +97,7 @@ export function EditablePreview({ data, onChange }: EditablePreviewProps) {
                   <td className="px-3 py-1.5">
                     <input 
                       type="time" 
-                      value={lesson.end_time.substring(0, 5)} 
+                      value={(lesson.end_time || '').substring(0, 5)} 
                       onChange={(e) => updateLesson(dayIndex, lessonIndex, 'end_time', e.target.value + ':00')}
                       className="w-full bg-transparent border border-border rounded px-1 py-1 focus:border-accent focus:outline-none"
                     />

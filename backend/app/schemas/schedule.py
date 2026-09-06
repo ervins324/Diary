@@ -1,6 +1,6 @@
 import uuid
 from datetime import time, date
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from app.schemas.subject import SubjectRead
 from app.schemas.homework import HomeworkRead
 
@@ -45,12 +45,47 @@ class BulkCommitRequest(BaseModel):
     week_type: str
     rules: list[ScheduleRuleCreate]
 
+# Default standard lesson bell schedule used when timetable images lack explicit time stamps
+DEFAULT_BELL_TIMES: dict[int, tuple[str, str]] = {
+    1: ("08:30", "09:15"),
+    2: ("09:25", "10:10"),
+    3: ("10:25", "11:10"),
+    4: ("11:25", "12:10"),
+    5: ("12:25", "13:10"),
+    6: ("13:25", "14:10"),
+    7: ("14:20", "15:05"),
+    8: ("15:15", "16:00"),
+    9: ("16:10", "16:55"),
+    10: ("17:05", "17:50"),
+}
+
+def get_default_bell_times(order: int) -> tuple[str, str]:
+    """Helper to return fallback bell times based on lesson order."""
+    if order in DEFAULT_BELL_TIMES:
+        return DEFAULT_BELL_TIMES[order]
+    base_hour = min(8 + (order - 1), 22)
+    return (f"{base_hour:02d}:00", f"{base_hour:02d}:45")
+
 class AiParsedLesson(BaseModel):
     order: int
     subject_name: str
-    start_time: str
-    end_time: str
+    start_time: str | None = None
+    end_time: str | None = None
     cabinet: str | None = None
+
+    @model_validator(mode="after")
+    def populate_default_times(self) -> "AiParsedLesson":
+        """
+        If the AI parser returned null or empty for start_time/end_time
+        (common when timetables only show subject names without lesson hour columns),
+        automatically populate sensible default bell times based on the lesson order.
+        """
+        def_start, def_end = get_default_bell_times(self.order)
+        if not self.start_time or not self.start_time.strip():
+            self.start_time = def_start
+        if not self.end_time or not self.end_time.strip():
+            self.end_time = def_end
+        return self
 
 class AiParsedDay(BaseModel):
     day_of_week: int

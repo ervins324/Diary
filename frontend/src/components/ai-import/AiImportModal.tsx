@@ -55,8 +55,8 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
         subject_name: lesson.subject_name,
         day_of_week: day.day_of_week,
         lesson_order: lesson.order,
-        start_time: lesson.start_time,
-        end_time: lesson.end_time,
+        start_time: lesson.start_time || '08:30',
+        end_time: lesson.end_time || '09:15',
         cabinet: lesson.cabinet || null,
       }))
     );

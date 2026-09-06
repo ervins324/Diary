@@ -45,8 +45,8 @@ export interface WeeklyStat {
 export interface AiParsedLesson {
   order: number;
   subject_name: string;
-  start_time: string;
-  end_time: string;
+  start_time: string | null;
+  end_time: string | null;
   cabinet: string | null;
 }
 

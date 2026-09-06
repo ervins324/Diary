@@ -61,16 +61,17 @@ async def parse_schedule_image(
         '      "day_name": string (e.g. "Monday"),\n'
         '      "lessons": [\n'
         "        {\n"
-        '          "order": int (lesson number),\n'
+        '          "order": int (lesson number, starting at 1),\n'
         '          "subject_name": string,\n'
-        '          "start_time": string (HH:MM format),\n'
-        '          "end_time": string (HH:MM format),\n'
+        '          "start_time": string (HH:MM format, or null if not visible in image),\n'
+        '          "end_time": string (HH:MM format, or null if not visible in image),\n'
         '          "cabinet": string (optional, null if not present)\n'
         "        }\n"
         "      ]\n"
         "    }\n"
         "  ]\n"
         "}\n"
+        "If exact times are not visible in the timetable, set start_time and end_time to null. "
         "Ensure all output is strictly valid JSON."
     )
 
