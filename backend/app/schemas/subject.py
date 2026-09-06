@@ -3,13 +3,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class SubjectCreate(BaseModel):
     name: str = Field(..., max_length=100)
-    short_name: str = Field(..., max_length=10)
+    short_name: str = Field(..., max_length=30)
     color_hex: str = Field(default="#6B7280", max_length=7)
     default_cabinet: str | None = Field(default=None, max_length=20)
 
 class SubjectUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=100)
-    short_name: str | None = Field(default=None, max_length=10)
+    short_name: str | None = Field(default=None, max_length=30)
     color_hex: str | None = Field(default=None, max_length=7)
     default_cabinet: str | None = Field(default=None, max_length=20)
 

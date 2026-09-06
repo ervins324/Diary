@@ -1,5 +1,21 @@
 # School Diary — Changelog
 
+## v1.5.1 — 2026-09-06
+
+### 🛡️ Subject Short Name Length Fix & Dual-Week Schedule Switcher
+- **Subject `short_name` Column Expansion**:
+  - Expanded `Subject.short_name` from `String(10)` to `String(30)` in `models/subject.py` and `schemas/subject.py`.
+  - Added Alembic migration `003_expand_subject_short_name.py` altering `subjects.short_name` column in PostgreSQL to `VARCHAR(30)`.
+  - Resolved `StringDataRightTruncationError` (500 Internal Server Error) during `POST /api/v1/schedule/bulk-commit-by-name` when importing subjects with longer abbreviations (such as "Історія Укр", "Громадянська Освіта", "Всес. Історія").
+  - Clamped all auto-assigned short names with `[:30]` safely in `schedule.py`.
+- **Dual-Week Numerator & Denominator Schedule Switching**:
+  - Overhauled `AiImportModal.tsx` to maintain completely independent schedule states for **Numerator (Чисельник)** and **Denominator (Знаменник)**.
+  - Replaced static single-state dropdown with a segmented tab switcher (`📘 Чисельник` / `📙 Знаменник`): switching tabs now instantly loads and displays that specific week's lessons in the editable preview table.
+  - Added 1-click **"Copy from other week"** helper button to quickly sync or clone lessons between numerator and denominator.
+  - Added commit scope selector allowing users to commit **Both Weeks** (saves both Numerator and Denominator simultaneously) or **Current Week Only**.
+- **Updated AI Parser System Instructions & Template**:
+  - Synchronized `backend/app/services/ai_parser.py` and frontend prompt template with revised Ukrainian subject abbreviations ("Історія Укр", "Громадянська Освіта", "Всес. Історія", etc.).
+
 ## v1.5.0 — 2026-09-06
 
 ### 📋 Direct JSON Schedule Import (No Gemini API Key Required)

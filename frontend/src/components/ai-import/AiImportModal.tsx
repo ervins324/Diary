@@ -34,7 +34,7 @@ const AI_SCHEDULE_PROMPT = `Витягни шкільний розклад ур�
 Вимоги:
 1. day_of_week: 1 (Пн), 2 (Вт), 3 (Ср), 4 (Чт), 5 (Пт), 6 (Сб).
 2. Якщо точний час уроку відсутній або невідомий, обов'язково встанови start_time і end_time як null (додаток автоматично візьме твій розклад дзвінків).
-3. Скорочуй довгі назви предметів (Укр мова, Укр літ, Англ мова, Фізра, Зар літ, Іст України, Інформ, Матем, Геом, Алг, Біол, Хім, Фіз, Геогр).
+3. Скорочуй довгі назви предметів (Укр мова, Укр літ, Англ мова, Фізра, Зар літ, Історія Укр, Інформатика, Геометрія, Алгебра, Біологія, Хімія, Фізика, Географія, Громадянська Освіта, Всес. Історія).
 4. Надай виключно чистий валідний JSON без зайвих слів.`;
 
 /**
@@ -50,9 +50,21 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
   const [jsonInput, setJsonInput] = useState<string>('');
   const [rawJsonPreview, setRawJsonPreview] = useState<string>('');
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
-  const [parsedData, setParsedData] = useState<AiParsedDay[]>([]);
-  /* Week type selector: numerator, denominator, or both */
-  const [weekType, setWeekType] = useState<string>('numerator');
+  const [copyNotice, setCopyNotice] = useState<string | null>(null);
+
+  /* Independent schedule state for Numerator and Denominator weeks */
+  const [schedulesByWeek, setSchedulesByWeek] = useState<{
+    numerator: AiParsedDay[];
+    denominator: AiParsedDay[];
+  }>({
+    numerator: [],
+    denominator: [],
+  });
+
+  /* Currently active week tab in review screen: 'numerator' | 'denominator' */
+  const [activeWeekTab, setActiveWeekTab] = useState<'numerator' | 'denominator'>('numerator');
+  /* Commit scope: 'both' | 'current' */
+  const [commitTarget, setCommitTarget] = useState<'both' | 'current'>('both');
   
   const parseMutation = useAiParse();
   const jsonParseMutation = useParseScheduleJson();
@@ -72,13 +84,22 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
 
   if (!isOpen) return null;
 
+  /* Helper to populate parsed days into both numerator and denominator */
+  const handleParseSuccess = (days: AiParsedDay[]) => {
+    setSchedulesByWeek({
+      numerator: JSON.parse(JSON.stringify(days)),
+      denominator: JSON.parse(JSON.stringify(days)),
+    });
+    setActiveWeekTab('numerator');
+  };
+
   /* Send image to AI for parsing */
   const handleParse = () => {
     if (!file) return;
     parseMutation.mutate(file, {
       onSuccess: (response) => {
         /* API returns { days: [...] } */
-        setParsedData(response.days);
+        handleParseSuccess(response.days);
       }
     });
   };
@@ -88,7 +109,7 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
     if (!jsonInput.trim()) return;
     jsonParseMutation.mutate(jsonInput, {
       onSuccess: (response) => {
-        setParsedData(response.days);
+        handleParseSuccess(response.days);
         setRawJsonPreview(jsonInput.trim());
       }
     });
@@ -115,33 +136,55 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
     reader.readAsText(uploadedFile);
   };
 
+  /* Update schedule data for the currently active week tab */
+  const handleScheduleChange = (updatedDays: AiParsedDay[]) => {
+    setSchedulesByWeek(prev => ({
+      ...prev,
+      [activeWeekTab]: updatedDays,
+    }));
+  };
+
+  /* Copy schedule from the other week type into the currently active tab */
+  const handleCopyFromOtherWeek = () => {
+    const sourceWeek = activeWeekTab === 'numerator' ? 'denominator' : 'numerator';
+    setSchedulesByWeek(prev => ({
+      ...prev,
+      [activeWeekTab]: JSON.parse(JSON.stringify(prev[sourceWeek])),
+    }));
+    setCopyNotice(t('copied_from_other_week'));
+    setTimeout(() => setCopyNotice(null), 2500);
+  };
+
   /* Commit the reviewed schedule to the database using subject names */
   const handleCommit = () => {
-    /* Transform parsed data into bulk-commit-by-name format */
-    const rules = parsedData.flatMap(day =>
-      day.lessons.map(lesson => {
-        /* Use imported bell schedule times as fallback, then hardcoded defaults */
-        const bellSlot = bellSlots?.find(b => b.lesson_order === lesson.order);
-        const fallbackStart = bellSlot ? bellSlot.start_time.substring(0, 5) : '08:30';
-        const fallbackEnd = bellSlot ? bellSlot.end_time.substring(0, 5) : '09:15';
+    const buildRulesForWeek = (days: AiParsedDay[]) =>
+      days.flatMap(day =>
+        day.lessons.map(lesson => {
+          /* Use imported bell schedule times as fallback, then hardcoded defaults */
+          const bellSlot = bellSlots?.find(b => b.lesson_order === lesson.order);
+          const fallbackStart = bellSlot ? bellSlot.start_time.substring(0, 5) : '08:30';
+          const fallbackEnd = bellSlot ? bellSlot.end_time.substring(0, 5) : '09:15';
 
-        return {
-          subject_name: lesson.subject_name,
-          day_of_week: day.day_of_week,
-          lesson_order: lesson.order,
-          start_time: lesson.start_time || fallbackStart,
-          end_time: lesson.end_time || fallbackEnd,
-          cabinet: lesson.cabinet || null,
-        };
-      })
-    );
-
-    /* If "both" is selected, commit for both numerator and denominator */
-    const weekTypes = weekType === 'both' ? ['numerator', 'denominator'] : [weekType];
+          return {
+            subject_name: lesson.subject_name,
+            day_of_week: day.day_of_week,
+            lesson_order: lesson.order,
+            start_time: lesson.start_time || fallbackStart,
+            end_time: lesson.end_time || fallbackEnd,
+            cabinet: lesson.cabinet || null,
+          };
+        })
+      );
 
     const commitAll = async () => {
-      for (const wt of weekTypes) {
-        await commitMutation.mutateAsync({ week_type: wt, rules });
+      if (commitTarget === 'both') {
+        const numRules = buildRulesForWeek(schedulesByWeek.numerator);
+        const denRules = buildRulesForWeek(schedulesByWeek.denominator);
+        await commitMutation.mutateAsync({ week_type: 'numerator', rules: numRules });
+        await commitMutation.mutateAsync({ week_type: 'denominator', rules: denRules });
+      } else {
+        const currentRules = buildRulesForWeek(schedulesByWeek[activeWeekTab]);
+        await commitMutation.mutateAsync({ week_type: activeWeekTab, rules: currentRules });
       }
       handleClose();
     };
@@ -155,12 +198,16 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
     setPreviewUrl(null);
     setJsonInput('');
     setRawJsonPreview('');
-    setParsedData([]);
+    setSchedulesByWeek({ numerator: [], denominator: [] });
+    setCopyNotice(null);
     parseMutation.reset();
     jsonParseMutation.reset();
     commitMutation.reset();
     onClose();
   };
+
+  const hasParsedData = schedulesByWeek.numerator.length > 0 || schedulesByWeek.denominator.length > 0;
+  const currentDaysData = schedulesByWeek[activeWeekTab] || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 md:p-6 overflow-hidden">
@@ -175,7 +222,7 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto min-h-0 p-4 md:p-6 flex flex-col md:flex-row gap-6">
-          {parsedData.length === 0 ? (
+          {!hasParsedData ? (
             /* Step 1: File upload or JSON input */
             <div className="flex-1 flex flex-col items-center justify-start max-w-2xl mx-auto w-full py-2 md:py-4">
               {/* Import Mode Tabs */}
@@ -315,30 +362,75 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
                   <h3 className="font-medium text-text-primary text-sm">{t('source_json')}</h3>
                   <div className="bg-bg-tertiary rounded-lg border border-border overflow-hidden h-48 md:h-[480px] p-3 flex flex-col">
                     <pre className="text-xs font-mono text-text-secondary overflow-auto flex-1 whitespace-pre-wrap select-all">
-                      {rawJsonPreview || JSON.stringify(parsedData, null, 2)}
+                      {rawJsonPreview || JSON.stringify(currentDaysData, null, 2)}
                     </pre>
                   </div>
                 </div>
               )}
               
-              {/* Right side: Editable Data */}
+              {/* Right side: Editable Data with Week Switcher */}
               <div className="w-full md:w-2/3 flex flex-col gap-3 min-h-0 flex-1">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="font-medium text-text-primary text-sm">{t('review_and_edit')}</h3>
-                  {/* Week type selector */}
-                  <select 
-                    value={weekType}
-                    onChange={(e) => setWeekType(e.target.value)}
-                    className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-accent"
-                  >
-                    <option value="numerator">{t('numerator_week')}</option>
-                    <option value="denominator">{t('denominator_week')}</option>
-                    <option value="both">{t('both_weeks')}</option>
-                  </select>
+                <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-text-primary text-sm">{t('review_and_edit')}</h3>
+                    {copyNotice && (
+                      <span className="text-xs text-accent font-medium animate-in fade-in">
+                        ✓ {copyNotice}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Segmented Week Switcher: switches between Numerator and Denominator schedules */}
+                    <div className="flex p-0.5 bg-bg-tertiary rounded-md border border-border">
+                      <button
+                        type="button"
+                        onClick={() => setActiveWeekTab('numerator')}
+                        className={`py-1 px-3 rounded text-xs font-medium transition-all ${
+                          activeWeekTab === 'numerator'
+                            ? 'bg-accent text-white shadow-xs'
+                            : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                      >
+                        📘 {t('numerator_week')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveWeekTab('denominator')}
+                        className={`py-1 px-3 rounded text-xs font-medium transition-all ${
+                          activeWeekTab === 'denominator'
+                            ? 'bg-accent text-white shadow-xs'
+                            : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                      >
+                        📙 {t('denominator_week')}
+                      </button>
+                    </div>
+
+                    {/* Quick copy from the other week */}
+                    <button
+                      type="button"
+                      onClick={handleCopyFromOtherWeek}
+                      className="px-2.5 py-1 text-xs text-text-secondary hover:text-text-primary bg-bg-primary hover:bg-bg-tertiary border border-border rounded-md transition-colors"
+                      title={activeWeekTab === 'numerator' ? t('copy_from_denominator') : t('copy_from_numerator')}
+                    >
+                      {activeWeekTab === 'numerator' ? t('copy_from_denominator') : t('copy_from_numerator')}
+                    </button>
+
+                    {/* Commit target scope selector */}
+                    <select 
+                      value={commitTarget}
+                      onChange={(e) => setCommitTarget(e.target.value as any)}
+                      className="bg-bg-primary border border-border rounded-md px-2 py-1 text-xs focus:outline-none focus:border-accent"
+                    >
+                      <option value="both">{t('commit_both_weeks')}</option>
+                      <option value="current">{t('commit_current_week')}</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <div className="flex-1 border border-border rounded-lg overflow-hidden bg-bg-primary min-h-0 flex flex-col">
-                  <EditablePreview data={parsedData} onChange={setParsedData} bellSlots={bellSlots} />
+                  <EditablePreview data={currentDaysData} onChange={handleScheduleChange} bellSlots={bellSlots} />
                 </div>
               </div>
             </>
@@ -346,10 +438,10 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
         </div>
 
         {/* Footer — only shown after parsing */}
-        {parsedData.length > 0 && (
+        {hasParsedData && (
           <div className="p-4 border-t border-border flex justify-end gap-3 bg-bg-tertiary/50 shrink-0">
             <button 
-              onClick={() => setParsedData([])}
+              onClick={() => setSchedulesByWeek({ numerator: [], denominator: [] })}
               className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
             >
               {t('back')}
