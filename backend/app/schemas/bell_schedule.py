@@ -40,3 +40,8 @@ class AiParsedBellSlot(BaseModel):
 
 class AiParseBellsResponse(BaseModel):
     slots: list[AiParsedBellSlot]
+
+
+class JsonBellsParseRequest(BaseModel):
+    raw_json: str
+

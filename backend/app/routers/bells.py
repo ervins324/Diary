@@ -1,4 +1,5 @@
 import uuid
+import json
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,7 @@ from app.schemas.bell_schedule import (
     BellSlotUpdate,
     BellBulkCommitRequest,
     AiParseBellsResponse,
+    JsonBellsParseRequest,
 )
 from app.services.ai_parser import parse_bells_image
 
@@ -141,3 +143,46 @@ async def ai_parse_bells_endpoint(file: UploadFile = File(...)):
     )
     logger.info(f"Successfully parsed bells schedule: extracted {len(result.slots)} slots")
     return result
+
+
+@router.post("/parse-json", response_model=AiParseBellsResponse)
+async def parse_bells_json(request: JsonBellsParseRequest):
+    """
+    Parse a JSON string representing bell slots (typically from external AI).
+    Validates structure, sorts by order, and returns for client review.
+    """
+    raw_text = request.raw_json.strip()
+    if not raw_text:
+        raise HTTPException(status_code=400, detail="Empty JSON payload received")
+
+    # Strip markdown code fences if wrapped in ```json ... ``` or ``` ... ```
+    if raw_text.startswith("```json"):
+        raw_text = raw_text[7:]
+    elif raw_text.startswith("```"):
+        raw_text = raw_text[3:]
+    if raw_text.endswith("```"):
+        raw_text = raw_text[:-3]
+    raw_text = raw_text.strip()
+
+    try:
+        data = json.loads(raw_text)
+    except json.JSONDecodeError as e:
+        logger.warning(f"Failed to decode bells JSON: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid JSON format: {str(e)}")
+
+    # Normalize if the root object is a list of slots
+    if isinstance(data, list):
+        data = {"slots": data}
+
+    if not isinstance(data, dict) or "slots" not in data:
+        raise HTTPException(status_code=422, detail="JSON structure must contain a 'slots' array.")
+
+    try:
+        validated = AiParseBellsResponse.model_validate(data)
+    except Exception as e:
+        logger.warning(f"Validation failed for user-submitted bells JSON: {e}")
+        raise HTTPException(status_code=422, detail=f"Bells JSON validation error: {str(e)}")
+
+    validated.slots.sort(key=lambda s: s.order)
+    return validated
+

@@ -15,6 +15,7 @@ export interface HomeworkEntry {
   text: string;
   is_completed: boolean;
   subject?: Subject;
+  images?: string[];
 }
 
 export interface LessonSlot {
@@ -39,6 +40,19 @@ export interface WeeklyStat {
   short_name: string;
   color_hex: string;
   total_minutes: number;
+}
+
+export interface WeeklyStatsResponse {
+  subjects: WeeklyStat[];
+  total_subjects: number;
+  total_lessons: number;
+  avg_lessons_per_day: number;
+  total_break_minutes: number;
+  homework_stats: {
+    total: number;
+    completed: number;
+    completion_rate: number;
+  };
 }
 
 /* Parsed lesson from AI schedule image recognition */

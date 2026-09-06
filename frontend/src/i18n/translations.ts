@@ -146,9 +146,34 @@ export const translations = {
     delete_all_data: 'Delete All Data',
     delete_all_data_desc: 'Permanently wipe all schedule rules, homework, bell schedules, and subjects from the database.',
     delete_all_data_warning: 'WARNING: This action is permanent and cannot be undone. All subjects, lessons, bell timetables, and homework will be completely erased.',
+    delete_all_confirm_prompt: 'Type DELETE to confirm complete database wipe:',
     delete_all_data_confirm_prompt: 'Type DELETE to confirm complete database wipe:',
     delete_all_success: 'All application data has been deleted.',
     delete_schedule_success: 'Schedule has been deleted.',
+
+    // Weekend auto-advance
+    skip_weekends_title: 'Weekend Auto-Advance',
+    skip_weekends_desc: 'Automatically open next week’s Monday when viewing Daily or Diary on Saturday and Sunday',
+
+    // Stats page additions
+    stats_subjects_count: 'Active Subjects',
+    stats_lessons_count: 'Total Lessons',
+    stats_per_day: 'per day',
+    stats_breaks_duration: 'Total Break Time',
+    stats_homework_rate: 'Homework Completed',
+    stats_completed: 'completed',
+
+    // Full Backup & Restore
+    backup_restore: 'Backup & Restore',
+    backup_restore_desc: 'Export a complete snapshot of all app data or restore from a JSON backup file',
+    export_full_backup: 'Export Full Backup (JSON)',
+    export_full_backup_desc: 'Save all subjects, bell schedules, lessons, and homework with photos to a JSON file',
+    import_full_backup: 'Restore Backup (JSON)',
+    import_full_backup_desc: 'Load a complete snapshot from a previously exported JSON backup',
+    import_backup_confirm: 'Restoring will replace ALL current data with the contents of this backup file. Continue?',
+    import_backup_success: 'Backup restored successfully!',
+    import_backup_failed: 'Failed to import backup. Please make sure the JSON file is valid.',
+    add_homework: 'Add Homework',
   },
   uk: {
     // Navigation
@@ -295,9 +320,34 @@ export const translations = {
     delete_all_data: 'Видалити всі дані',
     delete_all_data_desc: 'Повністю очистити базу даних: розклад, домашні завдання, розклад дзвінків та предмети.',
     delete_all_data_warning: 'УВАГА: Ця дія незворотна. Усі предмети, розклад уроків, розклад дзвінків та домашні завдання будуть видалені без можливості відновлення.',
+    delete_all_confirm_prompt: 'Введіть DELETE для підтвердження повного очищення бази даних:',
     delete_all_data_confirm_prompt: 'Введіть DELETE для підтвердження повного очищення бази даних:',
     delete_all_success: 'Усі дані додатку успішно видалено.',
     delete_schedule_success: 'Розклад уроків успішно видалено.',
+
+    // Weekend auto-advance
+    skip_weekends_title: 'Автоперехід на вихідних',
+    skip_weekends_desc: 'Автоматично відкривати понеділок наступного тижня у суботу та неділю на вкладках «День» і «Щоденник»',
+
+    // Stats page additions
+    stats_subjects_count: 'Предметів у розкладі',
+    stats_lessons_count: 'Всього уроків',
+    stats_per_day: 'на день',
+    stats_breaks_duration: 'Час перерв',
+    stats_homework_rate: 'Виконано Д/З',
+    stats_completed: 'виконано',
+
+    // Full Backup & Restore
+    backup_restore: 'Резервне копіювання та відновлення',
+    backup_restore_desc: 'Експортуйте повний знімок усіх даних додатку або відновіть їх із файлу JSON',
+    export_full_backup: 'Експорт повної копії (JSON)',
+    export_full_backup_desc: 'Зберегти всі предмети, дзвінки, розклад та Д/З з фотографіями у файл JSON',
+    import_full_backup: 'Відновити з копії (JSON)',
+    import_full_backup_desc: 'Завантажити повний знімок даних із раніше збереженого файлу JSON',
+    import_backup_confirm: 'Відновлення повністю замінить поточні дані вмістом цього файлу резервної копії. Продовжити?',
+    import_backup_success: 'Резервну копію успішно відновлено!',
+    import_backup_failed: 'Помилка імпорту резервної копії. Переконайтеся, що файл JSON коректний.',
+    add_homework: 'Додати Д/З',
   },
 } as const;
 

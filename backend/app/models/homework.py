@@ -1,6 +1,6 @@
 import uuid
 from datetime import date
-from sqlalchemy import String, SmallInteger, ForeignKey, Date, Text, Boolean
+from sqlalchemy import String, SmallInteger, ForeignKey, Date, Text, Boolean, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
@@ -18,5 +18,7 @@ class HomeworkEntry(Base):
     lesson_order: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    images: Mapped[list[str] | None] = mapped_column(JSON, default=list, nullable=True)
 
     subject: Mapped["Subject"] = relationship("Subject", lazy="selectin")
+

@@ -2,21 +2,22 @@ import { useState } from 'react';
 import { format, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
-import { getWeekDates, formatTime, cn } from '../lib/utils';
+import { getWeekDates, formatTime, cn, getDefaultScheduleDate } from '../lib/utils';
 import { HomeworkInline } from '../components/homework/HomeworkInline';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { DaySchedule, LessonSlot } from '../types';
 
 export function DiaryPage() {
   const { t } = useLanguage();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  /* Initialize week view with weekend auto-advance if today is Saturday/Sunday */
+  const [currentDate, setCurrentDate] = useState(getDefaultScheduleDate);
   
   const { start, end } = getWeekDates(currentDate);
   const { data: schedule, isLoading } = useSchedule(start, end);
 
   const handlePrevWeek = () => setCurrentDate((prev) => subWeeks(prev, 1));
   const handleNextWeek = () => setCurrentDate((prev) => addWeeks(prev, 1));
-  const handleCurrentWeek = () => setCurrentDate(new Date());
+  const handleCurrentWeek = () => setCurrentDate(getDefaultScheduleDate());
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 

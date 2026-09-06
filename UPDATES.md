@@ -1,5 +1,34 @@
 # School Diary — Changelog
 
+## v1.6.0 — 2026-09-06
+
+### 🚀 Full Backup/Restore, Multi-Image Homework, Rich Stats & Bell JSON Import
+- **Bell Schedule JSON Import (`POST /api/v1/bells/parse-json`)**:
+  - Added dedicated JSON parse tab in `AiBellsImportModal.tsx` matching timetable import.
+  - Added 1-click **"Copy Prompt for AI"** button with custom bell schedule extraction instructions and JSON schema.
+  - Dual-mode review step showing formatted source JSON viewer alongside the interactive editable bells table.
+- **Weekend Auto-Advance with Settings Toggle**:
+  - Automatically advances to next week's Monday when visiting Daily or Diary views on Saturday and Sunday.
+  - Added toggle switch in Settings (`SettingsPage.tsx`) backed by `localStorage` (`skip_weekends_to_monday`).
+- **Improved Deterministic Subject Color Palette**:
+  - Introduced 16 curated high-contrast vibrant colors (`DISTINCT_SUBJECT_COLORS`) preventing visual overlaps.
+  - Implemented deterministic hashing (`get_deterministic_color`) so identical subjects always receive the same color across both Numerator and Denominator.
+- **Full System Backup & Restore (JSON)**:
+  - Added backend system endpoints `GET /api/v1/system/backup/export` and `POST /api/v1/system/backup/import`.
+  - Exports a complete snapshot of all app data (subjects, bell timetable, lesson rules, homework with photos).
+  - Restores full database state in an atomic transaction maintaining foreign key relationships.
+  - Added Backup & Restore card in Settings with one-click export and file restore with confirmation prompts.
+- **Homework Multi-Image Attachments with Text & Lightbox**:
+  - Added `images` JSON column to `homeworks` table in PostgreSQL with Alembic migration `004_homework_images.py`.
+  - Added multi-image file upload and direct `Ctrl+V` clipboard image pasting on homework input.
+  - Integrated client-side canvas compression (1280px max, JPEG 0.82) keeping payloads compact.
+  - Rendered image thumbnails in `LessonCard` and `HomeworkInline` with full-screen lightbox image viewer.
+- **Enriched Statistics & Analytics**:
+  - Enhanced `GET /api/v1/stats/weekly` with: Active Subjects count, Total Lessons, Daily Average Lessons, Break Duration, and Homework Completion Rate.
+  - Upgraded `StatsPage.tsx` with a responsive 6-card metrics grid featuring icons, time breakdown, and completion progress bar.
+- **Daily Tab Cabinet Localization**:
+  - Fixed hardcoded `"Cab"` in `LessonCard.tsx` to use localized `t('cabinet_short')` (`Каб` in Ukrainian).
+
 ## v1.5.1 — 2026-09-06
 
 ### 🛡️ Subject Short Name Length Fix & Dual-Week Schedule Switcher

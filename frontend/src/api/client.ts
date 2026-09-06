@@ -3,7 +3,7 @@ import type {
   Subject,
   HomeworkEntry,
   DaySchedule,
-  WeeklyStat,
+  WeeklyStatsResponse,
   AiParsedDay,
   BellSlot,
   AiParsedBellSlot,
@@ -104,7 +104,7 @@ export const clearAllAppData = async (): Promise<void> => {
   await api.post('/subjects/clear-all-data');
 };
 
-export const fetchWeeklyStats = async (date: string): Promise<WeeklyStat[]> => {
+export const fetchWeeklyStats = async (date: string): Promise<WeeklyStatsResponse> => {
   const { data } = await api.get('/stats/weekly', { params: { date } });
   return data;
 };
@@ -146,3 +146,24 @@ export const aiParseBells = async (file: File): Promise<{ slots: AiParsedBellSlo
   });
   return data;
 };
+
+/* Parse user-submitted bell schedule JSON directly (from external AI, no API key needed) */
+export const parseBellsJson = async (rawJson: string): Promise<{ slots: AiParsedBellSlot[] }> => {
+  const { data } = await api.post('/bells/parse-json', { raw_json: rawJson });
+  return data;
+};
+
+// ── Full System Backup & Restore ──────────────────────────────────────────
+
+/* Export all application data (subjects, bells, schedule, homework) as a JSON object */
+export const exportFullBackup = async (): Promise<any> => {
+  const { data } = await api.get('/system/backup/export');
+  return data;
+};
+
+/* Restore all application data from a JSON backup object */
+export const importFullBackup = async (backupData: any): Promise<{ status: string; message: string; imported: any }> => {
+  const { data } = await api.post('/system/backup/import', backupData);
+  return data;
+};
+

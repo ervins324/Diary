@@ -10,14 +10,25 @@ import {
   Globe,
   Calendar,
   Download,
+  Upload,
   AlertTriangle,
   FileSpreadsheet,
+  CalendarClock,
+  Archive,
 } from 'lucide-react';
-import { fetchSubjects, createSubject, updateSubject, deleteSubject } from '../api/client';
+import {
+  fetchSubjects,
+  createSubject,
+  updateSubject,
+  deleteSubject,
+  exportFullBackup,
+  importFullBackup,
+} from '../api/client';
 import { ThemeToggle } from '../components/layout/ThemeToggle';
 import { useLanguage } from '../i18n/LanguageContext';
 import { useDeleteAllSchedule, useClearAllAppData } from '../hooks/useSchedule';
 import { ScheduleEditorModal } from '../components/schedule/ScheduleEditorModal';
+import { cn } from '../lib/utils';
 import type { Subject } from '../types';
 
 export function SettingsPage() {
@@ -27,6 +38,65 @@ export function SettingsPage() {
   const [isClearingAll, setIsClearingAll] = useState(false);
   const [confirmPromptText, setConfirmPromptText] = useState('');
   const [exportNotification, setExportNotification] = useState<string | null>(null);
+
+  /* Weekend auto-advance toggle state (defaults to true) */
+  const [skipWeekends, setSkipWeekends] = useState(() => localStorage.getItem('skip_weekends_to_monday') !== 'false');
+  const [isExportingBackup, setIsExportingBackup] = useState(false);
+  const [isImportingBackup, setIsImportingBackup] = useState(false);
+
+  /* Toggle weekend auto-advance behavior and persist to localStorage */
+  const handleToggleWeekendSkip = () => {
+    const nextVal = !skipWeekends;
+    setSkipWeekends(nextVal);
+    localStorage.setItem('skip_weekends_to_monday', nextVal ? 'true' : 'false');
+  };
+
+  /* Export complete JSON snapshot of all subjects, bells, rules, and homework */
+  const handleExportFullBackup = async () => {
+    try {
+      setIsExportingBackup(true);
+      const backupData = await exportFullBackup();
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `school-diary-full-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export full backup:', err);
+      alert('Failed to export backup.');
+    } finally {
+      setIsExportingBackup(false);
+    }
+  };
+
+  /* Restore complete database state from an uploaded JSON backup file */
+  const handleImportFullBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    if (!window.confirm(t('import_backup_confirm'))) {
+      return;
+    }
+
+    try {
+      setIsImportingBackup(true);
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const result = await importFullBackup(parsed);
+      alert(`${t('import_backup_success')} (${result.imported.subjects} subjects, ${result.imported.bell_schedules} bells, ${result.imported.schedule_rules} lessons, ${result.imported.homeworks} homework)`);
+      queryClient.invalidateQueries();
+    } catch (err: any) {
+      console.error('Failed to import backup:', err);
+      alert(`${t('import_backup_failed')}${err.response?.data?.detail ? `: ${err.response.data.detail}` : ''}`);
+    } finally {
+      setIsImportingBackup(false);
+    }
+  };
 
   const deleteScheduleMutation = useDeleteAllSchedule();
   const clearAllMutation = useClearAllAppData();
@@ -179,6 +249,34 @@ export function SettingsPage() {
               </button>
             </div>
           </div>
+
+          {/* Weekend Auto-Advance Toggle */}
+          <div className="pt-3 border-t border-border-light flex items-center justify-between">
+            <div className="pr-4">
+              <p className="font-medium text-text-primary flex items-center gap-1.5">
+                <CalendarClock size={16} className="text-accent" />
+                <span>{t('skip_weekends_title')}</span>
+              </p>
+              <p className="text-sm text-text-muted">{t('skip_weekends_desc')}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={skipWeekends}
+              onClick={handleToggleWeekendSkip}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent",
+                skipWeekends ? "bg-accent" : "bg-bg-tertiary border border-border"
+              )}
+            >
+              <span
+                className={cn(
+                  "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                  skipWeekends ? "translate-x-5" : "translate-x-0"
+                )}
+              />
+            </button>
+          </div>
         </section>
 
         {/* Subjects */}
@@ -319,6 +417,58 @@ export function SettingsPage() {
               <Download size={16} />
               <span>{t('export_subjects')}</span>
             </button>
+          </div>
+        </section>
+
+        {/* Backup & Restore (Full JSON) */}
+        <section className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4">
+          <h2 className="text-lg font-semibold text-text-primary border-b border-border-light pb-2 flex items-center gap-2">
+            <Archive size={18} className="text-accent" />
+            <span>{t('backup_restore')}</span>
+          </h2>
+          <p className="text-sm text-text-muted">{t('backup_restore_desc')}</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            {/* Export Full Backup */}
+            <div className="p-4 bg-bg-primary rounded-lg border border-border flex flex-col justify-between gap-3">
+              <div>
+                <p className="font-semibold text-text-primary text-sm flex items-center gap-1.5">
+                  <Download size={16} className="text-accent" />
+                  <span>{t('export_full_backup')}</span>
+                </p>
+                <p className="text-xs text-text-muted mt-1">{t('export_full_backup_desc')}</p>
+              </div>
+              <button
+                onClick={handleExportFullBackup}
+                disabled={isExportingBackup}
+                className="w-full py-2 bg-accent hover:bg-accent/90 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
+              >
+                {isExportingBackup ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                <span>{t('export_full_backup')}</span>
+              </button>
+            </div>
+
+            {/* Restore Full Backup */}
+            <div className="p-4 bg-bg-primary rounded-lg border border-border flex flex-col justify-between gap-3">
+              <div>
+                <p className="font-semibold text-text-primary text-sm flex items-center gap-1.5">
+                  <Upload size={16} className="text-accent" />
+                  <span>{t('import_full_backup')}</span>
+                </p>
+                <p className="text-xs text-text-muted mt-1">{t('import_full_backup_desc')}</p>
+              </div>
+              <label className="w-full py-2 bg-bg-tertiary hover:bg-border text-text-primary rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-border cursor-pointer text-center">
+                {isImportingBackup ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                <span>{t('import_full_backup')}</span>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportFullBackup}
+                  disabled={isImportingBackup}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
         </section>
 

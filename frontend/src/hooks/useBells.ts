@@ -6,6 +6,7 @@ import {
   deleteBellSlot,
   bulkCommitBells,
   aiParseBells,
+  parseBellsJson,
 } from '../api/client';
 import type { BellSlot } from '../types';
 
@@ -57,5 +58,11 @@ export const useBulkCommitBells = () => {
 export const useAiParseBells = () => {
   return useMutation({
     mutationFn: (file: File) => aiParseBells(file),
+  });
+};
+
+export const useParseBellsJson = () => {
+  return useMutation({
+    mutationFn: (rawJson: string) => parseBellsJson(rawJson),
   });
 };

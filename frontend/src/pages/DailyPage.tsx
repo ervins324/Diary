@@ -4,12 +4,13 @@ import { ChevronLeft, ChevronRight, Wand2, Loader2 } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { LessonCard } from '../components/schedule/LessonCard';
 import { AiImportModal } from '../components/ai-import/AiImportModal';
-import { formatDate } from '../lib/utils';
+import { formatDate, getDefaultScheduleDate } from '../lib/utils';
 import { useLanguage } from '../i18n/LanguageContext';
 
 export function DailyPage() {
   const { t } = useLanguage();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  /* Initialize date with weekend auto-advance if today is Saturday/Sunday */
+  const [currentDate, setCurrentDate] = useState(getDefaultScheduleDate);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
@@ -17,7 +18,7 @@ export function DailyPage() {
 
   const handlePrevDay = () => setCurrentDate((prev) => subDays(prev, 1));
   const handleNextDay = () => setCurrentDate((prev) => addDays(prev, 1));
-  const handleToday = () => setCurrentDate(new Date());
+  const handleToday = () => setCurrentDate(getDefaultScheduleDate());
 
   const currentDaySchedule = schedule?.[0];
 

@@ -200,42 +200,75 @@ async def bulk_commit(request: BulkCommitRequest, db: AsyncSession = Depends(get
     return {"status": "ok", "message": f"Successfully updated schedule for {request.week_type}"}
 
 
+# Distinct non-overlapping vibrant colors for subjects
+DISTINCT_SUBJECT_COLORS: list[str] = [
+    "#2563EB",  # Royal Blue
+    "#7C3AED",  # Purple / Violet
+    "#059669",  # Emerald Green
+    "#DB2777",  # Rose Pink
+    "#D97706",  # Amber / Warm Orange
+    "#0891B2",  # Cyan
+    "#EA580C",  # Vibrant Orange
+    "#0D9488",  # Teal
+    "#C026D3",  # Fuchsia
+    "#65A30D",  # Lime Green
+    "#0284C7",  # Sky Blue
+    "#4F46E5",  # Indigo
+    "#E11D48",  # Crimson Red
+    "#9333EA",  # Deep Purple
+    "#16A34A",  # Forest Green
+    "#CA8A04",  # Warm Gold
+]
+
 # Canonical Ukrainian subject short names and color palette
 UKRAINIAN_SUBJECT_SHORT_NAMES: dict[str, tuple[str, str]] = {
-    "українська мова": ("Укр мова", "#3B82F6"),
-    "укр мова": ("Укр мова", "#3B82F6"),
-    "українська література": ("Укр літ", "#8B5CF6"),
-    "укр літ": ("Укр літ", "#8B5CF6"),
-    "англійська мова": ("Англ мова", "#EC4899"),
-    "англ мова": ("Англ мова", "#EC4899"),
-    "іноземна мова": ("Англ мова", "#EC4899"),
-    "фізична культура": ("Фізра", "#10B981"),
-    "фізра": ("Фізра", "#10B981"),
-    "фізкультура": ("Фізра", "#10B981"),
-    "фіз культура": ("Фізра", "#10B981"),
-    "зарубіжна література": ("Зар літ", "#F59E0B"),
-    "зар літ": ("Зар літ", "#F59E0B"),
+    "українська мова": ("Укр мова", "#2563EB"),
+    "укр мова": ("Укр мова", "#2563EB"),
+    "українська література": ("Укр літ", "#7C3AED"),
+    "укр літ": ("Укр літ", "#7C3AED"),
+    "англійська мова": ("Англ мова", "#DB2777"),
+    "англ мова": ("Англ мова", "#DB2777"),
+    "іноземна мова": ("Англ мова", "#DB2777"),
+    "фізична культура": ("Фізра", "#059669"),
+    "фізра": ("Фізра", "#059669"),
+    "фізкультура": ("Фізра", "#059669"),
+    "фіз культура": ("Фізра", "#059669"),
+    "зарубіжна література": ("Зар літ", "#EA580C"),
+    "зар літ": ("Зар літ", "#EA580C"),
     "всесвітня історія": ("Всес. Історія", "#D97706"),
     "всес. історія": ("Всес. Історія", "#D97706"),
     "історія україни": ("Історія Укр", "#B45309"),
     "історія укр": ("Історія Укр", "#B45309"),
-    "громадянська освіта": ("Громадянська Освіта", "#6366F1"),
-    "інформатика": ("Інформатика", "#06B6D4"),
-    "інформ": ("Інформатика", "#06B6D4"),
+    "громадянська освіта": ("Громадянська Освіта", "#4F46E5"),
+    "інформатика": ("Інформатика", "#0891B2"),
+    "інформ": ("Інформатика", "#0891B2"),
     "геометрія": ("Геометрія", "#6366F1"),
     "геом": ("Геометрія", "#6366F1"),
-    "алгебра": ("Алгебра", "#4F46E5"),
-    "алг": ("Алгебра", "#4F46E5"),
-    "математика": ("Математика", "#4F46E5"),
-    "біологія": ("Біологія", "#14B8A6"),
-    "хімія": ("Хімія", "#EF4444"),
-    "фізика": ("Фізика", "#84CC16"),
-    "географія": ("Географія", "#EAB308"),
-    "мистецтво": ("Мистецтво", "#A855F7"),
-    "образотворче мистецтво": ("Мистецтво", "#A855F7"),
-    "трудове навчання": ("Труд навч", "#64748B"),
-    "основи здоров'я": ("Осн здоров'я", "#22C55E"),
+    "алгебра": ("Алгебра", "#9333EA"),
+    "алг": ("Алгебра", "#9333EA"),
+    "математика": ("Математика", "#9333EA"),
+    "біологія": ("Біологія", "#0D9488"),
+    "хімія": ("Хімія", "#E11D48"),
+    "фізика": ("Фізика", "#65A30D"),
+    "географія": ("Географія", "#CA8A04"),
+    "мистецтво": ("Мистецтво", "#C026D3"),
+    "образотворче мистецтво": ("Мистецтво", "#C026D3"),
+    "трудове навчання": ("Труд навч", "#0284C7"),
+    "основи здоров'я": ("Осн здоров'я", "#16A34A"),
 }
+
+
+def get_deterministic_color(subject_name: str) -> str:
+    """
+    Generate a deterministic, distinct color for any subject name.
+    Ensures identical subjects across numerator and denominator get the exact same color.
+    """
+    clean = subject_name.strip().lower()
+    for key, (_, col) in UKRAINIAN_SUBJECT_SHORT_NAMES.items():
+        if key == clean or key in clean or clean in key:
+            return col
+    hash_val = sum(ord(c) for c in clean)
+    return DISTINCT_SUBJECT_COLORS[hash_val % len(DISTINCT_SUBJECT_COLORS)]
 
 
 @router.post("/bulk-commit-by-name", status_code=status.HTTP_200_OK)
@@ -267,15 +300,14 @@ async def bulk_commit_by_name(
             if existing:
                 subject_cache[subject_name] = existing
             else:
-                # Determine smart short name and color for common Ukrainian subjects
+                # Determine smart short name and deterministic color for subjects
                 name_clean = subject_name.lower()
                 short_name = subject_name[:30]
-                color = "#6B7280"
+                color = get_deterministic_color(subject_name)
 
-                for key, (canonical_short, canonical_color) in UKRAINIAN_SUBJECT_SHORT_NAMES.items():
+                for key, (canonical_short, _) in UKRAINIAN_SUBJECT_SHORT_NAMES.items():
                     if key in name_clean or name_clean in key:
                         short_name = canonical_short[:30]
-                        color = canonical_color
                         break
 
                 # Auto-create the subject with sensible defaults

@@ -8,11 +8,13 @@ class HomeworkCreate(BaseModel):
     due_date: date
     lesson_order: int | None = None
     text: str
+    images: list[str] = []
 
 class HomeworkUpdate(BaseModel):
     text: str | None = None
     is_completed: bool | None = None
     lesson_order: int | None = None
+    images: list[str] | None = None
 
 class HomeworkRead(BaseModel):
     id: uuid.UUID
@@ -21,6 +23,8 @@ class HomeworkRead(BaseModel):
     lesson_order: int | None
     text: str
     is_completed: bool
+    images: list[str] | None = []
     subject: SubjectRead
 
     model_config = ConfigDict(from_attributes=True)
+
