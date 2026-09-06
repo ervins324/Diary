@@ -7,6 +7,7 @@ import type {
   AiParsedDay,
   BellSlot,
   AiParsedBellSlot,
+  ScheduleRuleItem,
 } from '../types';
 
 // Axios instance configured with extended timeout for AI image processing
@@ -79,6 +80,22 @@ export const bulkCommitSchedule = async (scheduleData: { week_type: string; rule
 export const bulkCommitByName = async (scheduleData: { week_type: string; rules: unknown[] }): Promise<unknown> => {
   const { data } = await api.post('/schedule/bulk-commit-by-name', scheduleData);
   return data;
+};
+
+/* Fetch raw schedule rules from database */
+export const fetchScheduleRules = async (weekType?: string): Promise<ScheduleRuleItem[]> => {
+  const { data } = await api.get('/schedule/rules', { params: { week_type: weekType } });
+  return data;
+};
+
+/* Delete schedule rules (all or for a specific week type) */
+export const deleteAllSchedule = async (weekType?: string): Promise<void> => {
+  await api.delete('/schedule', { params: { week_type: weekType } });
+};
+
+/* Permanently clear all app data (homework, schedule, bells, subjects) */
+export const clearAllAppData = async (): Promise<void> => {
+  await api.post('/subjects/clear-all-data');
 };
 
 export const fetchWeeklyStats = async (date: string): Promise<WeeklyStat[]> => {

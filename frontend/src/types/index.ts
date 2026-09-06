@@ -72,3 +72,17 @@ export interface AiParsedBellSlot {
   end_time: string;
   name?: string | null;
 }
+
+/* Raw schedule rule from database */
+export interface ScheduleRuleItem {
+  id: string;
+  subject_id: string;
+  day_of_week: number;
+  week_type: string;
+  lesson_order: number;
+  start_time: string;
+  end_time: string;
+  cabinet: string | null;
+  subject: Subject;
+}
+

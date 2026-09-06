@@ -1,6 +1,22 @@
 # School Diary — Changelog
 
-## v1.2.0 — 2026-09-06
+## v1.3.0 — 2026-09-06
+
+### ⚙️ Standalone Schedule Editor, Subject Export & Data Management Danger Zone
+- **Standalone Schedule Editor**:
+  - Added dedicated Schedule Editor modal accessible directly from Settings (`SettingsPage.tsx` -> `ScheduleEditorModal.tsx`).
+  - Allows manual viewing, editing, adding, or deleting timetable lessons across all weekdays (Mon–Fri) and week types (`numerator`, `denominator`, `both`) without requiring an image upload.
+  - Backend support via `GET /api/v1/schedule/rules` to retrieve raw schedule rules independently of calendar dates.
+- **Export Only Subjects**:
+  - Added an "Export Subjects" feature in Settings that downloads all registered subjects as a clean JSON file (`subjects-export-YYYY-MM-DD.json`).
+  - Contains subject details (`name`, `short_name`, `color_hex`, `default_cabinet`).
+- **Data Management & Danger Zone**:
+  - Added a dedicated Danger Zone card in Settings with destructive action safeguards.
+  - **Delete Schedule Only**: Atomically removes all schedule rules (`DELETE /api/v1/schedule`) while preserving subjects, homework entries, and bell schedules intact.
+  - **Delete All Data**: Complete application reset (`POST|DELETE /api/v1/subjects/clear-all-data`) with strict foreign-key cascade order (`HomeworkEntry` -> `ScheduleRule` -> `BellSchedule` -> `Subject`). Protected by a double-confirmation modal requiring the user to type `DELETE`.
+- **Localization**:
+  - Added full Ukrainian (`uk`) and English (`en`) translations for all new editor, export, and danger zone actions.
+
 
 ### 🇺🇦 Ukrainian Localization, Clipboard Paste, Modal Scrolling & Schedule Refinements
 - **Ukrainian Localization (`uk`) & Language Switcher**:

@@ -1,9 +1,12 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from app.database import get_db
 from app.models.subject import Subject
+from app.models.homework import HomeworkEntry
+from app.models.schedule_rule import ScheduleRule
+from app.models.bell_schedule import BellSchedule
 from app.schemas.subject import SubjectRead, SubjectCreate, SubjectUpdate
 
 router = APIRouter(prefix="/api/v1/subjects", tags=["subjects"])
@@ -62,3 +65,22 @@ async def delete_subject(id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await db.delete(subject)
     await db.commit()
     return None
+
+
+@router.post("/clear-all-data", status_code=status.HTTP_200_OK)
+@router.delete("/clear-all-data", status_code=status.HTTP_200_OK)
+async def clear_all_data(db: AsyncSession = Depends(get_db)):
+    """
+    Permanently delete all data across the application:
+    1. Homework entries
+    2. Schedule rules
+    3. Bell schedule slots
+    4. Subjects
+    """
+    await db.execute(delete(HomeworkEntry))
+    await db.execute(delete(ScheduleRule))
+    await db.execute(delete(BellSchedule))
+    await db.execute(delete(Subject))
+    await db.commit()
+    return {"status": "ok", "message": "All data cleared successfully"}
+

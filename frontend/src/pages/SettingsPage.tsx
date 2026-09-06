@@ -1,14 +1,36 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit2, Trash2, Check, X, Loader2, Globe } from 'lucide-react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Check,
+  X,
+  Loader2,
+  Globe,
+  Calendar,
+  Download,
+  AlertTriangle,
+  FileSpreadsheet,
+} from 'lucide-react';
 import { fetchSubjects, createSubject, updateSubject, deleteSubject } from '../api/client';
 import { ThemeToggle } from '../components/layout/ThemeToggle';
 import { useLanguage } from '../i18n/LanguageContext';
+import { useDeleteAllSchedule, useClearAllAppData } from '../hooks/useSchedule';
+import { ScheduleEditorModal } from '../components/schedule/ScheduleEditorModal';
 import type { Subject } from '../types';
 
 export function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
   const queryClient = useQueryClient();
+  const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
+  const [confirmPromptText, setConfirmPromptText] = useState('');
+  const [exportNotification, setExportNotification] = useState<string | null>(null);
+
+  const deleteScheduleMutation = useDeleteAllSchedule();
+  const clearAllMutation = useClearAllAppData();
+
   const { data: subjects, isLoading } = useQuery({
     queryKey: ['subjects'],
     queryFn: fetchSubjects,
@@ -64,6 +86,47 @@ export function SettingsPage() {
         }
       });
     }
+  };
+
+  // Export subjects as a downloadable JSON file
+  const handleExportSubjects = () => {
+    if (!subjects || subjects.length === 0) return;
+    const cleanSubjects = subjects.map(s => ({
+      name: s.name,
+      short_name: s.short_name,
+      color_hex: s.color_hex,
+      default_cabinet: s.default_cabinet,
+    }));
+
+    const blob = new Blob([JSON.stringify(cleanSubjects, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `subjects-export-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setExportNotification(t('exported_subjects_success'));
+    setTimeout(() => setExportNotification(null), 3000);
+  };
+
+  // Delete only schedule rules
+  const handleDeleteScheduleOnly = async () => {
+    if (window.confirm(t('delete_schedule_confirm'))) {
+      await deleteScheduleMutation.mutateAsync(undefined);
+      alert(t('delete_schedule_success'));
+    }
+  };
+
+  // Delete all application data
+  const handleConfirmClearAll = async () => {
+    if (confirmPromptText.trim().toUpperCase() !== 'DELETE') return;
+    await clearAllMutation.mutateAsync();
+    setIsClearingAll(false);
+    setConfirmPromptText('');
+    alert(t('delete_all_success'));
   };
 
   return (
@@ -213,7 +276,153 @@ export function SettingsPage() {
             </div>
           )}
         </section>
+
+        {/* Schedule & Data Tools */}
+        <section className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4">
+          <h2 className="text-lg font-semibold text-text-primary border-b border-border-light pb-2">{t('schedule_editor')}</h2>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-text-primary flex items-center gap-2">
+                <Calendar size={18} className="text-accent" />
+                <span>{t('schedule_editor')}</span>
+              </p>
+              <p className="text-sm text-text-muted mt-0.5">{t('schedule_editor_desc')}</p>
+            </div>
+            <button
+              onClick={() => setIsScheduleEditorOpen(true)}
+              className="px-4 py-2 bg-accent hover:bg-accent/90 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-xs shrink-0"
+            >
+              <FileSpreadsheet size={16} />
+              <span>{t('open_schedule_editor')}</span>
+            </button>
+          </div>
+
+          <div className="pt-3 border-t border-border-light flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-text-primary flex items-center gap-2">
+                <Download size={18} className="text-accent" />
+                <span>{t('export_subjects')}</span>
+              </p>
+              <p className="text-sm text-text-muted mt-0.5">{t('export_subjects_desc')}</p>
+              {exportNotification && (
+                <p className="text-xs text-success font-medium mt-1 animate-in fade-in duration-200">
+                  ✓ {exportNotification}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleExportSubjects}
+              disabled={!subjects || subjects.length === 0}
+              className="px-4 py-2 bg-bg-tertiary hover:bg-border text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-border shrink-0 disabled:opacity-50"
+            >
+              <Download size={16} />
+              <span>{t('export_subjects')}</span>
+            </button>
+          </div>
+        </section>
+
+        {/* Danger Zone: Data Wipe Controls */}
+        <section className="bg-danger/5 border border-danger/30 p-5 rounded-xl space-y-4">
+          <div className="flex items-center gap-2.5 text-danger border-b border-danger/20 pb-2">
+            <AlertTriangle size={20} />
+            <h2 className="text-lg font-bold">{t('danger_zone')}</h2>
+          </div>
+          <p className="text-xs text-text-muted">{t('danger_zone_desc')}</p>
+
+          {/* Delete Schedule Only */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-bg-secondary rounded-lg border border-border">
+            <div>
+              <p className="font-semibold text-text-primary text-sm">{t('delete_schedule_only')}</p>
+              <p className="text-xs text-text-muted mt-0.5">{t('delete_schedule_only_desc')}</p>
+            </div>
+            <button
+              onClick={handleDeleteScheduleOnly}
+              disabled={deleteScheduleMutation.isPending}
+              className="px-4 py-2 bg-danger/10 hover:bg-danger text-danger hover:text-white rounded-lg text-xs font-semibold transition-colors border border-danger/30 flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
+            >
+              {deleteScheduleMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              <span>{t('delete_schedule_only')}</span>
+            </button>
+          </div>
+
+          {/* Delete All Data */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-bg-secondary rounded-lg border border-danger/40">
+            <div>
+              <p className="font-semibold text-danger text-sm">{t('delete_all_data')}</p>
+              <p className="text-xs text-text-muted mt-0.5">{t('delete_all_data_desc')}</p>
+            </div>
+            <button
+              onClick={() => setIsClearingAll(true)}
+              className="px-4 py-2 bg-danger hover:bg-danger/90 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0 shadow-xs"
+            >
+              <Trash2 size={14} />
+              <span>{t('delete_all_data')}</span>
+            </button>
+          </div>
+        </section>
       </div>
+
+      {/* Confirmation Modal for Complete Data Wipe */}
+      {isClearingAll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-bg-secondary border border-danger/50 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3 text-danger">
+              <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">{t('delete_all_data')}</h3>
+                <p className="text-xs text-text-muted">{t('danger_zone')}</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-danger/10 border border-danger/20 rounded-lg text-xs text-danger font-medium leading-relaxed">
+              {t('delete_all_data_warning')}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-secondary block">
+                {t('delete_all_data_confirm_prompt')}
+              </label>
+              <input
+                type="text"
+                placeholder="DELETE"
+                value={confirmPromptText}
+                onChange={(e) => setConfirmPromptText(e.target.value)}
+                className="w-full bg-bg-primary border border-border rounded-lg px-3 py-2 text-sm focus:border-danger focus:outline-none font-mono"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <button
+                onClick={() => {
+                  setIsClearingAll(false);
+                  setConfirmPromptText('');
+                }}
+                className="px-4 py-2 text-xs font-medium text-text-secondary hover:text-text-primary rounded-lg transition-colors"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={handleConfirmClearAll}
+                disabled={confirmPromptText.trim().toUpperCase() !== 'DELETE' || clearAllMutation.isPending}
+                className="px-4 py-2 bg-danger hover:bg-danger/90 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                {clearAllMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+                <span>{t('delete_all_data')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Editor Modal */}
+      <ScheduleEditorModal
+        isOpen={isScheduleEditorOpen}
+        onClose={() => setIsScheduleEditorOpen(false)}
+      />
     </div>
   );
 }

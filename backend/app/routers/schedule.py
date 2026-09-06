@@ -9,7 +9,7 @@ from app.models.schedule_rule import ScheduleRule, WeekType
 from app.models.subject import Subject
 from app.schemas.schedule import (
     DaySchedule, AiParseResponse, BulkCommitRequest,
-    ScheduleRuleCreate, BulkCommitByNameRequest, BulkCommitByNameRule,
+    ScheduleRuleCreate, ScheduleRuleRead, BulkCommitByNameRequest, BulkCommitByNameRule,
 )
 import logging
 from app.services.schedule_service import get_schedule_for_range
@@ -201,3 +201,37 @@ async def bulk_commit_by_name(
             for s in subject_cache.values()
         ],
     }
+
+
+@router.get("/rules", response_model=list[ScheduleRuleRead])
+async def list_schedule_rules(
+    week_type: str | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get all schedule rules (raw), optionally filtered by week_type.
+    """
+    stmt = select(ScheduleRule).order_by(ScheduleRule.day_of_week, ScheduleRule.lesson_order)
+    if week_type:
+        stmt = stmt.where(ScheduleRule.week_type == week_type)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+@router.delete("", status_code=status.HTTP_200_OK)
+@router.delete("/", status_code=status.HTTP_200_OK, include_in_schema=False)
+async def delete_all_schedule(
+    week_type: str | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Delete schedule rules. If week_type is provided, delete only for that week_type,
+    otherwise delete ALL schedule rules.
+    """
+    stmt = delete(ScheduleRule)
+    if week_type:
+        stmt = stmt.where(ScheduleRule.week_type == week_type)
+    await db.execute(stmt)
+    await db.commit()
+    return {"status": "ok", "message": "Schedule deleted successfully"}
+

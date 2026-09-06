@@ -19,6 +19,10 @@ A modern, production-ready, self-hosted personal school diary web application wi
   - Ukrainian system instructions with 24-hour time format (HH:MM).
 - **🌐 Full Ukrainian & English Localization**:
   - Instant language switching between Українська and English in Settings with automatic persistence.
+- **⚙️ Standalone Schedule Editor & Data Management**:
+  - Open and edit timetable directly in Settings without needing an image upload.
+  - Export registered subjects to clean JSON format.
+  - Granular data cleanup: "Delete Schedule Only" or full "Delete All Data" with confirmation safeguards.
 - **📊 Subject Statistics**:
   - Interactive weekly charts powered by Recharts showing total study hours and busiest subjects.
 - **🎨 Appearance**:

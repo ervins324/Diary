@@ -112,6 +112,26 @@ export const translations = {
     subject_name_placeholder: 'Subject Name',
     short_name_placeholder: 'Short Name',
     cabinet_placeholder: 'Cabinet',
+
+    // Schedule Editor & Data Management
+    schedule_editor: 'Schedule Editor',
+    schedule_editor_desc: 'Manually view, edit, or adjust your timetable rules',
+    open_schedule_editor: 'Open Schedule Editor',
+    export_subjects: 'Export Subjects',
+    export_subjects_desc: 'Download all subjects as a JSON file',
+    exported_subjects_success: 'Subjects exported successfully!',
+    data_management: 'Data Management',
+    danger_zone: 'Danger Zone',
+    danger_zone_desc: 'Irreversible data actions. Please proceed with caution.',
+    delete_schedule_only: 'Delete Schedule Only',
+    delete_schedule_only_desc: 'Remove all lesson schedule rules without deleting your subjects or homework.',
+    delete_schedule_confirm: 'Are you sure you want to delete ALL schedule rules? Your subjects and homework will remain intact.',
+    delete_all_data: 'Delete All Data',
+    delete_all_data_desc: 'Permanently wipe all schedule rules, homework, bell schedules, and subjects from the database.',
+    delete_all_data_warning: 'WARNING: This action is permanent and cannot be undone. All subjects, lessons, bell timetables, and homework will be completely erased.',
+    delete_all_data_confirm_prompt: 'Type DELETE to confirm complete database wipe:',
+    delete_all_success: 'All application data has been deleted.',
+    delete_schedule_success: 'Schedule has been deleted.',
   },
   uk: {
     // Navigation
@@ -224,6 +244,26 @@ export const translations = {
     subject_name_placeholder: 'Назва предмета',
     short_name_placeholder: 'Скорочена назва',
     cabinet_placeholder: 'Кабінет',
+
+    // Schedule Editor & Data Management
+    schedule_editor: 'Редактор розкладу',
+    schedule_editor_desc: 'Ручний перегляд, редагування та налаштування правил розкладу',
+    open_schedule_editor: 'Відкрити редактор розкладу',
+    export_subjects: 'Експорт предметів',
+    export_subjects_desc: 'Завантажити всі предмети у форматі JSON',
+    exported_subjects_success: 'Предмети успішно експортовано!',
+    data_management: 'Керування даними',
+    danger_zone: 'Небезпечна зона',
+    danger_zone_desc: 'Незворотні операції з даними. Будьте уважні.',
+    delete_schedule_only: 'Видалити лише розклад',
+    delete_schedule_only_desc: 'Очистити всі уроки з розкладу без видалення предметів чи домашнього завдання.',
+    delete_schedule_confirm: 'Ви впевнені, що хочете видалити ВСІ уроки розкладу? Предмети та домашні завдання залишаться.',
+    delete_all_data: 'Видалити всі дані',
+    delete_all_data_desc: 'Повністю очистити базу даних: розклад, домашні завдання, розклад дзвінків та предмети.',
+    delete_all_data_warning: 'УВАГА: Ця дія незворотна. Усі предмети, розклад уроків, розклад дзвінків та домашні завдання будуть видалені без можливості відновлення.',
+    delete_all_data_confirm_prompt: 'Введіть DELETE для підтвердження повного очищення бази даних:',
+    delete_all_success: 'Усі дані додатку успішно видалено.',
+    delete_schedule_success: 'Розклад уроків успішно видалено.',
   },
 } as const;
 
