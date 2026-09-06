@@ -21,8 +21,9 @@ export function StatsPage() {
   const handlePrevWeek = () => setCurrentDate((prev) => subWeeks(prev, 1));
   const handleNextWeek = () => setCurrentDate((prev) => addWeeks(prev, 1));
 
-  /* Handle both rich response and legacy array fallback */
-  const subjectsList: WeeklyStat[] = statsResponse?.subjects || (Array.isArray(statsResponse) ? statsResponse : []);
+  /* Handle both rich response and legacy array fallback, sorted alphabetically for stable order across numerator/denominator */
+  const rawSubjects: WeeklyStat[] = statsResponse?.subjects || (Array.isArray(statsResponse) ? statsResponse : []);
+  const subjectsList: WeeklyStat[] = [...rawSubjects].sort((a, b) => a.subject_name.localeCompare(b.subject_name));
 
   // Prepare data for Recharts (convert minutes to hours)
   const chartData = subjectsList.map(stat => ({

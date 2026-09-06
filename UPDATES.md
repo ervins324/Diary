@@ -26,6 +26,7 @@
 - **Enriched Statistics & Analytics**:
   - Enhanced `GET /api/v1/stats/weekly` with: Active Subjects count, Total Lessons, Daily Average Lessons, Break Duration, and Homework Completion Rate.
   - Upgraded `StatsPage.tsx` with a responsive 6-card metrics grid featuring icons, time breakdown, and completion progress bar.
+  - **Deterministic Subject Bar Chart Ordering**: Sorted subjects alphabetically so subject bars stay in the exact same order and positions when toggling between numerator and denominator weeks.
 - **Daily Tab Cabinet Localization**:
   - Fixed hardcoded `"Cab"` in `LessonCard.tsx` to use localized `t('cabinet_short')` (`Каб` in Ukrainian).
 

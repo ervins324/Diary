@@ -79,8 +79,11 @@ async def get_weekly_stats(db: AsyncSession, target_date: date, anchor_date: dat
     hw_completed = sum(1 for h in hw_entries if h.is_completed)
     hw_completion_rate = round((hw_completed / hw_total) * 100, 1) if hw_total > 0 else 100.0
 
+    # Sort subjects alphabetically so bar chart order remains consistent across numerator and denominator weeks
+    sorted_subjects = sorted(stats_map.values(), key=lambda s: s["subject_name"].lower())
+
     return {
-        "subjects": list(stats_map.values()),
+        "subjects": sorted_subjects,
         "total_subjects": len(stats_map),
         "total_lessons": total_lessons,
         "avg_lessons_per_day": avg_lessons,
