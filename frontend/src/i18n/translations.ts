@@ -129,6 +129,8 @@ export const translations = {
     subject_name_placeholder: 'Subject Name',
     short_name_placeholder: 'Short Name',
     cabinet_placeholder: 'Cabinet',
+    sort_alphabet: 'Alphabetical',
+    search_subjects: 'Search subjects...',
 
     // Schedule Editor & Data Management
     schedule_editor: 'Schedule Editor',
@@ -162,6 +164,13 @@ export const translations = {
     stats_breaks_duration: 'Total Break Time',
     stats_homework_rate: 'Homework Completed',
     stats_completed: 'completed',
+    by_subjects: 'By Subjects',
+    by_days: 'By Days',
+    daily_breakdown: 'Daily Breakdown',
+    day_lessons: 'lessons',
+    day_no_lessons: 'No lessons scheduled',
+    study_time: 'Study Time',
+    break_time: 'Breaks',
 
     // Full Backup & Restore
     backup_restore: 'Backup & Restore',
@@ -303,6 +312,8 @@ export const translations = {
     subject_name_placeholder: 'Назва предмета',
     short_name_placeholder: 'Скорочена назва',
     cabinet_placeholder: 'Кабінет',
+    sort_alphabet: 'За алфавітом',
+    search_subjects: 'Пошук предметів...',
 
     // Schedule Editor & Data Management
     schedule_editor: 'Редактор розкладу',
@@ -336,6 +347,13 @@ export const translations = {
     stats_breaks_duration: 'Час перерв',
     stats_homework_rate: 'Виконано Д/З',
     stats_completed: 'виконано',
+    by_subjects: 'За предметами',
+    by_days: 'За днями',
+    daily_breakdown: 'Розподіл за днями',
+    day_lessons: 'уроків',
+    day_no_lessons: 'Немає уроків',
+    study_time: 'Навчання',
+    break_time: 'Перерви',
 
     // Full Backup & Restore
     backup_restore: 'Резервне копіювання та відновлення',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -15,6 +15,9 @@ import {
   FileSpreadsheet,
   CalendarClock,
   Archive,
+  ArrowDownAZ,
+  ArrowUpZA,
+  Search,
 } from 'lucide-react';
 import {
   fetchSubjects,
@@ -128,6 +131,29 @@ export function SettingsPage() {
   const [addForm, setAddForm] = useState<Partial<Subject>>({
     name: '', short_name: '', color_hex: '#6366F1', default_cabinet: ''
   });
+
+  /* Subject alphabetical sorting (asc = А-Я, desc = Я-А) and quick search */
+  const [subjectSortOrder, setSubjectSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [subjectSearch, setSubjectSearch] = useState('');
+
+  /* Memoized list sorted alphabetically and filtered by search query */
+  const sortedAndFilteredSubjects = useMemo(() => {
+    if (!subjects) return [];
+    return [...subjects]
+      .filter((s) => {
+        if (!subjectSearch.trim()) return true;
+        const q = subjectSearch.toLowerCase();
+        return (
+          s.name.toLowerCase().includes(q) ||
+          (s.short_name && s.short_name.toLowerCase().includes(q)) ||
+          (s.default_cabinet && s.default_cabinet.toLowerCase().includes(q))
+        );
+      })
+      .sort((a, b) => {
+        const cmp = a.name.localeCompare(b.name, language === 'uk' ? 'uk' : 'en', { sensitivity: 'base' });
+        return subjectSortOrder === 'asc' ? cmp : -cmp;
+      });
+  }, [subjects, subjectSortOrder, subjectSearch, language]);
 
   const handleEdit = (subject: Subject) => {
     setEditingId(subject.id);
@@ -281,7 +307,49 @@ export function SettingsPage() {
 
         {/* Subjects */}
         <section className="bg-bg-secondary p-5 rounded-xl border border-border">
-          <h2 className="text-lg font-semibold text-text-primary mb-4 border-b border-border-light pb-2">{t('manage_subjects')}</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-border-light pb-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-text-primary">{t('manage_subjects')}</h2>
+              {subjects && (
+                <span className="text-xs bg-bg-tertiary text-text-muted px-2 py-0.5 rounded-full font-medium">
+                  {subjects.length}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Quick Search */}
+              <div className="relative flex-1 sm:w-48">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                <input
+                  type="text"
+                  placeholder={t('search_subjects')}
+                  value={subjectSearch}
+                  onChange={(e) => setSubjectSearch(e.target.value)}
+                  className="w-full bg-bg-primary border border-border rounded-lg pl-8 pr-7 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+                />
+                {subjectSearch && (
+                  <button
+                    onClick={() => setSubjectSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* Alphabetical Sort Toggle (A-Z / Z-A) */}
+              <button
+                type="button"
+                onClick={() => setSubjectSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                className="px-2.5 py-1.5 bg-bg-primary hover:bg-bg-tertiary border border-border rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors shrink-0"
+                title={t('sort_alphabet')}
+              >
+                {subjectSortOrder === 'asc' ? <ArrowDownAZ size={15} className="text-accent" /> : <ArrowUpZA size={15} className="text-accent" />}
+                <span>{subjectSortOrder === 'asc' ? 'А-Я' : 'Я-А'}</span>
+              </button>
+            </div>
+          </div>
           
           {isLoading ? (
             <div className="flex justify-center py-4">
@@ -292,14 +360,26 @@ export function SettingsPage() {
               {/* Header */}
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-text-secondary px-2 pb-1 hidden sm:grid">
                 <div className="col-span-1">{t('color')}</div>
-                <div className="col-span-4">{t('name')}</div>
+                <div 
+                  className="col-span-4 cursor-pointer hover:text-accent flex items-center gap-1 transition-colors select-none"
+                  onClick={() => setSubjectSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                  title={t('sort_alphabet')}
+                >
+                  <span>{t('name')}</span>
+                  {subjectSortOrder === 'asc' ? <ArrowDownAZ size={13} className="text-accent" /> : <ArrowUpZA size={13} className="text-accent" />}
+                </div>
                 <div className="col-span-3">{t('short_name')}</div>
                 <div className="col-span-2">{t('cabinet')}</div>
                 <div className="col-span-2 text-right">{t('actions')}</div>
               </div>
 
               {/* List */}
-              {subjects?.map((subject) => (
+              {sortedAndFilteredSubjects.length === 0 && subjectSearch && (
+                <div className="py-6 text-center text-xs text-text-muted italic">
+                  {language === 'uk' ? 'Предметів не знайдено' : 'No subjects found'}
+                </div>
+              )}
+              {sortedAndFilteredSubjects.map((subject) => (
                 <div key={subject.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-bg-primary p-2 rounded border border-border-light text-sm">
                   {editingId === subject.id ? (
                     <>

@@ -22,4 +22,30 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // Split heavy dependencies into separate cached vendor chunks
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'vendor-query';
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('date-fns')) {
+              return 'vendor-dates';
+            }
+          }
+        },
+      },
+    },
+  },
 });

@@ -42,8 +42,31 @@ export interface WeeklyStat {
   total_minutes: number;
 }
 
+export interface DayStatSubject {
+  name: string;
+  short_name: string;
+  color_hex: string;
+  cabinet: string | null;
+  lesson_order: number;
+  start_time: string;
+  end_time: string;
+}
+
+export interface DayStat {
+  day_of_week: number;
+  date: string;
+  day_key: string;
+  lessons_count: number;
+  total_minutes: number;
+  break_minutes: number;
+  subjects: DayStatSubject[];
+  homework_count: number;
+  homework_completed: number;
+}
+
 export interface WeeklyStatsResponse {
   subjects: WeeklyStat[];
+  days?: DayStat[];
   total_subjects: number;
   total_lessons: number;
   avg_lessons_per_day: number;
