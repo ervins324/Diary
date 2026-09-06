@@ -1,5 +1,21 @@
 # School Diary — Changelog
 
+## v1.1.0 — 2026-09-06
+
+### 🔔 Bell Schedule ("Розклад Дзвінків"), AI Photo Parse & Default Dark Theme
+- **Bell Schedule Feature**:
+  - **Database Model & Migration**: Created `BellSchedule` model and Alembic migration (`002_bell_schedule`) storing `lesson_order`, `start_time`, `end_time`, and custom label `name`.
+  - **REST API**: Added `/api/v1/bells` router providing listing, creation, single-slot editing, deletion, and atomic bulk replacement.
+  - **AI Bell Timetable Parser**: Added `parse_bells_image` utilizing Gemini 3.5 Flash to automatically detect lesson numbers, start times, and end times from timetable photos.
+  - **Dedicated UI Tab**: Added `/bells` page with lesson cards, duration indicators, and automatic break calculation between lessons.
+  - **AI Bell Import Modal**: Added `AiBellsImportModal.tsx` allowing photo drop, interactive review table, and one-click database commit.
+  - **Navigation**: Added "Bells" with `Bell` icon to desktop Sidebar and mobile BottomNav.
+- **504 Gateway Timeout Fix**:
+  - Configured 300s proxy read, send, and connect timeouts in `nginx.conf`.
+  - Configured 180s request timeout in Axios client (`client.ts`), eliminating premature 504 timeouts during AI image parsing.
+- **Default Dark Theme**:
+  - Set Dark Mode as the default theme in `useTheme.ts` and added `class="dark"` to root `index.html` to prevent any initial render flash.
+
 ## v1.0.4 — 2026-09-06
 
 ### ⏰ Resilient AI Timetable Time Parsing & Default Bell Schedule

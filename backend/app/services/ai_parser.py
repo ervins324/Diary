@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from google import genai
 from google.genai import types, errors
 from app.schemas.schedule import AiParseResponse
+from app.schemas.bell_schedule import AiParseBellsResponse
 
 logger = logging.getLogger(__name__)
 
@@ -141,3 +142,119 @@ async def parse_schedule_image(
             status_code=500,
             detail=f"Failed to validate parsed schedule schema: {str(e)}",
         )
+
+
+async def parse_bells_image(
+    image_bytes: bytes,
+    filename: str,
+    api_key: str,
+    content_type: str | None = None,
+) -> AiParseBellsResponse:
+    """
+    Parses a bell schedule image (розклад дзвінків) using Gemini 3.5 Flash.
+    Extracts lesson numbers, start times, and end times.
+    """
+    if not api_key:
+        logger.error("AI bells parse aborted: GEMINI_API_KEY is not configured")
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini API key not configured. Please set GEMINI_API_KEY in your .env file."
+        )
+
+    if not image_bytes or len(image_bytes) == 0:
+        logger.error("AI bells parse aborted: Uploaded image payload is empty (0 bytes)")
+        raise HTTPException(status_code=400, detail="Uploaded image file is empty")
+
+    client = genai.Client(api_key=api_key)
+
+    mime_type = "image/jpeg"
+    if content_type and content_type.startswith("image/"):
+        mime_type = content_type
+    elif filename:
+        lower = filename.lower()
+        if lower.endswith(".png"):
+            mime_type = "image/png"
+        elif lower.endswith(".webp"):
+            mime_type = "image/webp"
+        elif lower.endswith(".gif"):
+            mime_type = "image/gif"
+        elif lower.endswith((".jpg", ".jpeg")):
+            mime_type = "image/jpeg"
+
+    logger.info(
+        f"Calling Gemini 3.5 Flash for bells schedule parse: "
+        f"filename='{filename}', mime_type='{mime_type}', size={len(image_bytes)} bytes"
+    )
+
+    system_instruction = (
+        "You are an assistant that extracts school bell schedules (розклад дзвінків) from images. "
+        "Return the parsed bell schedule as a JSON object matching this schema:\n"
+        "{\n"
+        '  "slots": [\n'
+        "    {\n"
+        '      "order": int (lesson number, e.g. 1, 2, 3...),\n'
+        '      "start_time": string (HH:MM format, 24-hour e.g. "08:30"),\n'
+        '      "end_time": string (HH:MM format, 24-hour e.g. "09:15"),\n'
+        '      "name": string (optional, e.g. "1 урок" or null)\n'
+        "    }\n"
+        "  ]\n"
+        "}\n"
+        "Order the slots by ascending lesson order. Ensure all output is strictly valid JSON."
+    )
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.5-flash',
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                "Extract the lesson bell schedule (start and end times for each lesson order) from this image and provide structured JSON.",
+            ],
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+            ),
+        )
+    except errors.APIError as e:
+        logger.error(f"Gemini API returned error code {e.code} during bells parse: {e.message}", exc_info=True)
+        status_code = e.code if e.code in (400, 401, 403, 404, 429, 503) else 502
+        raise HTTPException(
+            status_code=status_code,
+            detail=f"Gemini API error ({e.code}): {e.message}",
+        )
+    except Exception as e:
+        logger.exception(f"Unexpected error calling Gemini for bells parse: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to communicate with Gemini API: {str(e)}",
+        )
+
+    try:
+        raw_text = response.text.strip() if response.text else ""
+        logger.info(f"Received Gemini bells response ({len(raw_text)} chars)")
+
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        elif raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+        raw_text = raw_text.strip()
+
+        data = json.loads(raw_text)
+        validated = AiParseBellsResponse.model_validate(data)
+        logger.info(f"Successfully validated bell schedule: parsed {len(validated.slots)} slot(s)")
+        return validated
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to decode JSON from Gemini bells output: {e}. Raw: {response.text}", exc_info=True)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Gemini did not return valid JSON for bell schedule: {str(e)}",
+        )
+    except Exception as e:
+        logger.exception(f"Schema validation failed on Gemini bells output: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to validate bell schedule schema: {str(e)}",
+        )
+

@@ -1,8 +1,18 @@
 import axios from 'axios';
-import type { Subject, HomeworkEntry, DaySchedule, WeeklyStat, AiParsedDay } from '../types';
+import type {
+  Subject,
+  HomeworkEntry,
+  DaySchedule,
+  WeeklyStat,
+  AiParsedDay,
+  BellSlot,
+  AiParsedBellSlot,
+} from '../types';
 
+// Axios instance configured with extended timeout for AI image processing
 const api = axios.create({
   baseURL: '/api/v1',
+  timeout: 180000, // 3 minutes timeout to prevent 504 errors on long-running AI requests
 });
 
 export const fetchSchedule = async (startDate: string, endDate: string): Promise<DaySchedule[]> => {
@@ -73,5 +83,43 @@ export const bulkCommitByName = async (scheduleData: { week_type: string; rules:
 
 export const fetchWeeklyStats = async (date: string): Promise<WeeklyStat[]> => {
   const { data } = await api.get('/stats/weekly', { params: { date } });
+  return data;
+};
+
+// ── Bell Schedule (Розклад Дзвінків) API endpoints ─────────────────────────
+
+export const fetchBells = async (): Promise<BellSlot[]> => {
+  const { data } = await api.get('/bells');
+  return data;
+};
+
+export const createBellSlot = async (slot: Partial<BellSlot>): Promise<BellSlot> => {
+  const { data } = await api.post('/bells', slot);
+  return data;
+};
+
+export const updateBellSlot = async (id: string, slot: Partial<BellSlot>): Promise<BellSlot> => {
+  const { data } = await api.patch(`/bells/${id}`, slot);
+  return data;
+};
+
+export const deleteBellSlot = async (id: string): Promise<void> => {
+  await api.delete(`/bells/${id}`);
+};
+
+export const bulkCommitBells = async (slots: Partial<BellSlot>[]): Promise<BellSlot[]> => {
+  const { data } = await api.put('/bells/bulk', { slots });
+  return data;
+};
+
+/* AI-powered bell schedule image parsing */
+export const aiParseBells = async (file: File): Promise<{ slots: AiParsedBellSlot[] }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post('/bells/ai-parse', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return data;
 };

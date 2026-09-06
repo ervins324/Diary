@@ -5,7 +5,8 @@ type Theme = 'light' | 'dark';
 export const useTheme = () => {
   const [theme, setThemeState] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('diary-theme') as Theme | null;
-    return savedTheme || 'light';
+    // Default to dark theme as requested by user
+    return savedTheme || 'dark';
   });
 
   useEffect(() => {

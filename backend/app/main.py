@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import subjects, schedule, homework, stats
+from app.routers import subjects, schedule, homework, stats, bells
 
 # Configure centralized logging with timestamp, level, and logger name
 logging.basicConfig(
@@ -50,6 +50,7 @@ app.include_router(subjects.router)
 app.include_router(schedule.router)
 app.include_router(homework.router)
 app.include_router(stats.router)
+app.include_router(bells.router)
 
 @app.get("/")
 async def root():

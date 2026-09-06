@@ -55,3 +55,20 @@ export interface AiParsedDay {
   day_name: string;
   lessons: AiParsedLesson[];
 }
+
+/* Bell schedule slot (Розклад дзвінків) */
+export interface BellSlot {
+  id: string;
+  lesson_order: number;
+  start_time: string;
+  end_time: string;
+  name?: string | null;
+}
+
+/* Parsed bell slot from AI bell schedule recognition */
+export interface AiParsedBellSlot {
+  order: number;
+  start_time: string;
+  end_time: string;
+  name?: string | null;
+}
