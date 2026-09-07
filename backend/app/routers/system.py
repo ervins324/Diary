@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, time
 from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -14,6 +14,24 @@ from app.models.homework import HomeworkEntry
 
 logger = logging.getLogger("school_diary.system")
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
+
+
+def parse_time_str(val: str | time | None, default_hour: int = 8, default_minute: int = 30) -> time:
+    """Safely converts string ('08:30:00', '08:30') or time object into a datetime.time object."""
+    if val is None:
+        return time(hour=default_hour, minute=default_minute)
+    if isinstance(val, time):
+        return val
+    try:
+        val_str = str(val).strip()
+        parts = val_str.split(":")
+        h = int(parts[0])
+        m = int(parts[1]) if len(parts) > 1 else 0
+        s = int(parts[2].split(".")[0]) if len(parts) > 2 else 0
+        return time(hour=h, minute=m, second=s)
+    except Exception as err:
+        logger.warning(f"Failed to parse time string '{val}', falling back to default: {err}")
+        return time(hour=default_hour, minute=default_minute)
 
 
 class BackupSubjectItem(BaseModel):
@@ -209,8 +227,8 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
             bell = BellSchedule(
                 id=b_uuid,
                 lesson_order=b_item.lesson_order,
-                start_time=b_item.start_time,
-                end_time=b_item.end_time,
+                start_time=parse_time_str(b_item.start_time, default_hour=8, default_minute=30),
+                end_time=parse_time_str(b_item.end_time, default_hour=9, default_minute=15),
                 name=b_item.name,
             )
             db.add(bell)
@@ -242,8 +260,8 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
                 day_of_week=r_item.day_of_week,
                 week_type=r_item.week_type,
                 lesson_order=r_item.lesson_order,
-                start_time=r_item.start_time,
-                end_time=r_item.end_time,
+                start_time=parse_time_str(r_item.start_time, default_hour=8, default_minute=30),
+                end_time=parse_time_str(r_item.end_time, default_hour=9, default_minute=15),
                 cabinet=r_item.cabinet,
             )
             db.add(rule)

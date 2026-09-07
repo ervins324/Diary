@@ -18,6 +18,7 @@
   - Exports a complete snapshot of all app data (subjects, bell timetable, lesson rules, homework with photos).
   - Restores full database state in an atomic transaction maintaining foreign key relationships.
   - Added Backup & Restore card in Settings with one-click export and file restore with confirmation prompts.
+  - **PostgreSQL/asyncpg Time Coercion Fix**: Added `parse_time_str()` parser in `backend/app/routers/system.py` to ensure time fields (`start_time`, `end_time`) are explicitly converted to Python `datetime.time` instances, eliminating `asyncpg.exceptions.DataError ('str' object has no attribute 'hour')` on Linux/Docker servers.
 - **Homework Multi-Image Attachments with Text & Lightbox**:
   - Added `images` JSON column to `homeworks` table in PostgreSQL with Alembic migration `004_homework_images.py`.
   - Added multi-image file upload and direct `Ctrl+V` clipboard image pasting on homework input.
