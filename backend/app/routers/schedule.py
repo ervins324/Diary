@@ -136,6 +136,7 @@ async def set_schedule_override(
         existing.cabinet = override_in.cabinet
         existing.is_cancelled = override_in.is_cancelled
         existing.note = override_in.note
+        existing.event_type = override_in.event_type
         override_obj = existing
     else:
         override_obj = ScheduleOverride(
@@ -149,6 +150,7 @@ async def set_schedule_override(
             cabinet=override_in.cabinet,
             is_cancelled=override_in.is_cancelled,
             note=override_in.note,
+            event_type=override_in.event_type,
         )
         db.add(override_obj)
 

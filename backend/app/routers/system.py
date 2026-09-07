@@ -89,6 +89,7 @@ class BackupScheduleOverrideItem(BaseModel):
     cabinet: str | None = None
     is_cancelled: bool = False
     note: str | None = None
+    event_type: str | None = None
 
 
 class BackupStoredFileItem(BaseModel):
@@ -200,6 +201,7 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
                 "cabinet": o.cabinet,
                 "is_cancelled": o.is_cancelled,
                 "note": o.note,
+                "event_type": o.event_type,
             }
             for o in overrides
         ]
@@ -219,7 +221,7 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
         ]
 
         return {
-            "version": "1.7.0",
+            "version": "1.7.3",
             "exported_at": datetime.utcnow().isoformat() + "Z",
             "subjects": subjects_data,
             "bell_schedules": bells_data,
@@ -385,6 +387,7 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
                 cabinet=ov_item.cabinet,
                 is_cancelled=ov_item.is_cancelled,
                 note=ov_item.note,
+                event_type=ov_item.event_type,
             )
             db.add(override)
             imported_overrides_count += 1

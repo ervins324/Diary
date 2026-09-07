@@ -1,5 +1,29 @@
 # School Diary — Changelog
 
+## v1.7.3 — 2026-09-07
+
+### 🚀 Lesson Event Types (Control Work, Test, Essay, Project) & Maximum Stability Polish
+- **Lesson Event Tagging (`event_type`)**:
+  - Added support for marking lessons with special academic events:
+    - 🔥 **Control Work / Контрольна робота** (`control_work`)
+    - 📝 **Test / Quiz / Самостійна робота / Тест** (`test`)
+    - ✍️ **Essay / Твір / Есе** (`essay`)
+    - 🚀 **Project / Презентація / Проєкт** (`project`)
+    - 🎓 **Regular Lesson / Звичайний урок** (`null` / `regular`)
+  - Supported directly through the enhanced Lesson Substitution & Event modal (`LessonOverrideModal.tsx`). Users can tag any lesson with an event milestone without needing to alter the subject or classroom.
+- **Visual Badges & Highlight Styling**:
+  - **Daily View (`LessonCard.tsx`)**: High-contrast, distinctive pill badges with emoji and localized text, complemented by subtle accent colored borders (rose for Control Work, amber for Tests, purple for Essays, sky blue for Projects).
+  - **Weekly Timetable (`DiaryPage.tsx`)**: Compact event badges in weekly schedule rows to allow students to spot upcoming tests across the whole week at a glance.
+- **Database & Architecture Polish for Maximum Stability**:
+  - **Alembic Migration**: Created `006_lesson_event_types.py` adding `event_type VARCHAR(50)` to `schedule_overrides`.
+  - **Startup Safety Check**: Added a zero-downtime startup lifespan handler in `backend/app/main.py` executing `ALTER TABLE schedule_overrides ADD COLUMN IF NOT EXISTS event_type VARCHAR(50);`, ensuring compatibility even if migrations are bypassed.
+  - **Full Backup & Restore Fidelity**: Updated `/api/v1/system/backup/export` and `/api/v1/system/backup/import` to version `1.7.3`, ensuring all event milestone tags persist across backup exports and restores.
+- **Automated Unit Tests**:
+  - Added `backend/tests/test_lesson_events.py` verifying:
+    - Creating and updating overrides with `event_type` tags.
+    - Automatic mapping of `event_type` onto `LessonSlot` in `schedule_service.py`.
+    - Backup schema serialization and deserialization roundtrip.
+
 ## v1.7.2 — 2026-09-07
 
 ### 🚀 Data Storage Breakdown Statistics & File Size Comparison Diagram

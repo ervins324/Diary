@@ -27,6 +27,8 @@ export interface HomeworkEntry {
   attachments?: Attachment[];
 }
 
+export type LessonEventType = 'control_work' | 'test' | 'essay' | 'project' | null;
+
 export interface LessonSlot {
   date: string;
   lesson_order: number;
@@ -39,6 +41,7 @@ export interface LessonSlot {
   is_override?: boolean;
   is_cancelled?: boolean;
   override_note?: string | null;
+  event_type?: LessonEventType;
 }
 
 export interface ScheduleOverride {
@@ -53,6 +56,7 @@ export interface ScheduleOverride {
   cabinet?: string | null;
   is_cancelled: boolean;
   note?: string | null;
+  event_type?: LessonEventType;
   subject?: Subject | null;
   original_subject?: Subject | null;
 }

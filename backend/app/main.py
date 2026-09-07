@@ -1,9 +1,12 @@
 import logging
 import sys
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.config import settings
+from app.database import engine
 from app.routers import subjects, schedule, homework, stats, bells, system, files
 
 # Configure centralized logging with timestamp, level, and logger name
@@ -14,7 +17,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger("school_diary")
 
-app = FastAPI(title="School Diary API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure database schema is up-to-date with safety column additions
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text("ALTER TABLE schedule_overrides ADD COLUMN IF NOT EXISTS event_type VARCHAR(50);")
+            )
+            logger.info("Database safety column verification completed.")
+    except Exception as e:
+        logger.warning(f"Database safety migration check warning: {e}")
+    yield
+
+app = FastAPI(title="School Diary API", version="1.0.0", lifespan=lifespan)
 
 # Global exception handler to log full tracebacks for any unhandled 500 errors
 @app.exception_handler(Exception)

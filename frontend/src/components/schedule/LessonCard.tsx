@@ -207,7 +207,11 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
         isCurrentLesson
           ? "border-accent ring-2 ring-accent/30 shadow-md bg-accent/5"
           : "border-border",
-        lesson.is_override && !isCurrentLesson && "border-amber-500/40 bg-amber-500/5",
+        lesson.is_override && !isCurrentLesson && !lesson.event_type && "border-amber-500/40 bg-amber-500/5",
+        lesson.event_type === 'control_work' && "border-rose-500/50 bg-rose-500/5 ring-1 ring-rose-500/20",
+        lesson.event_type === 'test' && "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/20",
+        lesson.event_type === 'essay' && "border-purple-500/50 bg-purple-500/5 ring-1 ring-purple-500/20",
+        lesson.event_type === 'project' && "border-sky-500/50 bg-sky-500/5 ring-1 ring-sky-500/20",
         lesson.is_cancelled && "opacity-75 bg-bg-tertiary/50"
       )}
     >
@@ -259,6 +263,22 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
               </span>
             )}
 
+            {/* Special event / assessment badge (Control Work, Test, Essay, Project) */}
+            {lesson.event_type && (
+              <span className={cn(
+                "inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold border shadow-2xs",
+                lesson.event_type === 'control_work' && "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
+                lesson.event_type === 'test' && "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+                lesson.event_type === 'essay' && "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
+                lesson.event_type === 'project' && "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30",
+              )}>
+                {lesson.event_type === 'control_work' && `🔥 ${t('event_control_work')}`}
+                {lesson.event_type === 'test' && `📝 ${t('event_test')}`}
+                {lesson.event_type === 'essay' && `✍️ ${t('event_essay')}`}
+                {lesson.event_type === 'project' && `🚀 ${t('event_project')}`}
+              </span>
+            )}
+
             {isCurrentLesson && (
               <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold bg-accent text-white shadow-xs animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
@@ -303,19 +323,23 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
               {isLocating ? <Loader2 size={14} className="animate-spin text-accent" /> : <Compass size={14} />}
             </button>
 
-            {/* Substitution override trigger button */}
+            {/* Substitution & Event override trigger button */}
             <button
               onClick={() => setIsOverrideModalOpen(true)}
               className={cn(
                 "p-1 rounded transition-colors",
-                lesson.is_override
+                lesson.event_type === 'control_work'
+                  ? "text-rose-500 hover:bg-rose-500/10"
+                  : lesson.event_type
+                  ? "text-accent hover:bg-accent/10"
+                  : lesson.is_override
                   ? "text-amber-500 hover:bg-amber-500/10"
                   : "text-text-muted hover:text-accent hover:bg-bg-tertiary"
               )}
               title={
                 language === 'uk'
-                  ? 'Заміна уроку на цей тиждень'
-                  : 'Lesson substitution for this week'
+                  ? 'Заміна або подія уроку (контрольна, тест, твір, проєкт)'
+                  : 'Lesson substitution or event (control work, test, essay, project)'
               }
             >
               <ArrowLeftRight size={14} />

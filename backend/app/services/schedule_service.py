@@ -94,11 +94,13 @@ async def get_schedule_for_range(
             start_time = rule.start_time
             end_time = rule.end_time
             override_note = None
+            event_type = None
 
             if override:
                 is_override = True
                 is_cancelled = override.is_cancelled
                 override_note = override.note
+                event_type = getattr(override, "event_type", None)
                 if override.start_time:
                     start_time = override.start_time
                 if override.end_time:
@@ -133,6 +135,7 @@ async def get_schedule_for_range(
                 is_override=is_override,
                 is_cancelled=is_cancelled,
                 override_note=override_note,
+                event_type=event_type,
             )
             lessons.append(lesson)
 
@@ -157,6 +160,7 @@ async def get_schedule_for_range(
                         is_override=True,
                         is_cancelled=override.is_cancelled,
                         override_note=override.note,
+                        event_type=getattr(override, "event_type", None),
                     )
                     lessons.append(lesson)
 

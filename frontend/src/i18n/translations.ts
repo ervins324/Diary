@@ -245,6 +245,15 @@ export const translations = {
     storage_category_subjects: 'Subjects Directory',
     storage_count_label: '{count} items',
     storage_refresh: 'Refresh Storage Stats',
+    lesson_event_type: 'Lesson Event / Assessment',
+    event_none: 'Regular Lesson',
+    event_control_work: 'Control Work',
+    event_test: 'Test / Quiz',
+    event_essay: 'Essay',
+    event_project: 'Project',
+    lesson_override_modal_title: 'Lesson Substitution & Events',
+    event_tag_desc: 'Tag this lesson if there is an upcoming test, control work, essay, or project',
+    upcoming_events_title: 'Upcoming Tests & Deadlines',
   },
   uk: {
     // Navigation
@@ -490,6 +499,15 @@ export const translations = {
     storage_category_subjects: 'Довідник предметів',
     storage_count_label: '{count} записів',
     storage_refresh: 'Оновити статистику',
+    lesson_event_type: 'Тип уроку / Подія',
+    event_none: 'Звичайний урок',
+    event_control_work: 'Контрольна робота',
+    event_test: 'Самостійна / Тест',
+    event_essay: 'Твір / Есе',
+    event_project: 'Проєкт',
+    lesson_override_modal_title: 'Заміна уроку та події',
+    event_tag_desc: 'Позначте цей урок, якщо планується контрольна, тест, твір або захист проєкту',
+    upcoming_events_title: 'Найближчі контрольні та дедлайни',
   },
 } as const;
 

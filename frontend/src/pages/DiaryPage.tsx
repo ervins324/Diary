@@ -284,7 +284,11 @@ export function DiaryPage() {
                   className={cn(
                     "flex gap-2 py-1.5 px-1.5 rounded-md border-b border-border-light last:border-0 text-sm transition-all duration-300",
                     isCurrent && "bg-accent/10 border border-accent/40 shadow-2xs ring-1 ring-accent/30",
-                    lesson.is_override && !isCurrent && "bg-amber-500/5 border border-amber-500/30",
+                    lesson.is_override && !isCurrent && !lesson.event_type && "bg-amber-500/5 border border-amber-500/30",
+                    lesson.event_type === 'control_work' && "bg-rose-500/5 border border-rose-500/30",
+                    lesson.event_type === 'test' && "bg-amber-500/5 border border-amber-500/30",
+                    lesson.event_type === 'essay' && "bg-purple-500/5 border border-purple-500/30",
+                    lesson.event_type === 'project' && "bg-sky-500/5 border border-sky-500/30",
                     lesson.is_cancelled && "opacity-75 bg-bg-tertiary/50"
                   )}
                 >
@@ -335,6 +339,22 @@ export function DiaryPage() {
                           </span>
                         )}
 
+                        {/* Event type badge (Control Work, Test, Essay, Project) */}
+                        {lesson.event_type && (
+                          <span className={cn(
+                            "inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.2 rounded font-bold border shrink-0",
+                            lesson.event_type === 'control_work' && "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
+                            lesson.event_type === 'test' && "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+                            lesson.event_type === 'essay' && "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
+                            lesson.event_type === 'project' && "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30",
+                          )}>
+                            {lesson.event_type === 'control_work' && `🔥 ${t('event_control_work')}`}
+                            {lesson.event_type === 'test' && `📝 ${t('event_test')}`}
+                            {lesson.event_type === 'essay' && `✍️ ${t('event_essay')}`}
+                            {lesson.event_type === 'project' && `🚀 ${t('event_project')}`}
+                          </span>
+                        )}
+
                         {isCurrent && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-accent text-white shrink-0 animate-pulse">
                             <span className="w-1 h-1 rounded-full bg-white animate-ping" />
@@ -379,20 +399,24 @@ export function DiaryPage() {
                           <Compass size={12} />
                         </button>
 
-                        {/* Lesson override button */}
+                        {/* Lesson override / event button */}
                         <button
                           type="button"
                           onClick={() => setOverrideLesson(lesson)}
                           className={cn(
                             "p-0.5 rounded transition-colors",
-                            lesson.is_override
+                            lesson.event_type === 'control_work'
+                              ? "text-rose-500 hover:bg-rose-500/10"
+                              : lesson.event_type
+                              ? "text-accent hover:bg-accent/10"
+                              : lesson.is_override
                               ? "text-amber-500 hover:bg-amber-500/10"
                               : "text-text-muted hover:text-accent"
                           )}
                           title={
                             language === 'uk'
-                              ? 'Заміна уроку на цей тиждень'
-                              : 'Lesson substitution for this week'
+                              ? 'Заміна або подія уроку (контрольна, тест, твір, проєкт)'
+                              : 'Lesson substitution or event (control work, test, essay, project)'
                           }
                         >
                           <ArrowLeftRight size={12} />

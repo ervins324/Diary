@@ -38,6 +38,7 @@ class LessonSlot(BaseModel):
     is_override: bool = False
     is_cancelled: bool = False
     override_note: str | None = None
+    event_type: str | None = None  # control_work, test, essay, project, or None
 
 class ScheduleOverrideCreate(BaseModel):
     date: date
@@ -50,6 +51,7 @@ class ScheduleOverrideCreate(BaseModel):
     cabinet: str | None = None
     is_cancelled: bool = False
     note: str | None = None
+    event_type: str | None = None
 
 class ScheduleOverrideRead(BaseModel):
     id: uuid.UUID
@@ -63,6 +65,7 @@ class ScheduleOverrideRead(BaseModel):
     cabinet: str | None = None
     is_cancelled: bool = False
     note: str | None = None
+    event_type: str | None = None
     subject: SubjectRead | None = None
     original_subject: SubjectRead | None = None
 

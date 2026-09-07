@@ -30,6 +30,8 @@ class ScheduleOverride(Base):
     cabinet: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_cancelled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Special event / assessment type: control_work, test, essay, project, or None (regular)
+    event_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     subject: Mapped["Subject | None"] = relationship("Subject", foreign_keys=[subject_id], lazy="selectin")
     original_subject: Mapped["Subject | None"] = relationship("Subject", foreign_keys=[original_subject_id], lazy="selectin")
