@@ -1,6 +1,6 @@
 import calendar
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, time
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -179,32 +179,61 @@ async def get_schedule_for_range(
 async def find_closest_next_lesson(
     db: AsyncSession,
     subject_id: any,
-    from_date: date,
     anchor_date: date,
+    current_date: date | None = None,
+    current_lesson_order: int | None = None,
+    from_date: date | None = None,
     max_days_forward: int = 28,
 ) -> NextLessonResponse | None:
     """
-    Find the closest upcoming lesson for a subject starting from `from_date`.
-    Respects numerator/denominator alternating week types and date-specific temporal substitutions.
+    Find the NEXT upcoming occurrence of a lesson for a subject.
+    Never returns the current lesson slot that was clicked on.
+    If viewing a past date, searches from today forward.
+    If viewing today or a future date, searches strictly after (current_date, current_lesson_order).
     """
-    end_date = from_date + timedelta(days=max_days_forward)
-    schedules = await get_schedule_for_range(db, from_date, end_date, anchor_date)
+    today = date.today()
+    if current_date:
+        if current_date >= today:
+            search_start = current_date
+        else:
+            search_start = today
+    else:
+        search_start = from_date or today
+
+    end_date = search_start + timedelta(days=max_days_forward)
+    schedules = await get_schedule_for_range(db, search_start, end_date, anchor_date)
 
     target_id_str = str(subject_id)
+    now_time = datetime.now().time()
+
     for day in schedules:
         for lesson in day.lessons:
             # Skip cancelled lessons
             if lesson.is_cancelled:
                 continue
-            if str(lesson.subject.id) == target_id_str:
-                return NextLessonResponse(
-                    date=day.date,
-                    lesson_order=lesson.lesson_order,
-                    subject_id=lesson.subject.id,
-                    subject_name=lesson.subject.name,
-                    start_time=lesson.start_time,
-                    end_time=lesson.end_time,
-                    cabinet=lesson.cabinet,
-                )
+            if str(lesson.subject.id) != target_id_str:
+                continue
+
+            # If this is the exact same day the user clicked from:
+            if current_date and day.date == current_date:
+                # Must be strictly after current_lesson_order
+                if current_lesson_order is not None and lesson.lesson_order <= current_lesson_order:
+                    continue
+
+            # If the user clicked from a past date, but this is today:
+            # Skip lessons that already ended earlier today
+            if current_date and current_date < today and day.date == today:
+                if lesson.end_time and lesson.end_time <= now_time:
+                    continue
+
+            return NextLessonResponse(
+                date=day.date,
+                lesson_order=lesson.lesson_order,
+                subject_id=lesson.subject.id,
+                subject_name=lesson.subject.name,
+                start_time=lesson.start_time,
+                end_time=lesson.end_time,
+                cabinet=lesson.cabinet,
+            )
 
     return None

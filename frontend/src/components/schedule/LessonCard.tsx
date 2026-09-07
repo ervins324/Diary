@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { Plus, Image as ImageIcon, X, Check, ArrowLeftRight, Compass, Link as LinkIcon, Loader2 } from 'lucide-react';
 import type { LessonSlot, Attachment } from '../../types';
 import { formatTime, compressImageFile, isLessonNow, cn } from '../../lib/utils';
@@ -14,7 +13,7 @@ import { useLanguage } from '../../i18n/LanguageContext';
 
 interface LessonCardProps {
   lesson: LessonSlot;
-  onFindNextLesson?: (subjectId: string) => void;
+  onFindNextLesson?: (subjectId: string, currentDate?: string, currentLessonOrder?: number) => void;
 }
 
 export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
@@ -127,13 +126,12 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
   /* Locate next lesson closest to today */
   const handleLocateNext = async () => {
     if (onFindNextLesson) {
-      onFindNextLesson(lesson.subject.id);
+      onFindNextLesson(lesson.subject.id, lesson.date, lesson.lesson_order);
       return;
     }
     try {
       setIsLocating(true);
-      const todayIso = format(new Date(), 'yyyy-MM-dd');
-      const result = await fetchNextLesson(lesson.subject.id, todayIso);
+      const result = await fetchNextLesson(lesson.subject.id, lesson.date, lesson.lesson_order);
       if (!result) {
         alert(
           language === 'uk'
@@ -287,6 +285,8 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
             <HomeworkInline
               key={hw.id}
               homework={hw}
+              currentDate={lesson.date}
+              currentLessonOrder={lesson.lesson_order}
               onFindNextLesson={onFindNextLesson}
             />
           ))}

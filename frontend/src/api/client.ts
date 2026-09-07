@@ -186,9 +186,19 @@ export const uploadStoredFile = async (file: File): Promise<{ id: string; filena
 
 // ── Next Lesson & Schedule Override API endpoints ───────────────────────
 
-export const fetchNextLesson = async (subjectId: string, fromDate?: string): Promise<any> => {
+export const fetchNextLesson = async (
+  subjectId: string,
+  currentDate?: string,
+  currentLessonOrder?: number,
+  fromDate?: string
+): Promise<any> => {
   const { data } = await api.get('/schedule/next-lesson', {
-    params: { subject_id: subjectId, from_date: fromDate },
+    params: {
+      subject_id: subjectId,
+      current_date: currentDate,
+      current_lesson_order: currentLessonOrder,
+      from_date: fromDate,
+    },
   });
   return data;
 };

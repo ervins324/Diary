@@ -44,16 +44,24 @@ async def get_schedule(
 @router.get("/next-lesson", response_model=NextLessonResponse | None)
 async def get_next_lesson(
     subject_id: uuid.UUID,
+    current_date: date | None = None,
+    current_lesson_order: int | None = None,
     from_date: date | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Find the closest upcoming lesson for a subject starting from today (or from_date).
-    Cycles through alternating numerator/denominator weeks and includes temporal substitutions.
+    Find the closest upcoming lesson for a subject strictly after the current lesson.
+    Never returns the lesson slot the user is currently viewing/clicking on.
     """
     anchor_date = date.fromisoformat(settings.SEMESTER_ANCHOR_DATE)
-    start_search_date = from_date or date.today()
-    return await find_closest_next_lesson(db, subject_id, start_search_date, anchor_date)
+    return await find_closest_next_lesson(
+        db=db,
+        subject_id=subject_id,
+        anchor_date=anchor_date,
+        current_date=current_date,
+        current_lesson_order=current_lesson_order,
+        from_date=from_date,
+    )
 
 
 @router.get("/overrides", response_model=list[ScheduleOverrideRead])

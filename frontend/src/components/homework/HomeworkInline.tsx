@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { useUpdateHomework, useDeleteHomework } from '../../hooks/useHomework';
 import { useFileUpload } from '../../hooks/useFileUpload';
@@ -12,7 +11,9 @@ import { useLanguage } from '../../i18n/LanguageContext';
 
 interface HomeworkInlineProps {
   homework: HomeworkEntry;
-  onFindNextLesson?: (subjectId: string) => void;
+  currentDate?: string;
+  currentLessonOrder?: number;
+  onFindNextLesson?: (subjectId: string, currentDate?: string, currentLessonOrder?: number) => void;
 }
 
 /**
@@ -20,7 +21,12 @@ interface HomeworkInlineProps {
  * Shows completion toggle, text, attached image thumbnails with lightbox,
  * PDF and presentation chips, and edit/delete/locate actions on hover.
  */
-export function HomeworkInline({ homework, onFindNextLesson }: HomeworkInlineProps) {
+export function HomeworkInline({
+  homework,
+  currentDate,
+  currentLessonOrder,
+  onFindNextLesson,
+}: HomeworkInlineProps) {
   const { language } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   /* Use homework.text to match backend HomeworkRead schema */
@@ -72,14 +78,15 @@ export function HomeworkInline({ homework, onFindNextLesson }: HomeworkInlinePro
 
   /* Handle locating the closest next lesson to today for this subject */
   const handleLocateNext = async () => {
+    const targetDate = currentDate || homework.due_date;
+    const targetOrder = currentLessonOrder ?? (homework.lesson_order ?? undefined);
     if (onFindNextLesson) {
-      onFindNextLesson(homework.subject_id);
+      onFindNextLesson(homework.subject_id, targetDate, targetOrder);
       return;
     }
     try {
       setIsLocating(true);
-      const todayIso = format(new Date(), 'yyyy-MM-dd');
-      const result = await fetchNextLesson(homework.subject_id, todayIso);
+      const result = await fetchNextLesson(homework.subject_id, targetDate, targetOrder);
       if (!result) {
         alert(
           language === 'uk'

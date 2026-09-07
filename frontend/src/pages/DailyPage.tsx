@@ -73,10 +73,9 @@ export function DailyPage() {
   }, [targetHighlightOrder, isLoading, currentDaySchedule]);
 
   /* Handler when clicking locate next lesson button on any card */
-  const handleFindNextLesson = async (subjectId: string) => {
+  const handleFindNextLesson = async (subjectId: string, cDate?: string, cOrder?: number) => {
     try {
-      const todayIso = format(new Date(), 'yyyy-MM-dd');
-      const result = await fetchNextLesson(subjectId, todayIso);
+      const result = await fetchNextLesson(subjectId, cDate || dateStr, cOrder);
       if (!result) {
         alert(
           language === 'uk'

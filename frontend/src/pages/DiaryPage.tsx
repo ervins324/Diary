@@ -128,10 +128,10 @@ export function DiaryPage() {
   };
 
   /* Locate next lesson closest to today and jump to it */
-  const handleLocateNext = async (subjectId: string) => {
+  const handleLocateNext = async (subjectId: string, cDate?: string, cOrder?: number) => {
     try {
       const todayIso = format(new Date(), 'yyyy-MM-dd');
-      const result = await fetchNextLesson(subjectId, todayIso);
+      const result = await fetchNextLesson(subjectId, cDate || todayIso, cOrder);
       if (!result) {
         alert(
           language === 'uk'
@@ -323,7 +323,7 @@ export function DiaryPage() {
                         {/* Locate next lesson button */}
                         <button
                           type="button"
-                          onClick={() => handleLocateNext(lesson.subject.id)}
+                          onClick={() => handleLocateNext(lesson.subject.id, dayData.date, lesson.lesson_order)}
                           className="text-text-muted hover:text-accent p-0.5 rounded transition-colors"
                           title={
                             language === 'uk'
@@ -369,6 +369,8 @@ export function DiaryPage() {
                         <HomeworkInline
                           key={hw.id}
                           homework={hw}
+                          currentDate={dayData?.date}
+                          currentLessonOrder={lesson.lesson_order}
                           onFindNextLesson={handleLocateNext}
                         />
                       ))}
