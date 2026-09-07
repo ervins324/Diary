@@ -19,6 +19,7 @@ class HomeworkEntry(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     images: Mapped[list[str] | None] = mapped_column(JSON, default=list, nullable=True)
+    attachments: Mapped[list[dict] | None] = mapped_column(JSON, default=list, nullable=True)
 
     subject: Mapped["Subject"] = relationship("Subject", lazy="selectin")
 

@@ -1,42 +1,63 @@
 import { useState } from 'react';
-import { Check, X, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { useUpdateHomework, useDeleteHomework } from '../../hooks/useHomework';
-import type { HomeworkEntry } from '../../types';
+import { useFileUpload } from '../../hooks/useFileUpload';
+import { fetchNextLesson } from '../../hooks/useScheduleOverrides';
+import type { HomeworkEntry, Attachment } from '../../types';
 import { cn, compressImageFile } from '../../lib/utils';
+import { AttachmentChip } from './AttachmentChip';
+import { AddLinkModal } from './AddLinkModal';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface HomeworkInlineProps {
   homework: HomeworkEntry;
+  onFindNextLesson?: (subjectId: string) => void;
 }
 
 /**
  * Inline homework display within a LessonCard.
- * Shows completion toggle, text, attached image thumbnails with lightbox, and edit/delete actions on hover.
+ * Shows completion toggle, text, attached image thumbnails with lightbox,
+ * PDF and presentation chips, and edit/delete/locate actions on hover.
  */
-export function HomeworkInline({ homework }: HomeworkInlineProps) {
+export function HomeworkInline({ homework, onFindNextLesson }: HomeworkInlineProps) {
+  const { language } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   /* Use homework.text to match backend HomeworkRead schema */
   const [editText, setEditText] = useState(homework.text);
   /* Editable images array */
   const [editImages, setEditImages] = useState<string[]>(homework.images || []);
+  /* Editable attachments array */
+  const [editAttachments, setEditAttachments] = useState<Attachment[]>(homework.attachments || []);
   /* State for lightbox modal */
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  /* State for add link modal */
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  /* Locating status */
+  const [isLocating, setIsLocating] = useState(false);
   
   const updateMutation = useUpdateHomework();
   const deleteMutation = useDeleteHomework();
+  const uploadMutation = useFileUpload();
 
   /* Toggle the completion status */
   const handleToggle = () => {
     updateMutation.mutate({ id: homework.id, data: { is_completed: !homework.is_completed } });
   };
 
-  /* Save edited text and images */
+  /* Save edited text, images, and attachments */
   const handleSave = () => {
     const hasTextChanged = editText.trim() !== homework.text;
     const hasImagesChanged = JSON.stringify(editImages) !== JSON.stringify(homework.images || []);
-    if (hasTextChanged || hasImagesChanged) {
+    const hasAttachmentsChanged = JSON.stringify(editAttachments) !== JSON.stringify(homework.attachments || []);
+    if (hasTextChanged || hasImagesChanged || hasAttachmentsChanged) {
       updateMutation.mutate({
         id: homework.id,
-        data: { text: editText.trim(), images: editImages },
+        data: {
+          text: editText.trim(),
+          images: editImages,
+          attachments: editAttachments,
+        },
       });
     }
     setIsEditing(false);
@@ -44,21 +65,74 @@ export function HomeworkInline({ homework }: HomeworkInlineProps) {
 
   /* Delete with confirmation */
   const handleDelete = () => {
-    if (confirm('Delete this homework?')) {
+    if (confirm(language === 'uk' ? 'Видалити це домашнє завдання?' : 'Delete this homework?')) {
       deleteMutation.mutate(homework.id);
     }
   };
 
-  /* Handle file upload during edit mode */
+  /* Handle locating the closest next lesson to today for this subject */
+  const handleLocateNext = async () => {
+    if (onFindNextLesson) {
+      onFindNextLesson(homework.subject_id);
+      return;
+    }
+    try {
+      setIsLocating(true);
+      const todayIso = format(new Date(), 'yyyy-MM-dd');
+      const result = await fetchNextLesson(homework.subject_id, todayIso);
+      if (!result) {
+        alert(
+          language === 'uk'
+            ? 'Не знайдено наступного уроку для цього предмету.'
+            : 'No upcoming lesson found for this subject.'
+        );
+        return;
+      }
+      window.dispatchEvent(
+        new CustomEvent('diary:navigate-and-highlight', {
+          detail: {
+            date: result.date,
+            lessonOrder: result.lesson_order,
+            subjectId: result.subject_id,
+          },
+        })
+      );
+    } catch (err) {
+      console.error('Failed to locate next lesson:', err);
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  /* Handle file upload during edit mode (supports both PDF documents and images) */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     for (let i = 0; i < files.length; i++) {
-      try {
-        const compressed = await compressImageFile(files[i]);
-        setEditImages((prev) => [...prev, compressed]);
-      } catch (err) {
-        console.error('Failed to compress image:', err);
+      const file = files[i];
+      if (file.type === 'application/pdf') {
+        try {
+          const uploaded = await uploadMutation.mutateAsync(file);
+          setEditAttachments((prev) => [
+            ...prev,
+            {
+              id: uploaded.id,
+              name: uploaded.filename,
+              type: 'pdf',
+              url: uploaded.url,
+              size: uploaded.size,
+            },
+          ]);
+        } catch (err) {
+          console.error('Failed to upload PDF:', err);
+        }
+      } else if (file.type.startsWith('image/')) {
+        try {
+          const compressed = await compressImageFile(file);
+          setEditImages((prev) => [...prev, compressed]);
+        } catch (err) {
+          console.error('Failed to compress image:', err);
+        }
       }
     }
     e.target.value = '';
@@ -67,6 +141,11 @@ export function HomeworkInline({ homework }: HomeworkInlineProps) {
   /* Remove an image during edit */
   const handleRemoveImage = (indexToRemove: number) => {
     setEditImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  /* Remove an attachment during edit */
+  const handleRemoveAttachment = (indexToRemove: number) => {
+    setEditAttachments((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   /* Handle clipboard paste during edit mode */
@@ -105,24 +184,61 @@ export function HomeworkInline({ homework }: HomeworkInlineProps) {
             className="flex-1 bg-bg-primary border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-accent"
             autoFocus
           />
-          {/* Add image button */}
-          <label className="p-1 text-text-muted hover:text-accent cursor-pointer rounded hover:bg-bg-tertiary transition-colors" title="Attach image">
+          {/* Add image or PDF file button */}
+          <label
+            className="p-1 text-text-muted hover:text-accent cursor-pointer rounded hover:bg-bg-tertiary transition-colors"
+            title={language === 'uk' ? 'Прикріпити PDF або зображення' : 'Attach PDF or image'}
+          >
             <ImageIcon size={16} />
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               multiple
               onChange={handleFileChange}
               className="hidden"
             />
           </label>
-          <button onClick={handleSave} className="text-success hover:bg-success/10 p-1 rounded">
+
+          {/* Add presentation / PDF link button */}
+          <button
+            type="button"
+            onClick={() => setIsLinkModalOpen(true)}
+            className="p-1 text-text-muted hover:text-accent rounded hover:bg-bg-tertiary transition-colors"
+            title={language === 'uk' ? 'Додати посилання (Презентація/PDF/Сайт)' : 'Add link (Presentation/PDF/Web)'}
+          >
+            <LinkIcon size={16} />
+          </button>
+
+          <button onClick={handleSave} className="text-success hover:bg-success/10 p-1 rounded" title="Save">
             <Check size={16} />
           </button>
-          <button onClick={() => { setIsEditing(false); setEditImages(homework.images || []); setEditText(homework.text); }} className="text-text-muted hover:bg-bg-tertiary p-1 rounded">
+          <button
+            onClick={() => {
+              setIsEditing(false);
+              setEditImages(homework.images || []);
+              setEditAttachments(homework.attachments || []);
+              setEditText(homework.text);
+            }}
+            className="text-text-muted hover:bg-bg-tertiary p-1 rounded"
+            title="Cancel"
+          >
             <X size={16} />
           </button>
         </div>
+
+        {/* Attachment chips in edit mode */}
+        {editAttachments.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {editAttachments.map((att, idx) => (
+              <AttachmentChip
+                key={idx}
+                attachment={att}
+                onRemove={() => handleRemoveAttachment(idx)}
+                onClickImage={(url) => setLightboxImage(url)}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Thumbnail previews in edit mode */}
         {editImages.length > 0 && (
@@ -141,6 +257,13 @@ export function HomeworkInline({ homework }: HomeworkInlineProps) {
             ))}
           </div>
         )}
+
+        {/* Add link modal */}
+        <AddLinkModal
+          isOpen={isLinkModalOpen}
+          onClose={() => setIsLinkModalOpen(false)}
+          onAdd={(newAtt) => setEditAttachments((prev) => [...prev, newAtt])}
+        />
       </div>
     );
   }
@@ -164,8 +287,21 @@ export function HomeworkInline({ homework }: HomeworkInlineProps) {
           <span className={cn("text-sm flex-1 leading-snug break-words", homework.is_completed && "line-through text-text-muted")}>
             {homework.text}
           </span>
-          {/* Edit/delete actions — visible on hover */}
+          {/* Edit/delete actions and locate next lesson button — visible on hover and touch */}
           <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+            {/* Locate next lesson button */}
+            <button
+              onClick={handleLocateNext}
+              disabled={isLocating}
+              className="text-text-muted hover:text-accent p-1 transition-colors"
+              title={
+                language === 'uk'
+                  ? 'Перейти та підсвітити наступний урок (найближчий до сьогодні)'
+                  : 'Locate & highlight next lesson closest to today'
+              }
+            >
+              {isLocating ? <Loader2 size={12} className="animate-spin text-accent" /> : <Compass size={12} />}
+            </button>
             <button onClick={() => setIsEditing(true)} className="text-text-muted hover:text-accent p-1" title="Edit">
               <Edit2 size={12} />
             </button>
@@ -175,6 +311,19 @@ export function HomeworkInline({ homework }: HomeworkInlineProps) {
           </div>
         </div>
 
+        {/* Display attached PDF / Presentation / Link chips */}
+        {homework.attachments && homework.attachments.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pl-6 pt-0.5">
+            {homework.attachments.map((att, idx) => (
+              <AttachmentChip
+                key={idx}
+                attachment={att}
+                onClickImage={(url) => setLightboxImage(url)}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Display attached image thumbnails */}
         {homework.images && homework.images.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pl-6 pt-0.5">
@@ -183,7 +332,7 @@ export function HomeworkInline({ homework }: HomeworkInlineProps) {
                 key={idx}
                 type="button"
                 onClick={() => setLightboxImage(imgUrl)}
-                className="relative rounded border border-border overflow-hidden hover:opacity-85 focus:outline-none focus:ring-1 focus:ring-accent transition shadow-sm"
+                className="relative rounded border border-border overflow-hidden hover:opacity-85 focus:outline-none focus:ring-1 focus:ring-accent transition shadow-2xs"
               >
                 <img src={imgUrl} alt={`hw-img-${idx}`} className="w-12 h-12 object-cover" />
               </button>
@@ -195,7 +344,7 @@ export function HomeworkInline({ homework }: HomeworkInlineProps) {
       {/* Lightbox full-size image modal */}
       {lightboxImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs"
           onClick={() => setLightboxImage(null)}
         >
           <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center">

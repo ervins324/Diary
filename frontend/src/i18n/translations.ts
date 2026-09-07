@@ -188,6 +188,13 @@ export const translations = {
     import_backup_success: 'Backup restored successfully!',
     import_backup_failed: 'Failed to import backup. Please make sure the JSON file is valid.',
     add_homework: 'Add Homework',
+    substitution: 'Substitution',
+    cancelled: 'Cancelled',
+    locate_next_lesson: 'Find closest upcoming lesson',
+    lesson_substitution: 'Lesson Substitution',
+    reset_to_regular: 'Reset to Regular Schedule',
+    attach_file: 'Attach PDF or Image',
+    attach_link: 'Add Link (Presentation / PDF)',
   },
   uk: {
     // Navigation
@@ -376,6 +383,13 @@ export const translations = {
     import_backup_success: 'Резервну копію успішно відновлено!',
     import_backup_failed: 'Помилка імпорту резервної копії. Переконайтеся, що файл JSON коректний.',
     add_homework: 'Додати Д/З',
+    substitution: 'Заміна',
+    cancelled: 'Скасовано',
+    locate_next_lesson: 'Знайти найближчий наступний урок',
+    lesson_substitution: 'Заміна уроку',
+    reset_to_regular: 'Повернути регулярний розклад',
+    attach_file: 'Прикріпити PDF або фото',
+    attach_link: 'Додати посилання (Презентація / PDF)',
   },
 } as const;
 

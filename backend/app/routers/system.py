@@ -6,11 +6,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 
+import base64
 from app.database import get_db
 from app.models.subject import Subject
 from app.models.schedule_rule import ScheduleRule
 from app.models.bell_schedule import BellSchedule
 from app.models.homework import HomeworkEntry
+from app.models.stored_file import StoredFile
+from app.models.schedule_override import ScheduleOverride
 
 logger = logging.getLogger("school_diary.system")
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
@@ -71,15 +74,40 @@ class BackupHomeworkItem(BaseModel):
     text: str
     is_completed: bool = False
     images: list[str] = Field(default_factory=list)
+    attachments: list[dict] = Field(default_factory=list)
+
+
+class BackupScheduleOverrideItem(BaseModel):
+    id: str | None = None
+    date: str
+    lesson_order: int
+    subject_id: str | None = None
+    original_subject_id: str | None = None
+    original_subject_name: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    cabinet: str | None = None
+    is_cancelled: bool = False
+    note: str | None = None
+
+
+class BackupStoredFileItem(BaseModel):
+    id: str | None = None
+    filename: str
+    content_type: str
+    size: int
+    file_data_base64: str
 
 
 class FullBackupData(BaseModel):
-    version: str = "1.6.0"
+    version: str = "1.7.0"
     exported_at: str | None = None
     subjects: list[BackupSubjectItem] = Field(default_factory=list)
     bell_schedules: list[BackupBellItem] = Field(default_factory=list)
     schedule_rules: list[BackupScheduleRuleItem] = Field(default_factory=list)
     homeworks: list[BackupHomeworkItem] = Field(default_factory=list)
+    schedule_overrides: list[BackupScheduleOverrideItem] = Field(default_factory=list)
+    stored_files: list[BackupStoredFileItem] = Field(default_factory=list)
 
 
 @router.get("/backup/export")
@@ -151,17 +179,54 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
                 "text": h.text,
                 "is_completed": h.is_completed,
                 "images": h.images or [],
+                "attachments": h.attachments or [],
             }
             for h in homeworks
         ]
 
+        # 5. Fetch all temporal schedule overrides
+        ov_res = await db.execute(select(ScheduleOverride).order_by(ScheduleOverride.date, ScheduleOverride.lesson_order))
+        overrides = ov_res.scalars().all()
+        overrides_data = [
+            {
+                "id": str(o.id),
+                "date": o.date.isoformat() if isinstance(o.date, (date, datetime)) else str(o.date),
+                "lesson_order": o.lesson_order,
+                "subject_id": str(o.subject_id) if o.subject_id else None,
+                "original_subject_id": str(o.original_subject_id) if o.original_subject_id else None,
+                "original_subject_name": o.original_subject_name,
+                "start_time": o.start_time.strftime("%H:%M:%S") if o.start_time else None,
+                "end_time": o.end_time.strftime("%H:%M:%S") if o.end_time else None,
+                "cabinet": o.cabinet,
+                "is_cancelled": o.is_cancelled,
+                "note": o.note,
+            }
+            for o in overrides
+        ]
+
+        # 6. Fetch all stored files
+        files_res = await db.execute(select(StoredFile).order_by(StoredFile.created_at))
+        files = files_res.scalars().all()
+        files_data = [
+            {
+                "id": str(f.id),
+                "filename": f.filename,
+                "content_type": f.content_type,
+                "size": f.size,
+                "file_data_base64": base64.b64encode(f.file_data).decode("utf-8"),
+            }
+            for f in files
+        ]
+
         return {
-            "version": "1.6.0",
+            "version": "1.7.0",
             "exported_at": datetime.utcnow().isoformat() + "Z",
             "subjects": subjects_data,
             "bell_schedules": bells_data,
             "schedule_rules": rules_data,
             "homeworks": hw_data,
+            "schedule_overrides": overrides_data,
+            "stored_files": files_data,
         }
     except Exception as e:
         logger.exception(f"Failed to export backup: {e}")
@@ -173,30 +238,54 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
     """
     Restore application state from a JSON backup.
     Performs an atomic transaction:
-    1. Wipes existing homework, schedule rules, bell schedules, and subjects.
-    2. Restores subjects with mapped IDs.
-    3. Restores bell schedules.
-    4. Restores schedule rules.
-    5. Restores homework entries with attached images.
+    1. Wipes existing homework, overrides, schedule rules, bell schedules, stored files, and subjects.
+    2. Restores stored files.
+    3. Restores subjects with mapped IDs.
+    4. Restores bell schedules.
+    5. Restores schedule rules.
+    6. Restores schedule overrides.
+    7. Restores homework entries with attachments and images.
     """
     try:
         logger.info(
             f"Importing backup: {len(backup.subjects)} subjects, {len(backup.bell_schedules)} bells, "
-            f"{len(backup.schedule_rules)} rules, {len(backup.homeworks)} homeworks"
+            f"{len(backup.schedule_rules)} rules, {len(backup.homeworks)} homeworks, "
+            f"{len(backup.schedule_overrides)} overrides, {len(backup.stored_files)} files"
         )
 
         # Step 1: Wipe existing records in safe foreign-key order
         await db.execute(delete(HomeworkEntry))
+        await db.execute(delete(ScheduleOverride))
         await db.execute(delete(ScheduleRule))
         await db.execute(delete(BellSchedule))
+        await db.execute(delete(StoredFile))
         await db.execute(delete(Subject))
+        await db.flush()
+
+        # Step 2: Insert Stored Files
+        for f_item in backup.stored_files:
+            try:
+                f_uuid = UUID(f_item.id) if f_item.id else uuid4()
+            except (ValueError, TypeError):
+                f_uuid = uuid4()
+
+            raw_bytes = base64.b64decode(f_item.file_data_base64) if f_item.file_data_base64 else b""
+            sf = StoredFile(
+                id=f_uuid,
+                filename=f_item.filename,
+                content_type=f_item.content_type,
+                size=f_item.size or len(raw_bytes),
+                file_data=raw_bytes,
+            )
+            db.add(sf)
+
         await db.flush()
 
         # Map to track original subject ID -> new Subject UUID
         subject_id_map: dict[str, UUID] = {}
         subject_name_map: dict[str, UUID] = {}
 
-        # Step 2: Insert Subjects
+        # Step 3: Insert Subjects
         for s_item in backup.subjects:
             try:
                 subj_uuid = UUID(s_item.id) if s_item.id else uuid4()
@@ -217,7 +306,7 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
 
         await db.flush()
 
-        # Step 3: Insert Bell Schedules
+        # Step 4: Insert Bell Schedules
         for b_item in backup.bell_schedules:
             try:
                 b_uuid = UUID(b_item.id) if b_item.id else uuid4()
@@ -235,10 +324,9 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
 
         await db.flush()
 
-        # Step 4: Insert Schedule Rules
+        # Step 5: Insert Schedule Rules
         imported_rules_count = 0
         for r_item in backup.schedule_rules:
-            # Resolve subject_id
             target_subject_id: UUID | None = None
             if r_item.subject_id and str(r_item.subject_id) in subject_id_map:
                 target_subject_id = subject_id_map[str(r_item.subject_id)]
@@ -269,10 +357,43 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
 
         await db.flush()
 
-        # Step 5: Insert Homework Entries
+        # Step 6: Insert Schedule Overrides
+        imported_overrides_count = 0
+        for ov_item in backup.schedule_overrides:
+            subj_id = subject_id_map.get(str(ov_item.subject_id)) if ov_item.subject_id else None
+            orig_subj_id = subject_id_map.get(str(ov_item.original_subject_id)) if ov_item.original_subject_id else None
+
+            try:
+                ov_uuid = UUID(ov_item.id) if ov_item.id else uuid4()
+            except (ValueError, TypeError):
+                ov_uuid = uuid4()
+
+            try:
+                ov_date = date.fromisoformat(ov_item.date)
+            except ValueError:
+                continue
+
+            override = ScheduleOverride(
+                id=ov_uuid,
+                date=ov_date,
+                lesson_order=ov_item.lesson_order,
+                subject_id=subj_id,
+                original_subject_id=orig_subj_id,
+                original_subject_name=ov_item.original_subject_name,
+                start_time=parse_time_str(ov_item.start_time) if ov_item.start_time else None,
+                end_time=parse_time_str(ov_item.end_time) if ov_item.end_time else None,
+                cabinet=ov_item.cabinet,
+                is_cancelled=ov_item.is_cancelled,
+                note=ov_item.note,
+            )
+            db.add(override)
+            imported_overrides_count += 1
+
+        await db.flush()
+
+        # Step 7: Insert Homework Entries
         imported_hw_count = 0
         for h_item in backup.homeworks:
-            # Resolve subject_id
             target_subject_id: UUID | None = None
             if h_item.subject_id and str(h_item.subject_id) in subject_id_map:
                 target_subject_id = subject_id_map[str(h_item.subject_id)]
@@ -288,7 +409,6 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
             except (ValueError, TypeError):
                 h_uuid = uuid4()
 
-            # Parse due_date
             try:
                 parsed_due_date = date.fromisoformat(h_item.due_date)
             except ValueError:
@@ -302,6 +422,7 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
                 text=h_item.text,
                 is_completed=h_item.is_completed,
                 images=h_item.images or [],
+                attachments=h_item.attachments or [],
             )
             db.add(hw)
             imported_hw_count += 1
@@ -316,6 +437,8 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
                 "bell_schedules": len(backup.bell_schedules),
                 "schedule_rules": imported_rules_count,
                 "homeworks": imported_hw_count,
+                "schedule_overrides": imported_overrides_count,
+                "stored_files": len(backup.stored_files),
             },
         }
 

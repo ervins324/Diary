@@ -9,14 +9,17 @@ from app.models.schedule_rule import ScheduleRule, WeekType
 from app.models.subject import Subject
 import json
 from app.models.bell_schedule import BellSchedule
+from app.models.schedule_override import ScheduleOverride
 from app.schemas.schedule import (
     DaySchedule, AiParseResponse, BulkCommitRequest,
     ScheduleRuleCreate, ScheduleRuleRead, BulkCommitByNameRequest, BulkCommitByNameRule,
     get_default_bell_times, JsonScheduleParseRequest,
+    ScheduleOverrideCreate, ScheduleOverrideRead, NextLessonResponse,
 )
 import logging
-from app.services.schedule_service import get_schedule_for_range
+from app.services.schedule_service import get_schedule_for_range, find_closest_next_lesson
 from app.services.ai_parser import parse_schedule_image
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +39,121 @@ async def get_schedule(
     """
     anchor_date = date.fromisoformat(settings.SEMESTER_ANCHOR_DATE)
     return await get_schedule_for_range(db, start_date, end_date, anchor_date)
+
+
+@router.get("/next-lesson", response_model=NextLessonResponse | None)
+async def get_next_lesson(
+    subject_id: uuid.UUID,
+    from_date: date | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Find the closest upcoming lesson for a subject starting from today (or from_date).
+    Cycles through alternating numerator/denominator weeks and includes temporal substitutions.
+    """
+    anchor_date = date.fromisoformat(settings.SEMESTER_ANCHOR_DATE)
+    start_search_date = from_date or date.today()
+    return await find_closest_next_lesson(db, subject_id, start_search_date, anchor_date)
+
+
+@router.get("/overrides", response_model=list[ScheduleOverrideRead])
+async def list_schedule_overrides(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List temporal schedule overrides, optionally filtered by date range.
+    """
+    stmt = (
+        select(ScheduleOverride)
+        .options(
+            selectinload(ScheduleOverride.subject),
+            selectinload(ScheduleOverride.original_subject),
+        )
+        .order_by(ScheduleOverride.date, ScheduleOverride.lesson_order)
+    )
+    if start_date:
+        stmt = stmt.where(ScheduleOverride.date >= start_date)
+    if end_date:
+        stmt = stmt.where(ScheduleOverride.date <= end_date)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+@router.post("/override", response_model=ScheduleOverrideRead)
+async def set_schedule_override(
+    override_in: ScheduleOverrideCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Create or update a date-specific temporal schedule override.
+    Allows changing a lesson or teacher for a single week without altering master rules.
+    """
+    # Check if override for this date and lesson_order already exists
+    stmt = select(ScheduleOverride).where(
+        ScheduleOverride.date == override_in.date,
+        ScheduleOverride.lesson_order == override_in.lesson_order,
+    )
+    res = await db.execute(stmt)
+    existing = res.scalar_one_or_none()
+
+    if existing:
+        existing.subject_id = override_in.subject_id
+        existing.original_subject_id = override_in.original_subject_id
+        existing.original_subject_name = override_in.original_subject_name
+        existing.start_time = override_in.start_time
+        existing.end_time = override_in.end_time
+        existing.cabinet = override_in.cabinet
+        existing.is_cancelled = override_in.is_cancelled
+        existing.note = override_in.note
+        override_obj = existing
+    else:
+        override_obj = ScheduleOverride(
+            date=override_in.date,
+            lesson_order=override_in.lesson_order,
+            subject_id=override_in.subject_id,
+            original_subject_id=override_in.original_subject_id,
+            original_subject_name=override_in.original_subject_name,
+            start_time=override_in.start_time,
+            end_time=override_in.end_time,
+            cabinet=override_in.cabinet,
+            is_cancelled=override_in.is_cancelled,
+            note=override_in.note,
+        )
+        db.add(override_obj)
+
+    await db.commit()
+
+    # Re-fetch with eager loads
+    stmt_full = (
+        select(ScheduleOverride)
+        .options(
+            selectinload(ScheduleOverride.subject),
+            selectinload(ScheduleOverride.original_subject),
+        )
+        .where(ScheduleOverride.id == override_obj.id)
+    )
+    full_res = await db.execute(stmt_full)
+    return full_res.scalar_one()
+
+
+@router.delete("/override", status_code=status.HTTP_200_OK)
+async def delete_schedule_override(
+    target_date: date,
+    lesson_order: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Remove a temporal override and restore the standard recurring schedule rule.
+    """
+    stmt = delete(ScheduleOverride).where(
+        ScheduleOverride.date == target_date,
+        ScheduleOverride.lesson_order == lesson_order,
+    )
+    await db.execute(stmt)
+    await db.commit()
+    return {"status": "ok", "message": "Override removed, schedule restored"}
 
 
 @router.post("/ai-parse", response_model=AiParseResponse)

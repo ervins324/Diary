@@ -6,6 +6,14 @@ export interface Subject {
   default_cabinet: string | null;
 }
 
+export interface Attachment {
+  id?: string;
+  name: string;
+  type: 'image' | 'pdf' | 'presentation' | 'link';
+  url: string;
+  size?: number | null;
+}
+
 /* Homework entry matching backend HomeworkRead schema */
 export interface HomeworkEntry {
   id: string;
@@ -16,6 +24,7 @@ export interface HomeworkEntry {
   is_completed: boolean;
   subject?: Subject;
   images?: string[];
+  attachments?: Attachment[];
 }
 
 export interface LessonSlot {
@@ -26,6 +35,36 @@ export interface LessonSlot {
   end_time: string;
   cabinet: string | null;
   homework: HomeworkEntry[];
+  original_subject?: Subject | null;
+  is_override?: boolean;
+  is_cancelled?: boolean;
+  override_note?: string | null;
+}
+
+export interface ScheduleOverride {
+  id: string;
+  date: string;
+  lesson_order: number;
+  subject_id: string | null;
+  original_subject_id: string | null;
+  original_subject_name?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  cabinet?: string | null;
+  is_cancelled: boolean;
+  note?: string | null;
+  subject?: Subject | null;
+  original_subject?: Subject | null;
+}
+
+export interface NextLesson {
+  date: string;
+  lesson_order: number;
+  subject_id: string;
+  subject_name: string;
+  start_time: string;
+  end_time: string;
+  cabinet?: string | null;
 }
 
 export interface DaySchedule {

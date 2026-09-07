@@ -1,5 +1,28 @@
 # School Diary — Changelog
 
+## v1.7.0 — 2026-09-07
+
+### 🚀 Next Lesson Locator, PDF & Presentation Storage/Linking, and Temporal Weekly Substitutions
+- **Next Lesson Locator Button (`Compass` icon)**:
+  - Added next-lesson locator action near the edit/delete buttons in `HomeworkInline` and directly on lesson cards in the **Daily** tab (`LessonCard`) and **Diary** tab weekly rows.
+  - Backend search endpoint `GET /api/v1/schedule/next-lesson`: Finds the closest upcoming lesson for any subject on or after today, factoring in numerator/denominator week alternation and temporal overrides.
+  - Smoothly navigates the calendar view (auto-advancing date in Daily tab or jumping to the target week in Diary tab), centers the lesson in the viewport (including mobile horizontal swipe container), and triggers a glowing accent ring pulse animation for 2.5 seconds.
+  - Alerts user with a friendly localized notification if no upcoming lesson exists for that subject.
+- **Persistent Binary File Storage (PDFs, Images) & Presentation/PDF Linking**:
+  - **PostgreSQL Binary Storage (`stored_files` table)**: Added binary file storage in PostgreSQL via Alembic migration `005_attachments_and_overrides.py`. Uploaded PDFs and images persist inside the database volume without requiring external host directories or volume mount changes.
+  - **REST Endpoints (`/api/v1/files`)**: Added `POST /api/v1/files/upload`, `GET /api/v1/files/{file_id}` (serving files with native inline browser headers for PDF viewing), and `DELETE /api/v1/files/{file_id}`.
+  - **Multi-Attachment Homework**: Extended `HomeworkEntry` with `attachments` JSON column. Supports uploading PDFs, images, and attaching external links.
+  - **Interactive Attachment Chips (`AttachmentChip.tsx`)**: Renders visual chips for attachments: red document badge for PDFs with formatted file size (`KB`/`MB`), amber badge for Presentations, emerald badge for images (with full lightbox viewer), and sky-blue badge for web links.
+  - **Link Embedding Modal (`AddLinkModal.tsx`)**: Quick dialog for adding external presentation links (Google Slides, Canva, OneDrive, PowerPoint Online, Prezi) and direct web PDF links with auto-detection of link types.
+- **Temporal Weekly Schedule Changes (Substitutions & Overrides)**:
+  - **Database Model (`schedule_overrides` table)**: Added table for single-date schedule overrides without mutating recurring master timetable rules.
+  - **Changed Lesson Format with Previous in Brackets**: Substituted lessons render as `New Subject (Original Subject)` (e.g. `Хімія (Фізика)` / `Chemistry (Physics)`) with an amber **"Заміна / Substitution"** pill badge. Cancelled lessons display with strikethrough and original class in brackets.
+  - **Interactive Substitution Modal (`LessonOverrideModal.tsx`)**: Accessible via the `ArrowLeftRight` quick action on any lesson card or row. Allows picking a substitute subject, updating the classroom/cabinet, marking a lesson as cancelled/free period, or 1-click **Reset to Regular Schedule**.
+  - **REST Endpoints (`/api/v1/schedule/override`)**: Added `POST /override`, `DELETE /override`, and `GET /overrides`.
+  - **Full Backup & Restore Support**: Updated `/api/v1/system/backup/export` and `/api/v1/system/backup/import` to version `1.7.0`, serializing all `stored_files` (base64), `schedule_overrides`, and homework `attachments`.
+- **Ukrainian & English Localization**:
+  - Added localized strings for substitutions, cancellations, locator tooltips, attachment chips, and modals in `frontend/src/i18n/translations.ts`.
+
 ## v1.6.1 — 2026-09-07
 
 ### 🐛 Bug Fixes & Improvements

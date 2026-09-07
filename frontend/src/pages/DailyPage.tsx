@@ -1,17 +1,19 @@
-import { useState } from 'react';
-import { format, addDays, subDays } from 'date-fns';
+import { useState, useEffect } from 'react';
+import { format, addDays, subDays, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, Wand2, Loader2 } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
+import { fetchNextLesson } from '../hooks/useScheduleOverrides';
 import { LessonCard } from '../components/schedule/LessonCard';
 import { AiImportModal } from '../components/ai-import/AiImportModal';
 import { formatDate, getDefaultScheduleDate } from '../lib/utils';
 import { useLanguage } from '../i18n/LanguageContext';
 
 export function DailyPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   /* Initialize date with weekend auto-advance if today is Saturday/Sunday */
   const [currentDate, setCurrentDate] = useState(getDefaultScheduleDate);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [targetHighlightOrder, setTargetHighlightOrder] = useState<number | null>(null);
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const { data: schedule, isLoading } = useSchedule(dateStr, dateStr);
@@ -34,6 +36,60 @@ export function DailyPage() {
       6: 'saturday',
     };
     return t(map[day]);
+  };
+
+  /* Listen for global next lesson jump events */
+  useEffect(() => {
+    const handleNavigateAndHighlight = (e: Event) => {
+      const customEvent = e as CustomEvent<{ date: string; lessonOrder: number; subjectId: string }>;
+      if (!customEvent.detail) return;
+      const { date: targetDateStr, lessonOrder } = customEvent.detail;
+      setCurrentDate(parseISO(targetDateStr));
+      setTargetHighlightOrder(lessonOrder);
+    };
+
+    window.addEventListener('diary:navigate-and-highlight', handleNavigateAndHighlight);
+    return () => {
+      window.removeEventListener('diary:navigate-and-highlight', handleNavigateAndHighlight);
+    };
+  }, []);
+
+  /* Scroll and highlight targeted lesson once schedule data finishes loading */
+  useEffect(() => {
+    if (targetHighlightOrder !== null && !isLoading && currentDaySchedule) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`lesson-${targetHighlightOrder}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('ring-4', 'ring-accent', 'ring-offset-2', 'scale-[1.02]');
+          setTimeout(() => {
+            el.classList.remove('ring-4', 'ring-accent', 'ring-offset-2', 'scale-[1.02]');
+            setTargetHighlightOrder(null);
+          }, 2500);
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [targetHighlightOrder, isLoading, currentDaySchedule]);
+
+  /* Handler when clicking locate next lesson button on any card */
+  const handleFindNextLesson = async (subjectId: string) => {
+    try {
+      const todayIso = format(new Date(), 'yyyy-MM-dd');
+      const result = await fetchNextLesson(subjectId, todayIso);
+      if (!result) {
+        alert(
+          language === 'uk'
+            ? 'Не знайдено наступного уроку для цього предмету.'
+            : 'No upcoming lesson found for this subject.'
+        );
+        return;
+      }
+      setCurrentDate(parseISO(result.date));
+      setTargetHighlightOrder(result.lesson_order);
+    } catch (err) {
+      console.error('Failed to locate next lesson:', err);
+    }
   };
 
   return (
@@ -90,7 +146,11 @@ export function DailyPage() {
         ) : (
           <div className="space-y-3">
             {currentDaySchedule.lessons.map((lesson) => (
-              <LessonCard key={lesson.lesson_order} lesson={lesson} />
+              <LessonCard
+                key={lesson.lesson_order}
+                lesson={lesson}
+                onFindNextLesson={handleFindNextLesson}
+              />
             ))}
           </div>
         )}

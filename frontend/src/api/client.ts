@@ -173,3 +173,41 @@ export const importFullBackup = async (backupData: any): Promise<{ status: strin
   return data;
 };
 
+// ── File Storage (PDF, Images) API endpoints ─────────────────────────────
+
+export const uploadStoredFile = async (file: File): Promise<{ id: string; filename: string; content_type: string; size: number; url: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+};
+
+// ── Next Lesson & Schedule Override API endpoints ───────────────────────
+
+export const fetchNextLesson = async (subjectId: string, fromDate?: string): Promise<any> => {
+  const { data } = await api.get('/schedule/next-lesson', {
+    params: { subject_id: subjectId, from_date: fromDate },
+  });
+  return data;
+};
+
+export const fetchScheduleOverrides = async (startDate?: string, endDate?: string): Promise<any[]> => {
+  const { data } = await api.get('/schedule/overrides', {
+    params: { start_date: startDate, end_date: endDate },
+  });
+  return data;
+};
+
+export const setScheduleOverride = async (overrideData: any): Promise<any> => {
+  const { data } = await api.post('/schedule/override', overrideData);
+  return data;
+};
+
+export const deleteScheduleOverride = async (targetDate: string, lessonOrder: number): Promise<void> => {
+  await api.delete('/schedule/override', {
+    params: { target_date: targetDate, lesson_order: lessonOrder },
+  });
+};
+

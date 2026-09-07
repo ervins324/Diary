@@ -32,8 +32,50 @@ class LessonSlot(BaseModel):
     subject: SubjectRead
     start_time: time
     end_time: time
-    cabinet: str | None
+    cabinet: str | None = None
     homework: list[HomeworkRead] | None = None
+    original_subject: SubjectRead | None = None
+    is_override: bool = False
+    is_cancelled: bool = False
+    override_note: str | None = None
+
+class ScheduleOverrideCreate(BaseModel):
+    date: date
+    lesson_order: int
+    subject_id: uuid.UUID | None = None
+    original_subject_id: uuid.UUID | None = None
+    original_subject_name: str | None = None
+    start_time: time | None = None
+    end_time: time | None = None
+    cabinet: str | None = None
+    is_cancelled: bool = False
+    note: str | None = None
+
+class ScheduleOverrideRead(BaseModel):
+    id: uuid.UUID
+    date: date
+    lesson_order: int
+    subject_id: uuid.UUID | None = None
+    original_subject_id: uuid.UUID | None = None
+    original_subject_name: str | None = None
+    start_time: time | None = None
+    end_time: time | None = None
+    cabinet: str | None = None
+    is_cancelled: bool = False
+    note: str | None = None
+    subject: SubjectRead | None = None
+    original_subject: SubjectRead | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class NextLessonResponse(BaseModel):
+    date: date
+    lesson_order: int
+    subject_id: uuid.UUID
+    subject_name: str
+    start_time: time
+    end_time: time
+    cabinet: str | None = None
 
 class DaySchedule(BaseModel):
     date: date
