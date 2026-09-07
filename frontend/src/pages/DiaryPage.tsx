@@ -151,8 +151,13 @@ export function DiaryPage() {
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col">
                     <div className="flex justify-between items-baseline gap-2">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span className="font-medium text-text-primary truncate" style={{ color: lesson.subject.color_hex || 'inherit' }}>
+                      <div className="flex items-center gap-2 truncate">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
+                          style={{ backgroundColor: lesson.subject.color_hex || 'var(--color-accent)' }}
+                          title={lesson.subject.name}
+                        />
+                        <span className="font-semibold text-text-primary truncate">
                           {lesson.subject.name}
                         </span>
                         {isCurrent && (
