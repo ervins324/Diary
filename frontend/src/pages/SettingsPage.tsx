@@ -19,6 +19,8 @@ import {
   ArrowUpZA,
   Search,
   Palette,
+  Brush,
+  Sparkles,
 } from 'lucide-react';
 import {
   fetchSubjects,
@@ -28,11 +30,14 @@ import {
   exportFullBackup,
   importFullBackup,
   randomizeSubjectColors,
+  cleanSystemData,
+  CleanDataParams,
 } from '../api/client';
 import { ThemeToggle } from '../components/layout/ThemeToggle';
 import { useLanguage } from '../i18n/LanguageContext';
 import { useDeleteAllSchedule, useClearAllAppData } from '../hooks/useSchedule';
 import { ScheduleEditorModal } from '../components/schedule/ScheduleEditorModal';
+import { getAutoCleanConfig, saveAutoCleanConfig, type AutoCleanConfig } from '../hooks/useAutoClean';
 import { cn } from '../lib/utils';
 import type { Subject } from '../types';
 
@@ -48,6 +53,77 @@ export function SettingsPage() {
   const [skipWeekends, setSkipWeekends] = useState(() => localStorage.getItem('skip_weekends_to_monday') !== 'false');
   const [isExportingBackup, setIsExportingBackup] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
+
+  /* Cleaning Section State */
+  const [autoClean, setAutoClean] = useState<AutoCleanConfig>(getAutoCleanConfig);
+  const [manualMode, setManualMode] = useState<'before' | 'range'>('before');
+  const [manualCutoffDate, setManualCutoffDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [manualStartDate, setManualStartDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [manualEndDate, setManualEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [manualCleanHw, setManualCleanHw] = useState(true);
+  const [manualCleanCompletedOnly, setManualCleanCompletedOnly] = useState(false);
+  const [manualCleanOverrides, setManualCleanOverrides] = useState(true);
+  const [manualCleanOrphans, setManualCleanOrphans] = useState(true);
+  const [isExecutingCleanup, setIsExecutingCleanup] = useState(false);
+  const [cleanupResultMsg, setCleanupResultMsg] = useState<string | null>(null);
+
+  /* Update auto-clean config */
+  const handleUpdateAutoClean = (updates: Partial<AutoCleanConfig>) => {
+    const next = { ...autoClean, ...updates };
+    setAutoClean(next);
+    saveAutoCleanConfig(next);
+  };
+
+  /* Execute manual time-step cleanup */
+  const handleExecuteManualCleanup = async () => {
+    if (!window.confirm(t('cleanup_confirm_prompt'))) {
+      return;
+    }
+
+    try {
+      setIsExecutingCleanup(true);
+      setCleanupResultMsg(null);
+
+      const params: CleanDataParams = {
+        clean_homework: manualCleanHw,
+        clean_completed_homework_only: manualCleanCompletedOnly,
+        clean_schedule_overrides: manualCleanOverrides,
+        clean_orphaned_files: manualCleanOrphans,
+      };
+
+      if (manualMode === 'before') {
+        params.before_date = manualCutoffDate;
+      } else {
+        params.start_date = manualStartDate;
+        params.end_date = manualEndDate;
+      }
+
+      const res = await cleanSystemData(params);
+      const { homework, schedule_overrides, stored_files } = res.deleted;
+      const msg = `${t('cleanup_success')} (${homework} HW, ${schedule_overrides} overrides, ${stored_files} files)`;
+      setCleanupResultMsg(msg);
+      setTimeout(() => setCleanupResultMsg(null), 5000);
+
+      // Invalidate relevant queries to refresh timetable and homework
+      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['homework'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['schedule-overrides'] });
+    } catch (err: any) {
+      console.error('Manual cleanup failed:', err);
+      alert(`Cleanup failed: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setIsExecutingCleanup(false);
+    }
+  };
 
   /* Toggle weekend auto-advance behavior and persist to localStorage */
   const handleToggleWeekendSkip = () => {
@@ -572,6 +648,253 @@ export function SettingsPage() {
                   className="hidden"
                 />
               </label>
+            </div>
+          </div>
+        </section>
+
+        {/* Data Cleaning & Storage Management */}
+        <section className="bg-bg-secondary p-5 rounded-xl border border-border space-y-6">
+          <div className="border-b border-border-light pb-2 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+              <Brush size={18} className="text-accent" />
+              <span>{t('cleaning_section')}</span>
+            </h2>
+            {cleanupResultMsg && (
+              <span className="text-xs text-success font-semibold animate-in fade-in duration-200">
+                ✓ {cleanupResultMsg}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-text-muted">{t('cleaning_section_desc')}</p>
+
+          {/* Subsection 1: Automatic Background Cleaning */}
+          <div className="p-4 bg-bg-primary rounded-lg border border-border space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-light pb-3">
+              <div>
+                <p className="font-semibold text-text-primary text-sm flex items-center gap-1.5">
+                  <Sparkles size={16} className="text-accent" />
+                  <span>{t('auto_cleaning_title')}</span>
+                </p>
+                <p className="text-xs text-text-muted mt-0.5">{t('auto_cleaning_desc')}</p>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={autoClean.enabled}
+                  onChange={(e) => handleUpdateAutoClean({ enabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-bg-tertiary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent border border-border"></div>
+              </label>
+            </div>
+
+            {/* Retention schedule and types (active if enabled) */}
+            <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4 pt-1 transition-opacity", !autoClean.enabled && "opacity-50 pointer-events-none")}>
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  {t('retention_period')}
+                </label>
+                <select
+                  value={autoClean.retention}
+                  onChange={(e) => handleUpdateAutoClean({ retention: e.target.value as any })}
+                  className="w-full bg-bg-secondary border border-border rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent"
+                >
+                  <option value="2_weeks">{t('retention_2_weeks')}</option>
+                  <option value="1_month">{t('retention_1_month')}</option>
+                  <option value="3_months">{t('retention_3_months')}</option>
+                  <option value="6_months">{t('retention_6_months')}</option>
+                  <option value="1_year">{t('retention_1_year')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  {t('clean_target_types')}
+                </label>
+                <div className="space-y-1.5 pt-0.5">
+                  <label className="flex items-center gap-2 text-xs text-text-primary cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoClean.cleanHomework}
+                      onChange={(e) => handleUpdateAutoClean({ cleanHomework: e.target.checked })}
+                      className="rounded border-border text-accent focus:ring-accent"
+                    />
+                    <span>{t('clean_hw_label')}</span>
+                  </label>
+
+                  {autoClean.cleanHomework && (
+                    <label className="flex items-center gap-2 text-xs text-text-muted pl-5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoClean.cleanCompletedHomeworkOnly}
+                        onChange={(e) => handleUpdateAutoClean({ cleanCompletedHomeworkOnly: e.target.checked })}
+                        className="rounded border-border text-accent focus:ring-accent"
+                      />
+                      <span>{t('clean_completed_only_label')}</span>
+                    </label>
+                  )}
+
+                  <label className="flex items-center gap-2 text-xs text-text-primary cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoClean.cleanScheduleOverrides}
+                      onChange={(e) => handleUpdateAutoClean({ cleanScheduleOverrides: e.target.checked })}
+                      className="rounded border-border text-accent focus:ring-accent"
+                    />
+                    <span>{t('clean_overrides_label')}</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-xs text-text-primary cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoClean.cleanOrphanedFiles}
+                      onChange={(e) => handleUpdateAutoClean({ cleanOrphanedFiles: e.target.checked })}
+                      className="rounded border-border text-accent focus:ring-accent"
+                    />
+                    <span>{t('clean_orphans_label')}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Subsection 2: Manual Time-Step Cleanup Button & Filters */}
+          <div className="p-4 bg-bg-primary rounded-lg border border-border space-y-4">
+            <div>
+              <p className="font-semibold text-text-primary text-sm flex items-center gap-1.5">
+                <CalendarClock size={16} className="text-accent" />
+                <span>{t('manual_cleanup_title')}</span>
+              </p>
+              <p className="text-xs text-text-muted mt-0.5">{t('manual_cleanup_desc')}</p>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {/* Mode Selector */}
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setManualMode('before')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+                    manualMode === 'before'
+                      ? "bg-accent/15 border-accent text-accent font-semibold"
+                      : "bg-bg-secondary border-border text-text-secondary hover:bg-bg-tertiary"
+                  )}
+                >
+                  {t('mode_before_cutoff')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setManualMode('range')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+                    manualMode === 'range'
+                      ? "bg-accent/15 border-accent text-accent font-semibold"
+                      : "bg-bg-secondary border-border text-text-secondary hover:bg-bg-tertiary"
+                  )}
+                >
+                  {t('mode_date_range')}
+                </button>
+              </div>
+
+              {/* Date pickers depending on mode */}
+              {manualMode === 'before' ? (
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">
+                    {t('cutoff_date')} (delete everything prior to this date)
+                  </label>
+                  <input
+                    type="date"
+                    value={manualCutoffDate}
+                    onChange={(e) => setManualCutoffDate(e.target.value)}
+                    className="bg-bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div>
+                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                      {t('from_date')}
+                    </label>
+                    <input
+                      type="date"
+                      value={manualStartDate}
+                      onChange={(e) => setManualStartDate(e.target.value)}
+                      className="bg-bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                      {t('to_date')}
+                    </label>
+                    <input
+                      type="date"
+                      value={manualEndDate}
+                      onChange={(e) => setManualEndDate(e.target.value)}
+                      className="bg-bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Data types checkboxes for manual purge */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-border-light">
+                <label className="flex items-center gap-2 text-xs text-text-primary cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={manualCleanHw}
+                    onChange={(e) => setManualCleanHw(e.target.checked)}
+                    className="rounded border-border text-accent focus:ring-accent"
+                  />
+                  <span>{t('clean_hw_label')}</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-text-primary cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={manualCleanOverrides}
+                    onChange={(e) => setManualCleanOverrides(e.target.checked)}
+                    className="rounded border-border text-accent focus:ring-accent"
+                  />
+                  <span>{t('clean_overrides_label')}</span>
+                </label>
+
+                {manualCleanHw && (
+                  <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={manualCleanCompletedOnly}
+                      onChange={(e) => setManualCleanCompletedOnly(e.target.checked)}
+                      className="rounded border-border text-accent focus:ring-accent"
+                    />
+                    <span>{t('clean_completed_only_label')}</span>
+                  </label>
+                )}
+
+                <label className="flex items-center gap-2 text-xs text-text-primary cursor-pointer sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={manualCleanOrphans}
+                    onChange={(e) => setManualCleanOrphans(e.target.checked)}
+                    className="rounded border-border text-accent focus:ring-accent"
+                  />
+                  <span>{t('clean_orphans_label')}</span>
+                </label>
+              </div>
+
+              {/* Manual Cleanup Action Button */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleExecuteManualCleanup}
+                  disabled={isExecutingCleanup || (!manualCleanHw && !manualCleanOverrides && !manualCleanOrphans)}
+                  className="px-4 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
+                >
+                  {isExecutingCleanup ? <Loader2 size={14} className="animate-spin" /> : <Brush size={14} />}
+                  <span>{t('execute_cleanup')}</span>
+                </button>
+              </div>
             </div>
           </div>
         </section>

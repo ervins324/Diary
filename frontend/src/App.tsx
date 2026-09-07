@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/layout/Layout';
 import { useTheme } from './hooks/useTheme';
+import { useAutoCleanRunner } from './hooks/useAutoClean';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { Loader2 } from 'lucide-react';
 
@@ -36,6 +37,8 @@ function PageFallback() {
 function App() {
   // Initialize theme
   useTheme();
+  // Run background automatic cleaning if enabled by user
+  useAutoCleanRunner();
 
   return (
     <LanguageProvider>

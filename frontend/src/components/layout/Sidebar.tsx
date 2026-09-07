@@ -17,7 +17,8 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col w-64 h-screen border-r border-border bg-bg-secondary sticky top-0">
-      <div className="p-6">
+      <div className="p-6 flex items-center gap-3">
+        <img src="/favicon.svg" alt="School Diary Logo" className="w-8 h-8 rounded-lg shadow-xs shrink-0" />
         <h1 className="text-xl font-bold text-text-primary tracking-tight">{t('app_title')}</h1>
       </div>
       <nav className="flex-1 px-4 space-y-1">

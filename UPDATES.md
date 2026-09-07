@@ -21,7 +21,16 @@
     - PPTX upload MIME normalization.
     - Direct download headers and attachment disposition for PowerPoint presentations.
     - PDF inline preview versus explicit download headers.
-    - 404 responses for missing stored files.
+- **Website Icon & Branding (`favicon.svg`)**:
+  - Designed custom school diary SVG icon featuring a soft indigo squircle book base, open timetable pages, golden ribbon bookmark, and homework completion checkmark badge.
+  - Set as browser favicon (`<link rel="icon" type="image/svg+xml" href="/favicon.svg" />`) with `#6366F1` theme color in `index.html`.
+  - Added the branded icon to the sidebar header beside the application title.
+- **Data Cleaning & Storage Management (`SettingsPage.tsx`)**:
+  - Added dedicated **Data Cleaning & Storage** section in Settings.
+  - **Automatic Background Cleaning**: Toggleable automated pruning upon app startup with customizable retention periods (2 weeks, 1 month, 3 months, 6 months, 1 year) and granular target filters (all homework, completed homework only, temporary schedule substitutions, orphaned attachment files).
+  - **Manual Time-Step Cleanup**: Selective deletion tool supporting either historical cutoff dates (`before_date`) or specific date ranges (`start_date` to `end_date`), with item counts breakdown and query cache invalidation.
+  - Backend endpoint `POST /api/v1/system/clean-data` handling batch deletions and identifying unreferenced stored attachments.
+  - Added unit test suite `backend/tests/test_cleaning.py`.
 
 ## v1.7.0 — 2026-09-07
 

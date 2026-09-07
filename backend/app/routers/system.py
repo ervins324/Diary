@@ -446,3 +446,125 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
         await db.rollback()
         logger.exception(f"Failed to import backup: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to import backup: {str(e)}")
+
+
+class CleanDataRequest(BaseModel):
+    """
+    Request model for selective or time-step based data cleanup.
+    Allows deleting data strictly before a cutoff date or within a specific date range,
+    with options for cleaning homework, overrides, completed homework only, or orphaned files.
+    """
+    before_date: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    clean_homework: bool = True
+    clean_completed_homework_only: bool = False
+    clean_schedule_overrides: bool = True
+    clean_orphaned_files: bool = True
+
+
+@router.post("/clean-data", status_code=status.HTTP_200_OK)
+async def clean_data(
+    req: CleanDataRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Delete data for specific time steps / ranges or clean historical records.
+    """
+    deleted_homework_count = 0
+    deleted_overrides_count = 0
+    deleted_files_count = 0
+
+    parsed_before: date | None = None
+    parsed_start: date | None = None
+    parsed_end: date | None = None
+
+    if req.before_date:
+        try:
+            parsed_before = date.fromisoformat(req.before_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid before_date format (expected YYYY-MM-DD)")
+
+    if req.start_date:
+        try:
+            parsed_start = date.fromisoformat(req.start_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid start_date format (expected YYYY-MM-DD)")
+
+    if req.end_date:
+        try:
+            parsed_end = date.fromisoformat(req.end_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid end_date format (expected YYYY-MM-DD)")
+
+    # 1. Clean Homework
+    if req.clean_homework:
+        hw_stmt = delete(HomeworkEntry)
+        conditions = []
+        if parsed_before:
+            conditions.append(HomeworkEntry.due_date < parsed_before)
+        if parsed_start:
+            conditions.append(HomeworkEntry.due_date >= parsed_start)
+        if parsed_end:
+            conditions.append(HomeworkEntry.due_date <= parsed_end)
+        if req.clean_completed_homework_only:
+            conditions.append(HomeworkEntry.is_completed == True)
+
+        if conditions:
+            for cond in conditions:
+                hw_stmt = hw_stmt.where(cond)
+            hw_res = await db.execute(hw_stmt)
+            deleted_homework_count = hw_res.rowcount or 0
+
+    # 2. Clean Schedule Overrides
+    if req.clean_schedule_overrides:
+        ov_stmt = delete(ScheduleOverride)
+        ov_conditions = []
+        if parsed_before:
+            ov_conditions.append(ScheduleOverride.date < parsed_before)
+        if parsed_start:
+            ov_conditions.append(ScheduleOverride.date >= parsed_start)
+        if parsed_end:
+            ov_conditions.append(ScheduleOverride.date <= parsed_end)
+
+        if ov_conditions:
+            for cond in ov_conditions:
+                ov_stmt = ov_stmt.where(cond)
+            ov_res = await db.execute(ov_stmt)
+            deleted_overrides_count = ov_res.rowcount or 0
+
+    # 3. Clean Orphaned Stored Files
+    if req.clean_orphaned_files:
+        # Query all active homework attachments to find referenced file IDs
+        hw_all = await db.execute(select(HomeworkEntry.attachments))
+        active_file_ids: set[str] = set()
+        for attachments_list in hw_all.scalars().all():
+            if attachments_list:
+                for att in attachments_list:
+                    if isinstance(att, dict) and att.get("id"):
+                        active_file_ids.add(str(att["id"]))
+
+        # Query all files
+        all_files_res = await db.execute(select(StoredFile))
+        all_files = all_files_res.scalars().all()
+        for sf in all_files:
+            if str(sf.id) not in active_file_ids:
+                # If before_date was specified, check sf.created_at
+                if parsed_before:
+                    sf_date = sf.created_at.date() if sf.created_at else None
+                    if sf_date and sf_date >= parsed_before:
+                        continue
+                await db.delete(sf)
+                deleted_files_count += 1
+
+    await db.commit()
+
+    return {
+        "status": "ok",
+        "message": "Cleanup executed successfully",
+        "deleted": {
+            "homework": deleted_homework_count,
+            "schedule_overrides": deleted_overrides_count,
+            "stored_files": deleted_files_count,
+        },
+    }

@@ -173,6 +173,21 @@ export const importFullBackup = async (backupData: any): Promise<{ status: strin
   return data;
 };
 
+export interface CleanDataParams {
+  before_date?: string;
+  start_date?: string;
+  end_date?: string;
+  clean_homework?: boolean;
+  clean_completed_homework_only?: boolean;
+  clean_schedule_overrides?: boolean;
+  clean_orphaned_files?: boolean;
+}
+
+export const cleanSystemData = async (params: CleanDataParams): Promise<{ status: string; message: string; deleted: { homework: number; schedule_overrides: number; stored_files: number } }> => {
+  const { data } = await api.post('/system/clean-data', params);
+  return data;
+};
+
 // ── File Storage (PDF, Images) API endpoints ─────────────────────────────
 
 export const uploadStoredFile = async (file: File): Promise<{ id: string; filename: string; content_type: string; size: number; url: string }> => {
