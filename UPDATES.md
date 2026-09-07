@@ -24,7 +24,7 @@
   - **Daily Tab (`LessonCard`)**: Highlights currently running lesson with active glowing accent border, soft background tint, and pulsing **"Now / Зараз • Ongoing / Триває"** badge.
   - **Diary Tab (`DiaryPage`)**: Highlights the active ongoing lesson inside the weekly grid with accented border, highlight ring, and **"Now"** live badge.
   - **Diary Tab High-Contrast Font**: Replaced colored subject name text with crisp standard theme text (`text-text-primary`) alongside dedicated colored subject indicator dots (`w-2.5 h-2.5 rounded-full`), ensuring 100% legibility in both light and dark themes regardless of whether a subject was assigned a light or white shade.
-  - **Bells Tab (`BellsPage`)**: Highlights the active bell slot with glowing accent ring, colored order icon, and **"Now / Зараз"** indicator.
+  - **Bells Tab (`BellsPage`)**: Highlights the active bell slot with glowing accent ring, colored order icon, and **"Now / Зараз"** indicator. Also tracks and actively highlights ongoing breaks between classes with accent background glow, bouncing coffee icon, and live **"Break Now / Зараз перерва"** pulsing pill badge.
 
 ## v1.6.0 — 2026-09-06
 

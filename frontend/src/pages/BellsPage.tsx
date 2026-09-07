@@ -375,16 +375,33 @@ export function BellsPage() {
                 </div>
 
                 {/* Break Indicator between lessons */}
-                {breakMinutes !== null && breakMinutes > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-1 text-xs text-text-muted">
-                    <div className="h-px bg-border flex-1" />
-                    <div className="flex items-center gap-1 bg-bg-tertiary border border-border px-2.5 py-0.5 rounded-full text-[11px] text-text-secondary font-medium shrink-0">
-                      <Coffee size={12} className="text-accent" />
-                      <span>{breakMinutes} {t('min_break')}</span>
+                {breakMinutes !== null && breakMinutes > 0 && nextSlot && (() => {
+                  const isBreakCurrent = isLessonNow(slot.end_time, nextSlot.start_time);
+                  return (
+                    <div className={cn(
+                      "flex items-center gap-2 px-4 py-1.5 text-xs transition-all duration-300 rounded-lg",
+                      isBreakCurrent && "bg-accent/10 py-2 border border-accent/30 shadow-xs"
+                    )}>
+                      <div className={cn("h-px flex-1 transition-colors", isBreakCurrent ? "bg-accent/50" : "bg-border")} />
+                      <div className={cn(
+                        "flex items-center gap-1.5 border px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-300",
+                        isBreakCurrent
+                          ? "bg-accent text-white border-accent shadow-sm ring-2 ring-accent/30 font-semibold"
+                          : "bg-bg-tertiary border-border text-text-secondary"
+                      )}>
+                        <Coffee size={14} className={isBreakCurrent ? "text-white animate-bounce" : "text-accent"} />
+                        <span>{breakMinutes} {t('min_break')}</span>
+                        {isBreakCurrent && (
+                          <span className="inline-flex items-center gap-1 ml-1 pl-1.5 border-l border-white/40 text-[11px] font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                            {t('break_now')}
+                          </span>
+                        )}
+                      </div>
+                      <div className={cn("h-px flex-1 transition-colors", isBreakCurrent ? "bg-accent/50" : "bg-border")} />
                     </div>
-                    <div className="h-px bg-border flex-1" />
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}
