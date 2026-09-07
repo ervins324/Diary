@@ -12,8 +12,8 @@
   - Compact form with text input, file browser, and Ctrl+V clipboard image paste (same capabilities as Daily tab).
   - Attached image thumbnail previews with remove buttons.
 - **Docker Build Caching Optimization**:
-  - Added BuildKit cache mounts (`--mount=type=cache`) for pip and npm to persist dependency caches across rebuilds.
-  - Switched frontend from `npm install` to `npm ci` for deterministic reproducible builds.
+  - Added BuildKit cache mounts (`--mount=type=cache`) for pip (`/root/.cache/pip`) and npm (`/root/.npm`) to persist dependency packages across rebuilds.
+  - Configured `npm install` with npm cache mount for rapid image compilation without requiring a checked-in lockfile.
   - Added `.dockerignore` files for both backend and frontend to reduce build context size.
 - **Subject Color Randomizer**:
   - Added `POST /api/v1/subjects/randomize-colors` backend endpoint.
