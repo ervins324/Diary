@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 from app.models.homework import HomeworkEntry
 from app.models.schedule_override import ScheduleOverride
 from app.models.stored_file import StoredFile
-from app.routers.system import CleanDataRequest, clean_data
+from app.routers.system import CleanDataRequest, clean_data, get_storage_stats
 from fastapi import HTTPException
 
 
@@ -86,6 +86,106 @@ class TestSystemCleaning(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(HTTPException) as ctx:
             await clean_data(req=req, db=mock_db)
         self.assertEqual(ctx.exception.status_code, 400)
+
+    async def test_get_storage_stats_breakdown(self):
+        """
+        Verify get_storage_stats computes size for files (PDF, PPTX, images)
+        and database rows, proving files consume the vast majority of space.
+        """
+        mock_db = AsyncMock()
+
+        # 1. Stored files query
+        mock_files_res = AsyncMock()
+        mock_files_res.all.return_value = [
+            ("document.pdf", "application/pdf", 5_242_880),  # 5 MB
+            ("slides.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", 8_388_608),  # 8 MB
+            ("photo.png", "image/png", 1_048_576),  # 1 MB
+        ]
+
+        # 2. Homework entries query
+        hw_sample = HomeworkEntry(
+            id=uuid.uuid4(),
+            subject_id=uuid.uuid4(),
+            due_date=date(2026, 9, 10),
+            lesson_order=1,
+            text="Read chapter 4 and solve exercises 1 to 10.",
+            is_completed=False,
+            attachments=[{"id": "file-1", "name": "document.pdf"}],
+        )
+        mock_hw_res = AsyncMock()
+        mock_hw_res.scalars.return_value.all.return_value = [hw_sample]
+
+        # 3. Counts queries: rules, overrides, bells, subjects
+        mock_rules_count = AsyncMock()
+        mock_rules_count.scalar.return_value = 25
+
+        mock_overrides_count = AsyncMock()
+        mock_overrides_count.scalar.return_value = 4
+
+        mock_bells_count = AsyncMock()
+        mock_bells_count.scalar.return_value = 7
+
+        mock_subjects_count = AsyncMock()
+        mock_subjects_count.scalar.return_value = 12
+
+        mock_db.execute = AsyncMock(
+            side_effect=[
+                mock_files_res,
+                mock_hw_res,
+                mock_rules_count,
+                mock_overrides_count,
+                mock_bells_count,
+                mock_subjects_count,
+            ]
+        )
+
+        stats = await get_storage_stats(db=mock_db)
+
+        self.assertIn("total_bytes", stats)
+        self.assertIn("categories", stats)
+        self.assertEqual(len(stats["categories"]), 6)
+
+        # File category checks
+        files_cat = next(c for c in stats["categories"] if c["id"] == "files")
+        self.assertTrue(files_cat["is_file_storage"])
+        self.assertEqual(files_cat["count"], 3)
+        self.assertEqual(files_cat["bytes"], 5_242_880 + 8_388_608 + 1_048_576)  # ~14.68 MB
+        self.assertEqual(files_cat["subcategories"]["pdf"]["count"], 1)
+        self.assertEqual(files_cat["subcategories"]["presentation"]["count"], 1)
+        self.assertEqual(files_cat["subcategories"]["images"]["count"], 1)
+
+        # Confirm files account for over 99% of total storage compared to text rows
+        total_bytes = stats["total_bytes"]
+        file_share = (files_cat["bytes"] / total_bytes) * 100
+        self.assertGreater(file_share, 99.0)
+
+    async def test_get_storage_stats_empty(self):
+        """Verify get_storage_stats handles empty database without division errors."""
+        mock_db = AsyncMock()
+
+        mock_files_res = AsyncMock()
+        mock_files_res.all.return_value = []
+
+        mock_hw_res = AsyncMock()
+        mock_hw_res.scalars.return_value.all.return_value = []
+
+        mock_zero_count = AsyncMock()
+        mock_zero_count.scalar.return_value = 0
+
+        mock_db.execute = AsyncMock(
+            side_effect=[
+                mock_files_res,
+                mock_hw_res,
+                mock_zero_count,
+                mock_zero_count,
+                mock_zero_count,
+                mock_zero_count,
+            ]
+        )
+
+        stats = await get_storage_stats(db=mock_db)
+        self.assertEqual(stats["total_bytes"], 0)
+        self.assertEqual(len(stats["categories"]), 6)
 
 
 if __name__ == "__main__":

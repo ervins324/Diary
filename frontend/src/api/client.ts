@@ -188,6 +188,30 @@ export const cleanSystemData = async (params: CleanDataParams): Promise<{ status
   return data;
 };
 
+export interface StorageSubcategory {
+  bytes: number;
+  count: number;
+}
+
+export interface StorageCategory {
+  id: string;
+  label: string;
+  bytes: number;
+  count: number;
+  is_file_storage: boolean;
+  subcategories?: Record<string, StorageSubcategory>;
+}
+
+export interface StorageStatsResponse {
+  total_bytes: number;
+  categories: StorageCategory[];
+}
+
+export const fetchStorageStats = async (): Promise<StorageStatsResponse> => {
+  const { data } = await api.get('/system/storage-stats');
+  return data;
+};
+
 // ── File Storage (PDF, Images) API endpoints ─────────────────────────────
 
 export const uploadStoredFile = async (file: File): Promise<{ id: string; filename: string; content_type: string; size: number; url: string }> => {

@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 
 import base64
 from app.database import get_db
@@ -568,3 +568,158 @@ async def clean_data(
             "stored_files": deleted_files_count,
         },
     }
+
+
+@router.get("/storage-stats")
+async def get_storage_stats(db: AsyncSession = Depends(get_db)):
+    """
+    Returns estimated storage consumption (in bytes) and record counts
+    for each type of data stored in PostgreSQL:
+    - Stored files (PDF, PPT/PPTX, images)
+    - Homework entries
+    - Schedule rules
+    - Bell schedules
+    - Schedule overrides
+    - Subjects
+    """
+    # 1. Stored Files (Exact binary sizes and MIME breakdown)
+    file_stats_stmt = select(
+        func.count(StoredFile.id),
+        func.coalesce(func.sum(StoredFile.size), 0)
+    )
+    file_stats_res = await db.execute(file_stats_stmt)
+    files_count, files_total_bytes = file_stats_res.one()
+
+    # Detailed breakdown of files by category
+    files_stmt = select(StoredFile.filename, StoredFile.content_type, StoredFile.size)
+    files_res = await db.execute(files_stmt)
+    all_files_meta = files_res.all()
+
+    pdf_bytes = 0
+    pdf_count = 0
+    presentation_bytes = 0
+    presentation_count = 0
+    image_bytes = 0
+    image_count = 0
+    other_file_bytes = 0
+    other_file_count = 0
+
+    for fname, ctype, fsize in all_files_meta:
+        fname_lower = (fname or "").lower()
+        ctype_lower = (ctype or "").lower()
+        if fname_lower.endswith(".pdf") or "pdf" in ctype_lower:
+            pdf_bytes += fsize
+            pdf_count += 1
+        elif (
+            fname_lower.endswith((".pptx", ".ppt"))
+            or "presentation" in ctype_lower
+            or "powerpoint" in ctype_lower
+        ):
+            presentation_bytes += fsize
+            presentation_count += 1
+        elif ctype_lower.startswith("image/"):
+            image_bytes += fsize
+            image_count += 1
+        else:
+            other_file_bytes += fsize
+            other_file_count += 1
+
+    # 2. Homework entries (approximate text + metadata + embedded base64 json)
+    hw_stmt = select(HomeworkEntry)
+    hw_res = await db.execute(hw_stmt)
+    all_hw = hw_res.scalars().all()
+    hw_count = len(all_hw)
+    hw_bytes = 0
+    for h in all_hw:
+        # Base row overhead (~128 bytes) + text length + json sizes
+        hw_bytes += 128 + len((h.text or "").encode("utf-8"))
+        if h.images:
+            for img in h.images:
+                hw_bytes += len(str(img).encode("utf-8"))
+        if h.attachments:
+            for att in h.attachments:
+                hw_bytes += len(str(att).encode("utf-8"))
+
+    # 3. Schedule rules
+    rules_count_res = await db.execute(select(func.count(ScheduleRule.id)))
+    rules_count = rules_count_res.scalar() or 0
+    rules_bytes = rules_count * 128  # ~128 bytes per relational rule row
+
+    # 4. Schedule overrides
+    overrides_count_res = await db.execute(select(func.count(ScheduleOverride.id)))
+    overrides_count = overrides_count_res.scalar() or 0
+    overrides_bytes = overrides_count * 160
+
+    # 5. Bell schedules
+    bells_count_res = await db.execute(select(func.count(BellSchedule.id)))
+    bells_count = bells_count_res.scalar() or 0
+    bells_bytes = bells_count * 96
+
+    # 6. Subjects
+    subjects_count_res = await db.execute(select(func.count(Subject.id)))
+    subjects_count = subjects_count_res.scalar() or 0
+    subjects_bytes = subjects_count * 140
+
+    total_database_bytes = (
+        int(files_total_bytes)
+        + hw_bytes
+        + rules_bytes
+        + overrides_bytes
+        + bells_bytes
+        + subjects_bytes
+    )
+
+    return {
+        "total_bytes": total_database_bytes,
+        "categories": [
+            {
+                "id": "files",
+                "label": "Attached Files (PDF, PPTX, Images)",
+                "bytes": int(files_total_bytes),
+                "count": files_count,
+                "is_file_storage": True,
+                "subcategories": {
+                    "pdf": {"bytes": pdf_bytes, "count": pdf_count},
+                    "presentation": {"bytes": presentation_bytes, "count": presentation_count},
+                    "images": {"bytes": image_bytes, "count": image_count},
+                    "other": {"bytes": other_file_bytes, "count": other_file_count},
+                },
+            },
+            {
+                "id": "homework",
+                "label": "Homework Records & Texts",
+                "bytes": hw_bytes,
+                "count": hw_count,
+                "is_file_storage": False,
+            },
+            {
+                "id": "schedule_rules",
+                "label": "Timetable Rules",
+                "bytes": rules_bytes,
+                "count": rules_count,
+                "is_file_storage": False,
+            },
+            {
+                "id": "overrides",
+                "label": "Weekly Substitutions",
+                "bytes": overrides_bytes,
+                "count": overrides_count,
+                "is_file_storage": False,
+            },
+            {
+                "id": "bells",
+                "label": "Bell Timetables",
+                "bytes": bells_bytes,
+                "count": bells_count,
+                "is_file_storage": False,
+            },
+            {
+                "id": "subjects",
+                "label": "School Subjects",
+                "bytes": subjects_bytes,
+                "count": subjects_count,
+                "is_file_storage": False,
+            },
+        ],
+    }
+

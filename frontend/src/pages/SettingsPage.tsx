@@ -21,7 +21,15 @@ import {
   Palette,
   Brush,
   Sparkles,
+  HardDrive,
+  Database,
+  RefreshCw,
+  Layers,
+  Info,
+  FileText,
+  PieChart,
 } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import {
   fetchSubjects,
   createSubject,
@@ -32,7 +40,10 @@ import {
   randomizeSubjectColors,
   cleanSystemData,
   CleanDataParams,
+  fetchStorageStats,
+  type StorageStatsResponse,
 } from '../api/client';
+import { formatFileSize } from '../components/homework/AttachmentChip';
 import { ThemeToggle } from '../components/layout/ThemeToggle';
 import { useLanguage } from '../i18n/LanguageContext';
 import { useDeleteAllSchedule, useClearAllAppData } from '../hooks/useSchedule';
@@ -82,6 +93,17 @@ export function SettingsPage() {
     saveAutoCleanConfig(next);
   };
 
+  /* Storage stats query */
+  const {
+    data: storageData,
+    isLoading: isLoadingStorage,
+    isFetching: isFetchingStorage,
+    refetch: refetchStorage,
+  } = useQuery<StorageStatsResponse>({
+    queryKey: ['storage-stats'],
+    queryFn: fetchStorageStats,
+  });
+
   /* Execute manual time-step cleanup */
   const handleExecuteManualCleanup = async () => {
     if (!window.confirm(t('cleanup_confirm_prompt'))) {
@@ -117,6 +139,7 @@ export function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['homework'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
       queryClient.invalidateQueries({ queryKey: ['schedule-overrides'] });
+      queryClient.invalidateQueries({ queryKey: ['storage-stats'] });
     } catch (err: any) {
       console.error('Manual cleanup failed:', err);
       alert(`Cleanup failed: ${err.response?.data?.detail || err.message}`);
@@ -300,6 +323,7 @@ export function SettingsPage() {
   const handleDeleteScheduleOnly = async () => {
     if (window.confirm(t('delete_schedule_confirm'))) {
       await deleteScheduleMutation.mutateAsync(undefined);
+      queryClient.invalidateQueries({ queryKey: ['storage-stats'] });
       alert(t('delete_schedule_success'));
     }
   };
@@ -308,9 +332,88 @@ export function SettingsPage() {
   const handleConfirmClearAll = async () => {
     if (confirmPromptText.trim().toUpperCase() !== 'DELETE') return;
     await clearAllMutation.mutateAsync();
+    queryClient.invalidateQueries({ queryKey: ['storage-stats'] });
     setIsClearingAll(false);
     setConfirmPromptText('');
     alert(t('delete_all_success'));
+  };
+
+  /* Calculate storage metrics */
+  const totalStorageBytes = storageData?.total_bytes ?? 0;
+  const filesCategory = storageData?.categories.find((c) => c.is_file_storage || c.id === 'files');
+  const filesStorageBytes = filesCategory?.bytes ?? 0;
+  const dbStorageBytes = Math.max(0, totalStorageBytes - filesStorageBytes);
+
+  const filesPercentage = totalStorageBytes > 0
+    ? Math.round((filesStorageBytes / totalStorageBytes) * 1000) / 10
+    : 0;
+  const dbPercentage = totalStorageBytes > 0
+    ? Math.round((dbStorageBytes / totalStorageBytes) * 1000) / 10
+    : 0;
+
+  const categoryColorMap: Record<string, string> = {
+    files: '#6366F1', // Accent / Indigo
+    homework: '#0EA5E9', // Sky
+    schedule_rules: '#10B981', // Emerald
+    overrides: '#F59E0B', // Amber
+    bells: '#8B5CF6', // Violet
+    subjects: '#EC4899', // Pink
+  };
+
+  const getCategoryLabel = (id: string, fallback: string) => {
+    switch (id) {
+      case 'files': return t('storage_category_files');
+      case 'homework': return t('storage_category_homework');
+      case 'schedule_rules': return t('storage_category_schedule_rules');
+      case 'overrides': return t('storage_category_overrides');
+      case 'bells': return t('storage_category_bells');
+      case 'subjects': return t('storage_category_subjects');
+      default: return fallback;
+    }
+  };
+
+  const storageChartData = useMemo(() => {
+    if (!storageData?.categories) return [];
+    return storageData.categories.map((cat) => {
+      const pct = totalStorageBytes > 0 ? Math.round((cat.bytes / totalStorageBytes) * 1000) / 10 : 0;
+      return {
+        id: cat.id,
+        name: getCategoryLabel(cat.id, cat.label),
+        bytes: cat.bytes,
+        count: cat.count,
+        percentage: pct,
+        formattedSize: formatFileSize(cat.bytes) || '0 B',
+        color: categoryColorMap[cat.id] || '#6366F1',
+        is_file_storage: cat.is_file_storage,
+      };
+    });
+  }, [storageData, totalStorageBytes, language]);
+
+  const CustomStorageTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-bg-primary p-2.5 rounded-lg border border-border shadow-xl text-xs space-y-1 z-50">
+          <p className="font-semibold text-text-primary flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.color }} />
+            <span>{data.name}</span>
+          </p>
+          <div className="flex items-center justify-between gap-4 text-text-secondary">
+            <span>{t('storage_total')}:</span>
+            <span className="font-semibold text-accent">{data.formattedSize}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4 text-text-secondary">
+            <span>{t('clean_target_types')}:</span>
+            <span className="font-medium text-text-primary">{data.percentage}%</span>
+          </div>
+          <div className="flex items-center justify-between gap-4 text-text-muted text-[11px]">
+            <span>{t('items_deleted')}:</span>
+            <span>{data.count}</span>
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -666,6 +769,232 @@ export function SettingsPage() {
             )}
           </div>
           <p className="text-sm text-text-muted">{t('cleaning_section_desc')}</p>
+
+          {/* Subsection 0: Storage Space Breakdown & Diagram */}
+          <div className="p-4 bg-bg-primary rounded-lg border border-border space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-light pb-3">
+              <div>
+                <p className="font-semibold text-text-primary text-sm flex items-center gap-1.5">
+                  <HardDrive size={16} className="text-accent" />
+                  <span>{t('storage_stats_title')}</span>
+                </p>
+                <p className="text-xs text-text-muted mt-0.5">{t('storage_stats_desc')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => refetchStorage()}
+                disabled={isFetchingStorage}
+                className="self-start sm:self-auto px-2.5 py-1 text-xs font-medium text-text-secondary hover:text-accent bg-bg-secondary hover:bg-bg-tertiary border border-border rounded-lg transition-colors flex items-center gap-1.5 shrink-0"
+                title={t('storage_refresh')}
+              >
+                <RefreshCw size={12} className={cn(isFetchingStorage && "animate-spin text-accent")} />
+                <span>{t('storage_refresh')}</span>
+              </button>
+            </div>
+
+            {isLoadingStorage ? (
+              <div className="py-8 flex flex-col items-center justify-center gap-2 text-text-muted text-xs">
+                <Loader2 size={20} className="animate-spin text-accent" />
+                <span>Loading storage breakdown...</span>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* 3 Overview Stat Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Total Storage Card */}
+                  <div className="p-3 bg-bg-secondary rounded-lg border border-border flex flex-col justify-between">
+                    <span className="text-[11px] font-medium text-text-muted flex items-center gap-1.5">
+                      <Database size={13} className="text-accent" />
+                      <span>{t('storage_total')}</span>
+                    </span>
+                    <div className="mt-2">
+                      <p className="text-lg font-bold text-text-primary">
+                        {formatFileSize(totalStorageBytes) || '0 B'}
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        {storageData?.categories.reduce((acc, c) => acc + c.count, 0) ?? 0} {t('storage_count_label').replace('{count}', '')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Files Total Card (Highlight) */}
+                  <div className="p-3 bg-accent/5 rounded-lg border border-accent/20 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-accent flex items-center gap-1.5">
+                        <FileText size={13} />
+                        <span>{t('storage_files_total')}</span>
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-accent/15 text-accent font-bold rounded-full">
+                        {filesPercentage}%
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-lg font-bold text-accent">
+                        {formatFileSize(filesStorageBytes) || '0 B'}
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        {filesCategory?.count ?? 0} files
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Relational DB Total Card */}
+                  <div className="p-3 bg-bg-secondary rounded-lg border border-border flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-text-secondary flex items-center gap-1.5">
+                        <Layers size={13} className="text-emerald-500" />
+                        <span>{t('storage_db_total')}</span>
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-bg-tertiary text-text-secondary font-medium rounded-full">
+                        {dbPercentage}%
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-lg font-bold text-text-primary">
+                        {formatFileSize(dbStorageBytes) || '0 B'}
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        {storageData?.categories.filter(c => !c.is_file_storage).reduce((acc, c) => acc + c.count, 0) ?? 0} text records
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Visual Ratio Bar */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-text-primary flex items-center gap-1.5">
+                      <PieChart size={13} className="text-accent" />
+                      <span>{t('storage_chart_title')}</span>
+                    </span>
+                    <span className="text-[11px] font-medium text-accent">
+                      {t('storage_files_share_note').replace('{percent}', String(filesPercentage))}
+                    </span>
+                  </div>
+
+                  {/* Segmented Bar */}
+                  <div className="h-3 w-full bg-bg-tertiary rounded-full overflow-hidden flex border border-border/50">
+                    <div
+                      style={{ width: `${Math.max(filesPercentage, filesStorageBytes > 0 ? 3 : 0)}%` }}
+                      className="bg-accent transition-all duration-500"
+                      title={`${t('storage_files_total')}: ${formatFileSize(filesStorageBytes)} (${filesPercentage}%)`}
+                    />
+                    <div
+                      style={{ width: `${Math.max(dbPercentage, dbStorageBytes > 0 ? 3 : 0)}%` }}
+                      className="bg-emerald-500/80 transition-all duration-500"
+                      title={`${t('storage_db_total')}: ${formatFileSize(dbStorageBytes)} (${dbPercentage}%)`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-text-muted gap-1 px-0.5">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-accent inline-block shrink-0" />
+                      <span>{t('storage_files_total')}: <strong className="text-text-primary">{formatFileSize(filesStorageBytes) || '0 B'}</strong> ({filesPercentage}%)</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500/80 inline-block shrink-0" />
+                      <span>{t('storage_db_total')}: <strong className="text-text-primary">{formatFileSize(dbStorageBytes) || '0 B'}</strong> ({dbPercentage}%)</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Visual Insight Alert Box */}
+                <div className="p-3 bg-accent/5 rounded-lg border border-accent/20 flex items-start gap-2.5 text-xs text-text-secondary leading-relaxed">
+                  <Info size={16} className="text-accent shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-text-primary mb-0.5">
+                      {t('storage_chart_insight')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Recharts Bar Chart Diagram */}
+                <div className="space-y-2 pt-1">
+                  <div className="h-56 w-full bg-bg-secondary p-3 rounded-lg border border-border">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        layout="vertical"
+                        data={storageChartData}
+                        margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                      >
+                        <XAxis
+                          type="number"
+                          tickFormatter={(v) => formatFileSize(v)}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: 'var(--color-text-secondary)', fontSize: 11 }}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          width={110}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: 'var(--color-text-primary)', fontSize: 11 }}
+                        />
+                        <Tooltip content={<CustomStorageTooltip />} cursor={{ fill: 'var(--color-bg-tertiary)' }} />
+                        <Bar dataKey="bytes" radius={[0, 4, 4, 0]} maxBarSize={18}>
+                          {storageChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Subcategories Breakdown for Files (PDF, PPTX, Images) */}
+                {filesCategory?.subcategories && filesCategory.bytes > 0 && (
+                  <div className="pt-1">
+                    <p className="text-xs font-semibold text-text-secondary mb-2">
+                      {t('storage_files_total')} Breakdown:
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="p-2 bg-bg-secondary rounded-lg border border-border text-center">
+                        <span className="text-[10px] uppercase font-bold text-red-500">PDF</span>
+                        <p className="text-xs font-bold text-text-primary mt-0.5">
+                          {formatFileSize(filesCategory.subcategories.pdf?.bytes) || '0 B'}
+                        </p>
+                        <p className="text-[10px] text-text-muted">
+                          {filesCategory.subcategories.pdf?.count || 0} files
+                        </p>
+                      </div>
+
+                      <div className="p-2 bg-bg-secondary rounded-lg border border-border text-center">
+                        <span className="text-[10px] uppercase font-bold text-amber-500">PowerPoint</span>
+                        <p className="text-xs font-bold text-text-primary mt-0.5">
+                          {formatFileSize(filesCategory.subcategories.presentation?.bytes) || '0 B'}
+                        </p>
+                        <p className="text-[10px] text-text-muted">
+                          {filesCategory.subcategories.presentation?.count || 0} files
+                        </p>
+                      </div>
+
+                      <div className="p-2 bg-bg-secondary rounded-lg border border-border text-center">
+                        <span className="text-[10px] uppercase font-bold text-emerald-500">Images</span>
+                        <p className="text-xs font-bold text-text-primary mt-0.5">
+                          {formatFileSize(filesCategory.subcategories.images?.bytes) || '0 B'}
+                        </p>
+                        <p className="text-[10px] text-text-muted">
+                          {filesCategory.subcategories.images?.count || 0} files
+                        </p>
+                      </div>
+
+                      <div className="p-2 bg-bg-secondary rounded-lg border border-border text-center">
+                        <span className="text-[10px] uppercase font-bold text-text-secondary">Other</span>
+                        <p className="text-xs font-bold text-text-primary mt-0.5">
+                          {formatFileSize(filesCategory.subcategories.other?.bytes) || '0 B'}
+                        </p>
+                        <p className="text-[10px] text-text-muted">
+                          {filesCategory.subcategories.other?.count || 0} files
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Subsection 1: Automatic Background Cleaning */}
           <div className="p-4 bg-bg-primary rounded-lg border border-border space-y-4">

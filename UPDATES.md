@@ -1,5 +1,27 @@
 # School Diary — Changelog
 
+## v1.7.2 — 2026-09-07
+
+### 🚀 Data Storage Breakdown Statistics & File Size Comparison Diagram
+- **Storage Space Consumption Breakdown (`GET /api/v1/system/storage-stats`)**:
+  - Implemented backend storage inspection endpoint calculating exact byte sizes and record counts across 6 distinct categories:
+    - **Attached Files**: Stored documents and media (`StoredFile`), with granular breakdown for PDF documents, PowerPoint presentations, images, and others.
+    - **Homework Records**: Row overhead, text content, and embedded attachment metadata.
+    - **Schedule Rules**: Master weekly timetable entries.
+    - **Weekly Substitutions**: Single-date temporal overrides.
+    - **Bell Timetables**: Bell schedule intervals.
+    - **Subjects Directory**: School subjects catalog.
+- **Space Distribution Diagram & Visual Ratio Bar (`SettingsPage.tsx`)**:
+  - Embedded an interactive storage statistics panel directly in the **Data Cleaning & Storage** section.
+  - **Overview Stat Cards**: Displays Total Space Consumed, Attachment Files Total (with % share badge), and Relational Database Records.
+  - **Visual Ratio Comparison Bar**: Segmented proportion bar comparing File storage against Database records, highlighting the percentage difference.
+  - **Visual Diagram**: Responsive Recharts horizontal bar chart comparing disk consumption across all categories with formatted units (B, KB, MB) and interactive hover tooltip with record counts.
+  - **File Type Subcategory Breakdown**: Displays separate count and size pills for PDFs, Presentations, Images, and other files.
+  - **Storage Insight Callout**: Clearly illustrates to users that uploaded binary documents and photos consume orders of magnitude more space than structured timetable records and notes, and explains why pruning old attachments is the most effective cleanup action.
+  - **Mobile Responsive Design**: Multi-column cards and diagram collapse gracefully to compact single-column layouts on mobile screens.
+- **Unit Testing (`backend/tests/test_cleaning.py`)**:
+  - Added unit test suite for `get_storage_stats`, verifying size calculations for binary files vs database rows, verifying that files account for >99% of space in realistic scenarios, and ensuring empty database handling without division errors.
+
 ## v1.7.1 — 2026-09-07
 
 ### 🚀 Previous Lesson Locator, PPT/PPTX Presentation Storage/Download, & Unit Tests
