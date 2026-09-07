@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Loader2, Sparkles, Plus, Trash2, Check, Image, FileText, Copy, UploadCloud } from 'lucide-react';
 import { FileDropzone } from './FileDropzone';
+import { copyToClipboard } from '../../lib/clipboard';
 import { useAiParseBells, useParseBellsJson, useBulkCommitBells } from '../../hooks/useBells';
 import { useLanguage } from '../../i18n/LanguageContext';
 import type { AiParsedBellSlot } from '../../types';
@@ -73,8 +74,8 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
   };
 
   /* Copy template prompt for external AI */
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(AI_BELLS_PROMPT);
+  const handleCopyPrompt = async () => {
+    await copyToClipboard(AI_BELLS_PROMPT);
     setCopiedPrompt(true);
     setTimeout(() => setCopiedPrompt(false), 2000);
   };

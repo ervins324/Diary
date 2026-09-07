@@ -1,4 +1,5 @@
 import uuid
+import random
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
@@ -8,6 +9,7 @@ from app.models.homework import HomeworkEntry
 from app.models.schedule_rule import ScheduleRule
 from app.models.bell_schedule import BellSchedule
 from app.schemas.subject import SubjectRead, SubjectCreate, SubjectUpdate
+from app.routers.schedule import DISTINCT_SUBJECT_COLORS
 
 router = APIRouter(prefix="/api/v1/subjects", tags=["subjects"])
 
@@ -84,3 +86,31 @@ async def clear_all_data(db: AsyncSession = Depends(get_db)):
     await db.commit()
     return {"status": "ok", "message": "All data cleared successfully"}
 
+
+@router.post("/randomize-colors", response_model=list[SubjectRead])
+async def randomize_subject_colors(db: AsyncSession = Depends(get_db)):
+    """
+    Assign unique, visually distinct colors to all subjects.
+    Shuffles the 16-color palette and assigns one per subject (cycles if >16 subjects).
+    """
+    result = await db.execute(select(Subject))
+    subjects = list(result.scalars().all())
+
+    if not subjects:
+        return []
+
+    # Shuffle a copy of the palette so each call produces a fresh assignment
+    palette = list(DISTINCT_SUBJECT_COLORS)
+    random.shuffle(palette)
+
+    # Assign unique colors, cycling through the palette if more subjects than colors
+    for i, subj in enumerate(subjects):
+        subj.color_hex = palette[i % len(palette)]
+
+    await db.commit()
+
+    # Refresh all subjects so response includes updated colors
+    for subj in subjects:
+        await db.refresh(subj)
+
+    return subjects

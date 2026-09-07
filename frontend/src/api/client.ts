@@ -59,6 +59,12 @@ export const deleteSubject = async (id: string): Promise<void> => {
   await api.delete(`/subjects/${id}`);
 };
 
+/* Randomize all subject colors with unique, visually distinct palette */
+export const randomizeSubjectColors = async (): Promise<Subject[]> => {
+  const { data } = await api.post('/subjects/randomize-colors');
+  return data;
+};
+
 /* AI-powered schedule image parsing — returns structured data for review */
 export const aiParseSchedule = async (file: File): Promise<{ days: AiParsedDay[] }> => {
   const formData = new FormData();

@@ -131,6 +131,8 @@ export const translations = {
     cabinet_placeholder: 'Cabinet',
     sort_alphabet: 'Alphabetical',
     search_subjects: 'Search subjects...',
+    randomize_colors: 'Randomize Colors',
+    colors: 'Colors',
 
     // Schedule Editor & Data Management
     schedule_editor: 'Schedule Editor',
@@ -314,6 +316,8 @@ export const translations = {
     cabinet_placeholder: 'Кабінет',
     sort_alphabet: 'За алфавітом',
     search_subjects: 'Пошук предметів...',
+    randomize_colors: 'Оновити кольори',
+    colors: 'Кольори',
 
     // Schedule Editor & Data Management
     schedule_editor: 'Редактор розкладу',

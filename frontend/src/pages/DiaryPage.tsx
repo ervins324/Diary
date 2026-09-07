@@ -1,25 +1,81 @@
 import { useState } from 'react';
 import { format, addWeeks, subWeeks, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
-import { getWeekDates, formatTime, cn, getDefaultScheduleDate } from '../lib/utils';
+import { useCreateHomework } from '../hooks/useHomework';
+import { getWeekDates, formatTime, cn, getDefaultScheduleDate, compressImageFile } from '../lib/utils';
 import { HomeworkInline } from '../components/homework/HomeworkInline';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { DaySchedule, LessonSlot } from '../types';
 
 export function DiaryPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   /* Initialize week view with weekend auto-advance if today is Saturday/Sunday */
   const [currentDate, setCurrentDate] = useState(getDefaultScheduleDate);
   
   const { start, end } = getWeekDates(currentDate);
   const { data: schedule, isLoading } = useSchedule(start, end);
+  const createMutation = useCreateHomework();
+
+  /* Inline homework creation state — tracks which lesson slot is being added to */
+  const [addingKey, setAddingKey] = useState<string | null>(null);
+  const [newHwText, setNewHwText] = useState('');
+  const [newHwImages, setNewHwImages] = useState<string[]>([]);
 
   const handlePrevWeek = () => setCurrentDate((prev) => subWeeks(prev, 1));
   const handleNextWeek = () => setCurrentDate((prev) => addWeeks(prev, 1));
   const handleCurrentWeek = () => setCurrentDate(getDefaultScheduleDate());
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  /* Submit new homework for a lesson in diary view */
+  const handleAddHomework = (lesson: LessonSlot) => {
+    if (newHwText.trim() || newHwImages.length > 0) {
+      createMutation.mutate(
+        {
+          subject_id: lesson.subject.id,
+          due_date: lesson.date,
+          lesson_order: lesson.lesson_order,
+          text: newHwText.trim() || (language === 'uk' ? 'Фото завдання' : 'Photo attachment'),
+          images: newHwImages,
+        },
+        { onSuccess: () => { setAddingKey(null); setNewHwText(''); setNewHwImages([]); } }
+      );
+    } else {
+      setAddingKey(null);
+    }
+  };
+
+  /* Compress and attach images selected via file browser */
+  const handleHwFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const compressed = await compressImageFile(files[i]);
+        setNewHwImages((prev) => [...prev, compressed]);
+      } catch (err) { console.error('Failed to compress image:', err); }
+    }
+    e.target.value = '';
+  };
+
+  /* Intercept Ctrl+V clipboard paste to directly attach copied images */
+  const handleHwPaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          try {
+            const compressed = await compressImageFile(file);
+            setNewHwImages((prev) => [...prev, compressed]);
+          } catch (err) { console.error('Failed to compress pasted image:', err); }
+        }
+      }
+    }
+  };
 
   // Helper to get day data
   const getDayData = (index: number): DaySchedule | undefined => {
@@ -98,8 +154,52 @@ export function DiaryPage() {
                     {lesson.homework?.map((hw) => (
                       <HomeworkInline key={hw.id} homework={hw} />
                     ))}
-                    {(!lesson.homework || lesson.homework.length === 0) && (
+                    {(!lesson.homework || lesson.homework.length === 0) && addingKey !== `${dayData?.date}-${lesson.lesson_order}` && (
                       <span className="text-xs text-text-muted italic">{t('no_homework')}</span>
+                    )}
+
+                    {/* Inline homework creation form */}
+                    {addingKey === `${dayData?.date}-${lesson.lesson_order}` ? (
+                      <div className="flex flex-col gap-1.5 mt-1 p-1.5 bg-bg-primary rounded border border-border" onPaste={handleHwPaste}>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            placeholder={language === 'uk' ? 'Д/З (або Ctrl+V фото)...' : 'Homework (or Ctrl+V photo)...'}
+                            value={newHwText}
+                            onChange={(e) => setNewHwText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddHomework(lesson);
+                              if (e.key === 'Escape') { setAddingKey(null); setNewHwImages([]); }
+                            }}
+                            className="flex-1 bg-transparent text-xs focus:outline-none min-w-0"
+                            autoFocus
+                          />
+                          <label className="p-0.5 text-text-muted hover:text-accent cursor-pointer rounded hover:bg-bg-tertiary transition-colors" title={language === 'uk' ? 'Прикріпити фото' : 'Attach image'}>
+                            <ImageIcon size={13} />
+                            <input type="file" accept="image/*" multiple onChange={handleHwFileChange} className="hidden" />
+                          </label>
+                          <button onClick={() => handleAddHomework(lesson)} className="text-success hover:bg-success/10 p-0.5 rounded transition-colors"><Check size={13} /></button>
+                          <button onClick={() => { setAddingKey(null); setNewHwText(''); setNewHwImages([]); }} className="text-text-muted hover:bg-bg-tertiary p-0.5 rounded transition-colors"><X size={13} /></button>
+                        </div>
+                        {/* Attached image thumbnails */}
+                        {newHwImages.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-1 border-t border-border">
+                            {newHwImages.map((img, idx) => (
+                              <div key={idx} className="relative w-10 h-10 rounded border border-border overflow-hidden">
+                                <img src={img} alt={`att-${idx}`} className="w-full h-full object-cover" />
+                                <button type="button" onClick={() => setNewHwImages(p => p.filter((_, i) => i !== idx))} className="absolute top-0 right-0 bg-danger/80 text-white rounded-bl p-0.5"><X size={8} /></button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setAddingKey(`${dayData?.date}-${lesson.lesson_order}`); setNewHwText(''); setNewHwImages([]); }}
+                        className="mt-1 flex items-center gap-0.5 text-[11px] text-text-muted hover:text-accent transition-colors"
+                      >
+                        <Plus size={11} /> {t('add_homework') || 'Add HW'}
+                      </button>
                     )}
                   </div>
                 </div>

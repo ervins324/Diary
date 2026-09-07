@@ -15,6 +15,8 @@ export const useCreateHomework = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['homework'] });
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      /* Invalidate stats so homework completion rate updates immediately */
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
     },
   });
 };
@@ -26,6 +28,8 @@ export const useUpdateHomework = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['homework'] });
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      /* Invalidate stats so homework completion rate updates immediately */
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
     },
   });
 };
@@ -37,6 +41,8 @@ export const useDeleteHomework = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['homework'] });
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      /* Invalidate stats so homework completion rate updates immediately */
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
     },
   });
 };

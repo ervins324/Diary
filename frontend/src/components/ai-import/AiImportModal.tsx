@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Loader2, Image, FileText, Copy, Check, UploadCloud } from 'lucide-react';
 import { FileDropzone } from './FileDropzone';
 import { EditablePreview } from './EditablePreview';
+import { copyToClipboard } from '../../lib/clipboard';
 import { useAiParse, useParseScheduleJson, useBulkCommitByName } from '../../hooks/useSchedule';
 import { useBells } from '../../hooks/useBells';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -116,8 +117,8 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
   };
 
   /* Copy template prompt for external AI */
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(AI_SCHEDULE_PROMPT);
+  const handleCopyPrompt = async () => {
+    await copyToClipboard(AI_SCHEDULE_PROMPT);
     setCopiedPrompt(true);
     setTimeout(() => setCopiedPrompt(false), 2000);
   };

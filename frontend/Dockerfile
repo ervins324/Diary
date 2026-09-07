@@ -1,8 +1,9 @@
+# syntax=docker/dockerfile:1
 # Stage 1: Build using Node 22 (required for modern React, Vite, and tooling)
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
 RUN npm run build
 

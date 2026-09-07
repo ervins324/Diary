@@ -1,5 +1,30 @@
 # School Diary — Changelog
 
+## v1.6.1 — 2026-09-07
+
+### 🐛 Bug Fixes & Improvements
+- **Stats Homework Completion Rate Fix**:
+  - Fixed homework completion percentage not updating in Stats when toggling, creating, or deleting homework.
+  - Root cause: `useHomework` hooks did not invalidate `['stats']` React Query cache, so 5-minute staleTime served stale data.
+  - Added `queryClient.invalidateQueries({ queryKey: ['stats'] })` to `useCreateHomework`, `useUpdateHomework`, and `useDeleteHomework`.
+- **Diary Tab Homework Creation**:
+  - Added inline "Add HW" button to every lesson in the Diary weekly view.
+  - Compact form with text input, file browser, and Ctrl+V clipboard image paste (same capabilities as Daily tab).
+  - Attached image thumbnail previews with remove buttons.
+- **Docker Build Caching Optimization**:
+  - Added BuildKit cache mounts (`--mount=type=cache`) for pip and npm to persist dependency caches across rebuilds.
+  - Switched frontend from `npm install` to `npm ci` for deterministic reproducible builds.
+  - Added `.dockerignore` files for both backend and frontend to reduce build context size.
+- **Subject Color Randomizer**:
+  - Added `POST /api/v1/subjects/randomize-colors` backend endpoint.
+  - Shuffles 16 curated high-contrast palette colors and assigns unique colors to all subjects in a single transaction.
+  - Added "🎨 Colors" button in Settings → Manage Subjects toolbar.
+  - Invalidates subjects, schedule, and stats caches for instant UI update.
+- **Copy Prompt Button Fix**:
+  - Fixed "Copy Prompt for AI" buttons not working on HTTP (non-HTTPS) servers.
+  - Created shared `copyToClipboard()` utility with `navigator.clipboard.writeText` + `document.execCommand('copy')` fallback.
+  - Applied to both Schedule Import and Bell Schedule Import modals.
+
 ## v1.6.0 — 2026-09-06
 
 ### 🚀 Full Backup/Restore, Multi-Image Homework, Rich Stats & Bell JSON Import

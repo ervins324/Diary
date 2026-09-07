@@ -18,6 +18,7 @@ import {
   ArrowDownAZ,
   ArrowUpZA,
   Search,
+  Palette,
 } from 'lucide-react';
 import {
   fetchSubjects,
@@ -26,6 +27,7 @@ import {
   deleteSubject,
   exportFullBackup,
   importFullBackup,
+  randomizeSubjectColors,
 } from '../api/client';
 import { ThemeToggle } from '../components/layout/ThemeToggle';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -122,6 +124,16 @@ export function SettingsPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteSubject,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subjects'] }),
+  });
+
+  /* Randomize all subject colors with unique palette */
+  const randomizeColorsMutation = useMutation({
+    mutationFn: randomizeSubjectColors,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+    },
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -347,6 +359,18 @@ export function SettingsPage() {
               >
                 {subjectSortOrder === 'asc' ? <ArrowDownAZ size={15} className="text-accent" /> : <ArrowUpZA size={15} className="text-accent" />}
                 <span>{subjectSortOrder === 'asc' ? 'А-Я' : 'Я-А'}</span>
+              </button>
+
+              {/* Randomize Subject Colors */}
+              <button
+                type="button"
+                onClick={() => randomizeColorsMutation.mutate()}
+                disabled={randomizeColorsMutation.isPending}
+                className="px-2.5 py-1.5 bg-bg-primary hover:bg-bg-tertiary border border-border rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors shrink-0 disabled:opacity-50"
+                title={t('randomize_colors')}
+              >
+                {randomizeColorsMutation.isPending ? <Loader2 size={15} className="animate-spin text-accent" /> : <Palette size={15} className="text-accent" />}
+                <span className="hidden sm:inline">{t('colors')}</span>
               </button>
             </div>
           </div>
