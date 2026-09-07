@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.schedule_rule import ScheduleRule, WeekType
 from app.models.schedule_override import ScheduleOverride
 from app.models.homework import HomeworkEntry
-from app.schemas.schedule import DaySchedule, LessonSlot, NextLessonResponse
+from app.schemas.schedule import DaySchedule, LessonSlot, NextLessonResponse, PreviousLessonResponse
 from app.utils.week_type import get_week_type
 from app.schemas.subject import SubjectRead
 from app.schemas.homework import HomeworkRead
@@ -237,3 +237,53 @@ async def find_closest_next_lesson(
             )
 
     return None
+
+
+async def find_closest_previous_lesson(
+    db: AsyncSession,
+    subject_id: any,
+    anchor_date: date,
+    current_date: date | None = None,
+    current_lesson_order: int | None = None,
+    max_days_backward: int = 28,
+) -> PreviousLessonResponse | None:
+    """
+    Find the PREVIOUS occurrence of a lesson for a subject.
+    Never returns the current lesson slot that was clicked on.
+    Searches backwards from (current_date, current_lesson_order).
+    """
+    today = date.today()
+    search_end = current_date or today
+    search_start = search_end - timedelta(days=max_days_backward)
+
+    schedules = await get_schedule_for_range(db, search_start, search_end, anchor_date)
+    target_id_str = str(subject_id)
+
+    # Traverse backwards in time (from newest day to oldest day)
+    for day in reversed(schedules):
+        # Traverse lessons from latest order to earliest order in the day
+        for lesson in reversed(day.lessons):
+            # Skip cancelled lessons
+            if lesson.is_cancelled:
+                continue
+            if str(lesson.subject.id) != target_id_str:
+                continue
+
+            # If this is the exact same day the user clicked from:
+            if current_date and day.date == current_date:
+                # Must be strictly before current_lesson_order
+                if current_lesson_order is not None and lesson.lesson_order >= current_lesson_order:
+                    continue
+
+            return PreviousLessonResponse(
+                date=day.date,
+                lesson_order=lesson.lesson_order,
+                subject_id=lesson.subject.id,
+                subject_name=lesson.subject.name,
+                start_time=lesson.start_time,
+                end_time=lesson.end_time,
+                cabinet=lesson.cabinet,
+            )
+
+    return None
+

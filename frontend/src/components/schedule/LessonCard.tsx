@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Image as ImageIcon, X, Check, ArrowLeftRight, Compass, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { Plus, Image as ImageIcon, X, Check, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, Loader2 } from 'lucide-react';
 import type { LessonSlot, Attachment } from '../../types';
 import { formatTime, compressImageFile, isLessonNow, cn } from '../../lib/utils';
 import { HomeworkInline } from '../homework/HomeworkInline';
@@ -8,15 +8,16 @@ import { AddLinkModal } from '../homework/AddLinkModal';
 import { LessonOverrideModal } from './LessonOverrideModal';
 import { useCreateHomework } from '../../hooks/useHomework';
 import { useFileUpload } from '../../hooks/useFileUpload';
-import { fetchNextLesson } from '../../hooks/useScheduleOverrides';
+import { fetchNextLesson, fetchPreviousLesson } from '../../hooks/useScheduleOverrides';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 interface LessonCardProps {
   lesson: LessonSlot;
   onFindNextLesson?: (subjectId: string, currentDate?: string, currentLessonOrder?: number) => void;
+  onFindPreviousLesson?: (subjectId: string, currentDate?: string, currentLessonOrder?: number) => void;
 }
 
-export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
+export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: LessonCardProps) {
   const { t, language } = useLanguage();
   const [isAddingHomework, setIsAddingHomework] = useState(false);
   const [newHomework, setNewHomework] = useState('');
@@ -25,6 +26,7 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [isLocatingPrev, setIsLocatingPrev] = useState(false);
 
   const createMutation = useCreateHomework();
   const uploadMutation = useFileUpload();
@@ -59,13 +61,21 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
     }
   };
 
-  /* Compress and attach images or upload PDFs selected via file browser */
+  /* Handle file upload (supports PDF documents, PPT/PPTX presentations, and images) */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.type === 'application/pdf') {
+      const lowerName = file.name.toLowerCase();
+      const isPresentation = (
+        lowerName.endsWith('.pptx') ||
+        lowerName.endsWith('.ppt') ||
+        file.type.includes('presentation') ||
+        file.type.includes('powerpoint')
+      );
+
+      if (file.type === 'application/pdf' || isPresentation) {
         try {
           const uploaded = await uploadMutation.mutateAsync(file);
           setAttachedItems((prev) => [
@@ -73,13 +83,13 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
             {
               id: uploaded.id,
               name: uploaded.filename,
-              type: 'pdf',
+              type: isPresentation ? 'presentation' : 'pdf',
               url: uploaded.url,
               size: uploaded.size,
             },
           ]);
         } catch (err) {
-          console.error('Failed to upload PDF:', err);
+          console.error('Failed to upload file:', err);
         }
       } else if (file.type.startsWith('image/')) {
         try {
@@ -153,6 +163,39 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
       console.error('Failed to locate next lesson:', err);
     } finally {
       setIsLocating(false);
+    }
+  };
+
+  /* Return to previous lesson of this subject */
+  const handleLocatePrevious = async () => {
+    if (onFindPreviousLesson) {
+      onFindPreviousLesson(lesson.subject.id, lesson.date, lesson.lesson_order);
+      return;
+    }
+    try {
+      setIsLocatingPrev(true);
+      const result = await fetchPreviousLesson(lesson.subject.id, lesson.date, lesson.lesson_order);
+      if (!result) {
+        alert(
+          language === 'uk'
+            ? 'Не знайдено попереднього уроку для цього предмету.'
+            : 'No previous lesson found for this subject.'
+        );
+        return;
+      }
+      window.dispatchEvent(
+        new CustomEvent('diary:navigate-and-highlight', {
+          detail: {
+            date: result.date,
+            lessonOrder: result.lesson_order,
+            subjectId: result.subject_id,
+          },
+        })
+      );
+    } catch (err) {
+      console.error('Failed to locate previous lesson:', err);
+    } finally {
+      setIsLocatingPrev(false);
     }
   };
 
@@ -232,6 +275,20 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
               </span>
             )}
 
+            {/* Locate previous lesson button */}
+            <button
+              onClick={handleLocatePrevious}
+              disabled={isLocatingPrev}
+              className="p-1 text-text-muted hover:text-accent rounded hover:bg-bg-tertiary transition-colors"
+              title={
+                language === 'uk'
+                  ? 'Повернутися до попереднього уроку цього предмету'
+                  : 'Return to previous lesson of this subject'
+              }
+            >
+              {isLocatingPrev ? <Loader2 size={14} className="animate-spin text-accent" /> : <RotateCcw size={14} />}
+            </button>
+
             {/* Locate next lesson button */}
             <button
               onClick={handleLocateNext}
@@ -288,6 +345,7 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
               currentDate={lesson.date}
               currentLessonOrder={lesson.lesson_order}
               onFindNextLesson={onFindNextLesson}
+              onFindPreviousLesson={onFindPreviousLesson}
             />
           ))}
           
@@ -301,8 +359,8 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
                   type="text"
                   placeholder={
                     language === 'uk'
-                      ? 'Додати завдання, прикріпити PDF або фото (Ctrl+V)...'
-                      : 'Add task, attach PDF or paste photo (Ctrl+V)...'
+                      ? 'Додати завдання, прикріпити PDF/PPTX або фото (Ctrl+V)...'
+                      : 'Add task, attach PDF/PPTX or paste photo (Ctrl+V)...'
                   }
                   value={newHomework}
                   onChange={(e) => setNewHomework(e.target.value)}
@@ -318,15 +376,15 @@ export function LessonCard({ lesson, onFindNextLesson }: LessonCardProps) {
                   autoFocus
                 />
 
-                {/* Photo / PDF file attachment button */}
+                {/* Photo / PDF / PPT / PPTX file attachment button */}
                 <label 
                   className="p-1 text-text-muted hover:text-accent cursor-pointer rounded hover:bg-bg-tertiary transition-colors" 
-                  title={language === 'uk' ? 'Прикріпити PDF або фото' : 'Attach PDF or image'}
+                  title={language === 'uk' ? 'Прикріпити PDF, PPTX або фото' : 'Attach PDF, PPTX or image'}
                 >
                   <ImageIcon size={16} />
                   <input
                     type="file"
-                    accept="image/*,application/pdf"
+                    accept="image/*,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
                     multiple
                     onChange={handleFileChange}
                     className="hidden"

@@ -1,5 +1,28 @@
 # School Diary — Changelog
 
+## v1.7.1 — 2026-09-07
+
+### 🚀 Previous Lesson Locator, PPT/PPTX Presentation Storage/Download, & Unit Tests
+- **Previous Lesson Return Locator (`RotateCcw` icon)**:
+  - Added return-to-previous lesson action alongside the next lesson button in `HomeworkInline`, `LessonCard` (Daily tab), and `DiaryPage` (weekly schedule rows).
+  - Added backend search endpoint `GET /api/v1/schedule/previous-lesson` and `find_closest_previous_lesson` service function: performs reverse chronological backward search from `(current_date, current_lesson_order)`, jumping to the closest previous lesson of that subject across past dates, alternating numerator/denominator schedules, and temporal overrides.
+  - Automatically flips the calendar backward in Daily and Diary views, scrolls the previous lesson into center view, and triggers a glowing accent ring pulse animation.
+- **PPT / PPTX File Uploading, PostgreSQL Storage & Direct Downloading**:
+  - Added PowerPoint presentation support (`.ppt`, `.pptx`, `application/vnd.ms-powerpoint`, `application/vnd.openxmlformats-officedocument.presentationml.presentation`) across all homework creation and edit file inputs in Daily, Diary, and HomeworkInline views.
+  - Normalized presentation MIME types and added automatic attachment disposition in `backend/app/routers/files.py`.
+  - Added `download: bool = False` query parameter support in `GET /api/v1/files/{file_id}` to force browser file download.
+  - Enhanced `AttachmentChip.tsx` with dedicated presentation badge, file size indicator, and 1-click `Download` icon button.
+- **Automated Unit Tests**:
+  - Added `backend/tests/test_schedule_locator.py` covering:
+    - Forward search skipping clicked slot and finding next occurrences.
+    - Backward search skipping clicked slot and finding previous occurrences on same day or earlier dates.
+    - Handling absent prior lessons gracefully (`None`).
+  - Added `backend/tests/test_files.py` covering:
+    - PPTX upload MIME normalization.
+    - Direct download headers and attachment disposition for PowerPoint presentations.
+    - PDF inline preview versus explicit download headers.
+    - 404 responses for missing stored files.
+
 ## v1.7.0 — 2026-09-07
 
 ### 🚀 Next Lesson Locator, PDF & Presentation Storage/Linking, and Temporal Weekly Substitutions

@@ -14,10 +14,10 @@ from app.schemas.schedule import (
     DaySchedule, AiParseResponse, BulkCommitRequest,
     ScheduleRuleCreate, ScheduleRuleRead, BulkCommitByNameRequest, BulkCommitByNameRule,
     get_default_bell_times, JsonScheduleParseRequest,
-    ScheduleOverrideCreate, ScheduleOverrideRead, NextLessonResponse,
+    ScheduleOverrideCreate, ScheduleOverrideRead, NextLessonResponse, PreviousLessonResponse,
 )
 import logging
-from app.services.schedule_service import get_schedule_for_range, find_closest_next_lesson
+from app.services.schedule_service import get_schedule_for_range, find_closest_next_lesson, find_closest_previous_lesson
 from app.services.ai_parser import parse_schedule_image
 from sqlalchemy.orm import selectinload
 
@@ -61,6 +61,27 @@ async def get_next_lesson(
         current_date=current_date,
         current_lesson_order=current_lesson_order,
         from_date=from_date,
+    )
+
+
+@router.get("/previous-lesson", response_model=PreviousLessonResponse | None)
+async def get_previous_lesson(
+    subject_id: uuid.UUID,
+    current_date: date | None = None,
+    current_lesson_order: int | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Find the closest previous lesson for a subject strictly before the current lesson.
+    Never returns the lesson slot the user is currently viewing/clicking on.
+    """
+    anchor_date = date.fromisoformat(settings.SEMESTER_ANCHOR_DATE)
+    return await find_closest_previous_lesson(
+        db=db,
+        subject_id=subject_id,
+        anchor_date=anchor_date,
+        current_date=current_date,
+        current_lesson_order=current_lesson_order,
     )
 
 

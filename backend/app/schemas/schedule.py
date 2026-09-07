@@ -77,6 +77,9 @@ class NextLessonResponse(BaseModel):
     end_time: time
     cabinet: str | None = None
 
+# PreviousLessonResponse has identical schema fields to NextLessonResponse
+PreviousLessonResponse = NextLessonResponse
+
 class DaySchedule(BaseModel):
     date: date
     day_name: str

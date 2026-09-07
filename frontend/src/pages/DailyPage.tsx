@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { format, addDays, subDays, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, Wand2, Loader2 } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
-import { fetchNextLesson } from '../hooks/useScheduleOverrides';
+import { fetchNextLesson, fetchPreviousLesson } from '../hooks/useScheduleOverrides';
 import { LessonCard } from '../components/schedule/LessonCard';
 import { AiImportModal } from '../components/ai-import/AiImportModal';
 import { formatDate, getDefaultScheduleDate } from '../lib/utils';
@@ -91,6 +91,25 @@ export function DailyPage() {
     }
   };
 
+  /* Handler when clicking return to previous lesson button on any card */
+  const handleFindPreviousLesson = async (subjectId: string, cDate?: string, cOrder?: number) => {
+    try {
+      const result = await fetchPreviousLesson(subjectId, cDate || dateStr, cOrder);
+      if (!result) {
+        alert(
+          language === 'uk'
+            ? 'Не знайдено попереднього уроку для цього предмету.'
+            : 'No previous lesson found for this subject.'
+        );
+        return;
+      }
+      setCurrentDate(parseISO(result.date));
+      setTargetHighlightOrder(result.lesson_order);
+    } catch (err) {
+      console.error('Failed to locate previous lesson:', err);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full p-4 md:p-6 relative">
       {/* Header */}
@@ -149,6 +168,7 @@ export function DailyPage() {
                 key={lesson.lesson_order}
                 lesson={lesson}
                 onFindNextLesson={handleFindNextLesson}
+                onFindPreviousLesson={handleFindPreviousLesson}
               />
             ))}
           </div>

@@ -4,8 +4,9 @@ import {
   deleteScheduleOverride,
   fetchScheduleOverrides,
   fetchNextLesson,
+  fetchPreviousLesson,
 } from '../api/client';
-import type { ScheduleOverride, NextLesson } from '../types';
+import type { ScheduleOverride, NextLesson, PreviousLesson } from '../types';
 
 export function useScheduleOverrides(startDate?: string, endDate?: string) {
   return useQuery<ScheduleOverride[]>({
@@ -40,5 +41,5 @@ export function useDeleteScheduleOverride() {
   });
 }
 
-export { fetchNextLesson };
-export type { NextLesson };
+export { fetchNextLesson, fetchPreviousLesson };
+export type { NextLesson, PreviousLesson };

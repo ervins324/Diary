@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, RotateCcw, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { useUpdateHomework, useDeleteHomework } from '../../hooks/useHomework';
 import { useFileUpload } from '../../hooks/useFileUpload';
-import { fetchNextLesson } from '../../hooks/useScheduleOverrides';
+import { fetchNextLesson, fetchPreviousLesson } from '../../hooks/useScheduleOverrides';
 import type { HomeworkEntry, Attachment } from '../../types';
 import { cn, compressImageFile } from '../../lib/utils';
 import { AttachmentChip } from './AttachmentChip';
@@ -14,6 +14,7 @@ interface HomeworkInlineProps {
   currentDate?: string;
   currentLessonOrder?: number;
   onFindNextLesson?: (subjectId: string, currentDate?: string, currentLessonOrder?: number) => void;
+  onFindPreviousLesson?: (subjectId: string, currentDate?: string, currentLessonOrder?: number) => void;
 }
 
 /**
@@ -26,6 +27,7 @@ export function HomeworkInline({
   currentDate,
   currentLessonOrder,
   onFindNextLesson,
+  onFindPreviousLesson,
 }: HomeworkInlineProps) {
   const { language } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
@@ -41,6 +43,7 @@ export function HomeworkInline({
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   /* Locating status */
   const [isLocating, setIsLocating] = useState(false);
+  const [isLocatingPrev, setIsLocatingPrev] = useState(false);
   
   const updateMutation = useUpdateHomework();
   const deleteMutation = useDeleteHomework();
@@ -111,13 +114,56 @@ export function HomeworkInline({
     }
   };
 
-  /* Handle file upload during edit mode (supports both PDF documents and images) */
+  /* Handle returning to the previous lesson for this subject */
+  const handleLocatePrevious = async () => {
+    const targetDate = currentDate || homework.due_date;
+    const targetOrder = currentLessonOrder ?? (homework.lesson_order ?? undefined);
+    if (onFindPreviousLesson) {
+      onFindPreviousLesson(homework.subject_id, targetDate, targetOrder);
+      return;
+    }
+    try {
+      setIsLocatingPrev(true);
+      const result = await fetchPreviousLesson(homework.subject_id, targetDate, targetOrder);
+      if (!result) {
+        alert(
+          language === 'uk'
+            ? 'Не знайдено попереднього уроку для цього предмету.'
+            : 'No previous lesson found for this subject.'
+        );
+        return;
+      }
+      window.dispatchEvent(
+        new CustomEvent('diary:navigate-and-highlight', {
+          detail: {
+            date: result.date,
+            lessonOrder: result.lesson_order,
+            subjectId: result.subject_id,
+          },
+        })
+      );
+    } catch (err) {
+      console.error('Failed to locate previous lesson:', err);
+    } finally {
+      setIsLocatingPrev(false);
+    }
+  };
+
+  /* Handle file upload during edit mode (supports PDF documents, PPT/PPTX presentations, and images) */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.type === 'application/pdf') {
+      const lowerName = file.name.toLowerCase();
+      const isPresentation = (
+        lowerName.endsWith('.pptx') ||
+        lowerName.endsWith('.ppt') ||
+        file.type.includes('presentation') ||
+        file.type.includes('powerpoint')
+      );
+
+      if (file.type === 'application/pdf' || isPresentation) {
         try {
           const uploaded = await uploadMutation.mutateAsync(file);
           setEditAttachments((prev) => [
@@ -125,13 +171,13 @@ export function HomeworkInline({
             {
               id: uploaded.id,
               name: uploaded.filename,
-              type: 'pdf',
+              type: isPresentation ? 'presentation' : 'pdf',
               url: uploaded.url,
               size: uploaded.size,
             },
           ]);
         } catch (err) {
-          console.error('Failed to upload PDF:', err);
+          console.error('Failed to upload file:', err);
         }
       } else if (file.type.startsWith('image/')) {
         try {
@@ -191,15 +237,15 @@ export function HomeworkInline({
             className="flex-1 bg-bg-primary border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-accent"
             autoFocus
           />
-          {/* Add image or PDF file button */}
+          {/* Add image, PDF or PPT/PPTX file button */}
           <label
             className="p-1 text-text-muted hover:text-accent cursor-pointer rounded hover:bg-bg-tertiary transition-colors"
-            title={language === 'uk' ? 'Прикріпити PDF або зображення' : 'Attach PDF or image'}
+            title={language === 'uk' ? 'Прикріпити PDF, PPTX або зображення' : 'Attach PDF, PPTX or image'}
           >
             <ImageIcon size={16} />
             <input
               type="file"
-              accept="image/*,application/pdf"
+              accept="image/*,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
               multiple
               onChange={handleFileChange}
               className="hidden"
@@ -294,8 +340,21 @@ export function HomeworkInline({
           <span className={cn("text-sm flex-1 leading-snug break-words", homework.is_completed && "line-through text-text-muted")}>
             {homework.text}
           </span>
-          {/* Edit/delete actions and locate next lesson button — visible on hover and touch */}
+          {/* Edit/delete actions and locate previous/next lesson buttons — visible on hover and touch */}
           <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+            {/* Locate previous lesson button */}
+            <button
+              onClick={handleLocatePrevious}
+              disabled={isLocatingPrev}
+              className="text-text-muted hover:text-accent p-1 transition-colors"
+              title={
+                language === 'uk'
+                  ? 'Повернутися до попереднього уроку цього предмету'
+                  : 'Return to previous lesson of this subject'
+              }
+            >
+              {isLocatingPrev ? <Loader2 size={12} className="animate-spin text-accent" /> : <RotateCcw size={12} />}
+            </button>
             {/* Locate next lesson button */}
             <button
               onClick={handleLocateNext}

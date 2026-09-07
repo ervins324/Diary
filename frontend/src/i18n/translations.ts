@@ -191,10 +191,14 @@ export const translations = {
     substitution: 'Substitution',
     cancelled: 'Cancelled',
     locate_next_lesson: 'Find closest upcoming lesson',
+    locate_previous_lesson: 'Return to previous lesson of this subject',
+    no_upcoming_lesson: 'No upcoming lesson found for this subject.',
+    no_previous_lesson: 'No previous lesson found for this subject.',
     lesson_substitution: 'Lesson Substitution',
     reset_to_regular: 'Reset to Regular Schedule',
-    attach_file: 'Attach PDF or Image',
+    attach_file: 'Attach PDF, PPT/PPTX or Image',
     attach_link: 'Add Link (Presentation / PDF)',
+    download_file: 'Download file',
   },
   uk: {
     // Navigation
@@ -386,10 +390,14 @@ export const translations = {
     substitution: 'Заміна',
     cancelled: 'Скасовано',
     locate_next_lesson: 'Знайти найближчий наступний урок',
+    locate_previous_lesson: 'Повернутися до попереднього уроку цього предмету',
+    no_upcoming_lesson: 'Не знайдено наступного уроку для цього предмету.',
+    no_previous_lesson: 'Не знайдено попереднього уроку для цього предмету.',
     lesson_substitution: 'Заміна уроку',
     reset_to_regular: 'Повернути регулярний розклад',
-    attach_file: 'Прикріпити PDF або фото',
+    attach_file: 'Прикріпити PDF, PPT/PPTX або фото',
     attach_link: 'Додати посилання (Презентація / PDF)',
+    download_file: 'Завантажити файл',
   },
 } as const;
 

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { format, addWeeks, subWeeks, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon, ArrowLeftRight, Compass, Link as LinkIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { useCreateHomework } from '../hooks/useHomework';
 import { useFileUpload } from '../hooks/useFileUpload';
-import { fetchNextLesson } from '../hooks/useScheduleOverrides';
+import { fetchNextLesson, fetchPreviousLesson } from '../hooks/useScheduleOverrides';
 import { getWeekDates, formatTime, cn, getDefaultScheduleDate, compressImageFile, isLessonNow } from '../lib/utils';
 import { HomeworkInline } from '../components/homework/HomeworkInline';
 import { AttachmentChip } from '../components/homework/AttachmentChip';
@@ -73,13 +73,21 @@ export function DiaryPage() {
     }
   };
 
-  /* Compress and attach images or upload PDFs selected via file browser */
+  /* Compress and attach images or upload PDFs / PPT / PPTX presentations selected via file browser */
   const handleHwFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.type === 'application/pdf') {
+      const lowerName = file.name.toLowerCase();
+      const isPresentation = (
+        lowerName.endsWith('.pptx') ||
+        lowerName.endsWith('.ppt') ||
+        file.type.includes('presentation') ||
+        file.type.includes('powerpoint')
+      );
+
+      if (file.type === 'application/pdf' || isPresentation) {
         try {
           const uploaded = await uploadMutation.mutateAsync(file);
           setNewHwAttachments((prev) => [
@@ -87,13 +95,13 @@ export function DiaryPage() {
             {
               id: uploaded.id,
               name: uploaded.filename,
-              type: 'pdf',
+              type: isPresentation ? 'presentation' : 'pdf',
               url: uploaded.url,
               size: uploaded.size,
             },
           ]);
         } catch (err) {
-          console.error('Failed to upload PDF:', err);
+          console.error('Failed to upload file:', err);
         }
       } else if (file.type.startsWith('image/')) {
         try {
@@ -147,6 +155,29 @@ export function DiaryPage() {
       setTargetHighlight({ date: result.date, lessonOrder: result.lesson_order });
     } catch (err) {
       console.error('Failed to locate next lesson:', err);
+    }
+  };
+
+  /* Return to previous lesson of this subject and jump to it */
+  const handleLocatePrevious = async (subjectId: string, cDate?: string, cOrder?: number) => {
+    try {
+      const todayIso = format(new Date(), 'yyyy-MM-dd');
+      const result = await fetchPreviousLesson(subjectId, cDate || todayIso, cOrder);
+      if (!result) {
+        alert(
+          language === 'uk'
+            ? 'Не знайдено попереднього уроку для цього предмету.'
+            : 'No previous lesson found for this subject.'
+        );
+        return;
+      }
+      // If outside currently viewed week, navigate week to target date
+      if (result.date < start || result.date > end) {
+        setCurrentDate(parseISO(result.date));
+      }
+      setTargetHighlight({ date: result.date, lessonOrder: result.lesson_order });
+    } catch (err) {
+      console.error('Failed to locate previous lesson:', err);
     }
   };
 
@@ -320,6 +351,20 @@ export function DiaryPage() {
                           </span>
                         )}
 
+                        {/* Locate previous lesson button */}
+                        <button
+                          type="button"
+                          onClick={() => handleLocatePrevious(lesson.subject.id, dayData.date, lesson.lesson_order)}
+                          className="text-text-muted hover:text-accent p-0.5 rounded transition-colors"
+                          title={
+                            language === 'uk'
+                              ? 'Повернутися до попереднього уроку цього предмету'
+                              : 'Return to previous lesson of this subject'
+                          }
+                        >
+                          <RotateCcw size={12} />
+                        </button>
+
                         {/* Locate next lesson button */}
                         <button
                           type="button"
@@ -372,6 +417,7 @@ export function DiaryPage() {
                           currentDate={dayData?.date}
                           currentLessonOrder={lesson.lesson_order}
                           onFindNextLesson={handleLocateNext}
+                          onFindPreviousLesson={handleLocatePrevious}
                         />
                       ))}
                       {(!lesson.homework || lesson.homework.length === 0) && addingKey !== `${dayData?.date}-${lesson.lesson_order}` && (
@@ -399,15 +445,15 @@ export function DiaryPage() {
                               autoFocus
                             />
 
-                            {/* Photo / PDF file attachment button */}
+                            {/* Photo / PDF / PPT / PPTX file attachment button */}
                             <label
                               className="p-0.5 text-text-muted hover:text-accent cursor-pointer rounded hover:bg-bg-tertiary transition-colors"
-                              title={language === 'uk' ? 'Прикріпити PDF або фото' : 'Attach PDF or image'}
+                              title={language === 'uk' ? 'Прикріпити PDF, PPTX або фото' : 'Attach PDF, PPTX or image'}
                             >
                               <ImageIcon size={13} />
                               <input
                                 type="file"
-                                accept="image/*,application/pdf"
+                                accept="image/*,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
                                 multiple
                                 onChange={handleHwFileChange}
                                 className="hidden"

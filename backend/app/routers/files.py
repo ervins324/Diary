@@ -14,16 +14,28 @@ async def upload_file(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Upload and persist a file (PDF, image, etc.) into PostgreSQL.
+    Upload and persist a file (PDF, PPT/PPTX, image, etc.) into PostgreSQL.
     Returns metadata and access URL.
     """
     content = await file.read()
     if not content:
         raise HTTPException(status_code=400, detail="Uploaded file is empty (0 bytes)")
 
+    filename = file.filename or "file"
+    content_type = file.content_type or "application/octet-stream"
+
+    # Normalize presentation content-types for .pptx and .ppt
+    lower_name = filename.lower()
+    if lower_name.endswith(".pptx"):
+        content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    elif lower_name.endswith(".ppt"):
+        content_type = "application/vnd.ms-powerpoint"
+    elif lower_name.endswith(".pdf"):
+        content_type = "application/pdf"
+
     stored = StoredFile(
-        filename=file.filename or "file",
-        content_type=file.content_type or "application/octet-stream",
+        filename=filename,
+        content_type=content_type,
         size=len(content),
         file_data=content,
     )
@@ -41,9 +53,13 @@ async def upload_file(
 
 
 @router.get("/{file_id}")
-async def get_file(file_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_file(
+    file_id: uuid.UUID,
+    download: bool = False,
+    db: AsyncSession = Depends(get_db),
+):
     """
-    Retrieve and stream a stored file by ID with inline preview headers.
+    Retrieve and stream a stored file by ID with preview or direct download headers.
     """
     stored = await db.get(StoredFile, file_id)
     if not stored:
@@ -51,11 +67,19 @@ async def get_file(file_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
     # Clean filename for Content-Disposition header
     safe_filename = stored.filename.replace('"', '').replace(';', '')
+    is_presentation = (
+        stored.filename.lower().endswith(('.ppt', '.pptx')) or
+        'presentation' in stored.content_type or
+        'powerpoint' in stored.content_type
+    )
+
+    disposition_type = "attachment" if (download or is_presentation) else "inline"
+
     return Response(
         content=stored.file_data,
         media_type=stored.content_type,
         headers={
-            "Content-Disposition": f'inline; filename="{safe_filename}"',
+            "Content-Disposition": f'{disposition_type}; filename="{safe_filename}"',
             "Cache-Control": "public, max-age=86400",
         },
     )

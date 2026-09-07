@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Presentation, Link as LinkIcon, Image as ImageIcon, ExternalLink, X } from 'lucide-react';
+import { FileText, Presentation, Link as LinkIcon, Image as ImageIcon, ExternalLink, Download, X } from 'lucide-react';
 import type { Attachment } from '../../types';
 
 interface AttachmentChipProps {
@@ -19,17 +19,41 @@ export function AttachmentChip({ attachment, onRemove, onClickImage }: Attachmen
   const isImage = attachment.type === 'image';
   const isPdf = attachment.type === 'pdf';
   const isPresentation = attachment.type === 'presentation';
+  const isStoredFile = attachment.url.startsWith('/api/v1/files/');
 
   const handleClick = (e: React.MouseEvent) => {
     if (onRemove && (e.target as HTMLElement).closest('.remove-btn')) {
+      return;
+    }
+    if ((e.target as HTMLElement).closest('.download-btn')) {
       return;
     }
     if (isImage && onClickImage) {
       onClickImage(attachment.url);
       return;
     }
-    // Open PDF, presentation or link in new browser tab
+    // If it's a stored presentation (.pptx / .ppt), download directly
+    if (isStoredFile && isPresentation) {
+      window.open(`${attachment.url}?download=true`, '_blank');
+      return;
+    }
+    // Open PDF, presentation link or web link in new browser tab
     window.open(attachment.url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const downloadUrl = isStoredFile
+      ? `${attachment.url}?download=true`
+      : attachment.url;
+    
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = attachment.name;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -60,7 +84,19 @@ export function AttachmentChip({ attachment, onRemove, onClickImage }: Attachmen
         </span>
       ) : null}
 
-      {!onRemove && (
+      {/* Download action button for stored files */}
+      {isStoredFile && (
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="download-btn text-text-muted hover:text-accent p-0.5 rounded hover:bg-bg-secondary transition-colors"
+          title={`Download ${attachment.name}`}
+        >
+          <Download size={11} />
+        </button>
+      )}
+
+      {!onRemove && !isStoredFile && (
         <ExternalLink size={10} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-0.5" />
       )}
 

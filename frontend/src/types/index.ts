@@ -67,6 +67,8 @@ export interface NextLesson {
   cabinet?: string | null;
 }
 
+export type PreviousLesson = NextLesson;
+
 export interface DaySchedule {
   date: string;
   day_name: string;

@@ -203,6 +203,21 @@ export const fetchNextLesson = async (
   return data;
 };
 
+export const fetchPreviousLesson = async (
+  subjectId: string,
+  currentDate?: string,
+  currentLessonOrder?: number
+): Promise<any> => {
+  const { data } = await api.get('/schedule/previous-lesson', {
+    params: {
+      subject_id: subjectId,
+      current_date: currentDate,
+      current_lesson_order: currentLessonOrder,
+    },
+  });
+  return data;
+};
+
 export const fetchScheduleOverrides = async (startDate?: string, endDate?: string): Promise<any[]> => {
   const { data } = await api.get('/schedule/overrides', {
     params: { start_date: startDate, end_date: endDate },
