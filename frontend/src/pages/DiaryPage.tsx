@@ -223,8 +223,9 @@ export function DiaryPage() {
                   </div>
                 </div>
               </div>
-            ))
-          )}
+            );
+          })
+        )}
         </div>
       </div>
     );
