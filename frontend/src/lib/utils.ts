@@ -103,3 +103,35 @@ export function compressImageFile(file: File): Promise<string> {
   });
 }
 
+/**
+ * Checks if the current time falls within [startTime, endTime].
+ * If targetDate is provided, also checks that targetDate is today.
+ * Handles format 'HH:MM' or 'HH:MM:SS'.
+ */
+export function isLessonNow(startTime: string, endTime: string, targetDateStr?: string): boolean {
+  if (!startTime || !endTime) return false;
+
+  const now = new Date();
+
+  // If a specific date is supplied (e.g. '2026-09-07'), ensure it is today
+  if (targetDateStr) {
+    const todayIso = format(now, 'yyyy-MM-dd');
+    if (targetDateStr !== todayIso) {
+      return false;
+    }
+  }
+
+  const parseTimeMinutes = (timeStr: string) => {
+    const parts = timeStr.split(':');
+    const h = parseInt(parts[0], 10) || 0;
+    const m = parseInt(parts[1], 10) || 0;
+    return h * 60 + m;
+  };
+
+  const startMins = parseTimeMinutes(startTime);
+  const endMins = parseTimeMinutes(endTime);
+  const currentMins = now.getHours() * 60 + now.getMinutes();
+
+  return currentMins >= startMins && currentMins <= endMins;
+}
+

@@ -13,6 +13,7 @@ import {
 import { useBells, useSaveBellSlot, useDeleteBellSlot } from '../hooks/useBells';
 import { AiBellsImportModal } from '../components/ai-import/AiBellsImportModal';
 import { useLanguage } from '../i18n/LanguageContext';
+import { isLessonNow, cn } from '../lib/utils';
 import type { BellSlot } from '../types';
 
 export function BellsPage() {
@@ -244,10 +245,17 @@ export function BellsPage() {
             const breakMinutes = nextSlot ? getBreakMinutes(slot.end_time, nextSlot.start_time) : null;
             const duration = getDurationMinutes(slot.start_time, slot.end_time);
 
+            const isCurrent = isLessonNow(slot.start_time, slot.end_time);
+
             return (
               <div key={slot.id} className="space-y-3">
                 {/* Lesson Slot Card */}
-                <div className="bg-bg-secondary border border-border rounded-xl p-4 transition-all hover:border-accent/40 shadow-xs">
+                <div className={cn(
+                  "bg-bg-secondary border rounded-xl p-4 transition-all shadow-xs",
+                  isCurrent
+                    ? "border-accent ring-2 ring-accent/30 shadow-md bg-accent/5"
+                    : "border-border hover:border-accent/40"
+                )}>
                   {isEditing ? (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -307,19 +315,41 @@ export function BellsPage() {
                   ) : (
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-lg bg-bg-tertiary border border-border flex items-center justify-center font-bold text-sm text-text-primary shrink-0">
+                        <div className={cn(
+                          "w-9 h-9 rounded-lg border flex items-center justify-center font-bold text-sm shrink-0 transition-colors",
+                          isCurrent
+                            ? "bg-accent text-white border-accent"
+                            : "bg-bg-tertiary border-border text-text-primary"
+                        )}>
                           {slot.lesson_order}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-text-primary text-sm truncate">
-                            {slot.name || `${slot.lesson_order} ${t('lesson_label')}`}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-text-primary text-sm truncate">
+                              {slot.name || `${slot.lesson_order} ${t('lesson_label')}`}
+                            </p>
+                            {isCurrent && (
+                              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold bg-accent text-white shadow-xs shrink-0 animate-pulse">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                                {t('now')}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
-                            <span className="font-mono text-text-secondary font-medium">
+                            <span className={cn(
+                              "font-mono font-medium",
+                              isCurrent ? "text-accent font-semibold" : "text-text-secondary"
+                            )}>
                               {slot.start_time.substring(0, 5)} – {slot.end_time.substring(0, 5)}
                             </span>
                             <span>•</span>
                             <span>{duration} {t('min')}</span>
+                            {isCurrent && (
+                              <>
+                                <span>•</span>
+                                <span className="text-[10px] uppercase font-bold text-accent tracking-wider">{t('lesson_now')}</span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

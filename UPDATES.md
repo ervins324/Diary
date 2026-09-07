@@ -15,15 +15,15 @@
   - Added BuildKit cache mounts (`--mount=type=cache`) for pip (`/root/.cache/pip`) and npm (`/root/.npm`) to persist dependency packages across rebuilds.
   - Configured `npm install` with npm cache mount for rapid image compilation without requiring a checked-in lockfile.
   - Added `.dockerignore` files for both backend and frontend to reduce build context size.
-- **Subject Color Randomizer**:
-  - Added `POST /api/v1/subjects/randomize-colors` backend endpoint.
-  - Shuffles 16 curated high-contrast palette colors and assigns unique colors to all subjects in a single transaction.
-  - Added "🎨 Colors" button in Settings → Manage Subjects toolbar.
-  - Invalidates subjects, schedule, and stats caches for instant UI update.
-- **Copy Prompt Button Fix**:
-  - Fixed "Copy Prompt for AI" buttons not working on HTTP (non-HTTPS) servers.
-  - Created shared `copyToClipboard()` utility with `navigator.clipboard.writeText` + `document.execCommand('copy')` fallback.
-  - Applied to both Schedule Import and Bell Schedule Import modals.
+- **Subject Color Palette Distinctness & Non-Overlapping Hues**:
+  - Expanded `DISTINCT_SUBJECT_COLORS` to 20 maximally spaced hues across the 360° color wheel (Red, Green, Blue, Violet, Amber, Cyan, Pink, Lime, Orange, Purple, Teal, Indigo, Fuchsia, Mustard, Sky, Brown, etc.).
+  - Re-mapped `UKRAINIAN_SUBJECT_SHORT_NAMES` so each major subject has a distinct, contrasting color (e.g. History of Ukraine is Warm Brown, World History is Golden Amber, Chemistry is Crimson Red, Biology is Dark Teal, Geography is Mustard Yellow, Geometry is Sky Blue, Algebra is Bright Purple, Civics is Deep Indigo).
+  - Eliminates visual similarity between subjects in both timetable views and Stats charts.
+- **Current / Ongoing Lesson Live Highlighting (Daily, Diary & Bells tabs)**:
+  - Added real-time ongoing lesson tracking with `isLessonNow(startTime, endTime, date)` helper.
+  - **Daily Tab (`LessonCard`)**: Highlights currently running lesson with active glowing accent border, soft background tint, and pulsing **"Now / Зараз • Ongoing / Триває"** badge.
+  - **Diary Tab (`DiaryPage`)**: Highlights the active ongoing lesson inside the weekly grid with accented border, highlight ring, and **"Now"** live badge.
+  - **Bells Tab (`BellsPage`)**: Highlights the active bell slot with glowing accent ring, colored order icon, and **"Now / Зараз"** indicator.
 
 ## v1.6.0 — 2026-09-06
 

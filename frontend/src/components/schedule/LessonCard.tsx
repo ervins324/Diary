@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Image as ImageIcon, X, Check } from 'lucide-react';
 import type { LessonSlot } from '../../types';
-import { formatTime, compressImageFile } from '../../lib/utils';
+import { formatTime, compressImageFile, isLessonNow, cn } from '../../lib/utils';
 import { HomeworkInline } from '../homework/HomeworkInline';
 import { useCreateHomework } from '../../hooks/useHomework';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -16,6 +16,8 @@ export function LessonCard({ lesson }: LessonCardProps) {
   const [newHomework, setNewHomework] = useState('');
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const createMutation = useCreateHomework();
+
+  const isCurrentLesson = isLessonNow(lesson.start_time, lesson.end_time, lesson.date);
 
   /* Submit new homework entry with text and optional images */
   const handleAddHomework = () => {
@@ -82,22 +84,36 @@ export function LessonCard({ lesson }: LessonCardProps) {
   };
 
   return (
-    <div className="relative bg-bg-secondary rounded-lg border border-border shadow-sm overflow-hidden flex flex-col">
+    <div className={cn(
+      "relative bg-bg-secondary rounded-lg border shadow-sm overflow-hidden flex flex-col transition-all duration-300",
+      isCurrentLesson
+        ? "border-accent ring-2 ring-accent/30 shadow-md bg-accent/5"
+        : "border-border"
+    )}>
       {/* Color strip */}
       <div 
-        className="absolute left-0 top-0 bottom-0 w-1.5" 
+        className={cn("absolute left-0 top-0 bottom-0", isCurrentLesson ? "w-2.5" : "w-1.5")}
         style={{ backgroundColor: lesson.subject.color_hex || 'var(--color-accent)' }} 
       />
       
       <div className="pl-4 pr-3 py-3 flex flex-col gap-2">
         <div className="flex justify-between items-start">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-bg-tertiary text-text-secondary">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={cn(
+              "inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full",
+              isCurrentLesson ? "bg-accent text-white font-bold" : "bg-bg-tertiary text-text-secondary"
+            )}>
               {lesson.lesson_order}
             </span>
             <span className="font-semibold text-text-primary">
               {lesson.subject.name}
             </span>
+            {isCurrentLesson && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold bg-accent text-white shadow-xs animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                {t('now')}
+              </span>
+            )}
           </div>
           {lesson.cabinet && (
             <span className="text-xs px-2 py-0.5 rounded bg-bg-tertiary text-text-secondary font-medium">
@@ -106,8 +122,13 @@ export function LessonCard({ lesson }: LessonCardProps) {
           )}
         </div>
         
-        <div className="text-xs text-text-muted">
-          {formatTime(lesson.start_time)} - {formatTime(lesson.end_time)}
+        <div className="text-xs text-text-muted flex items-center gap-1.5">
+          <span className={cn(isCurrentLesson && "font-semibold text-accent")}>
+            {formatTime(lesson.start_time)} - {formatTime(lesson.end_time)}
+          </span>
+          {isCurrentLesson && (
+            <span className="text-[10px] uppercase font-bold text-accent tracking-wider">• {t('lesson_now')}</span>
+          )}
         </div>
 
         <div className="mt-1">

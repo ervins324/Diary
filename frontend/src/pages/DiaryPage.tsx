@@ -3,7 +3,7 @@ import { format, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { useCreateHomework } from '../hooks/useHomework';
-import { getWeekDates, formatTime, cn, getDefaultScheduleDate, compressImageFile } from '../lib/utils';
+import { getWeekDates, formatTime, cn, getDefaultScheduleDate, compressImageFile, isLessonNow } from '../lib/utils';
 import { HomeworkInline } from '../components/homework/HomeworkInline';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { DaySchedule, LessonSlot } from '../types';
@@ -133,24 +133,43 @@ export function DiaryPage() {
               {t('no_lessons')}
             </div>
           ) : (
-            dayData.lessons.map((lesson: LessonSlot) => (
-              <div key={lesson.lesson_order} className="flex gap-2 py-1.5 border-b border-border-light last:border-0 text-sm">
-                <div className="w-5 font-medium text-text-muted text-center shrink-0">
-                  {lesson.lesson_order}
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col">
-                  <div className="flex justify-between items-baseline gap-2">
-                    <span className="font-medium text-text-primary truncate" style={{ color: lesson.subject.color_hex || 'inherit' }}>
-                      {lesson.subject.name}
-                    </span>
-                    {lesson.cabinet && (
-                      <span className="text-xs text-text-muted whitespace-nowrap">{t('cabinet_short')} {lesson.cabinet}</span>
-                    )}
+            dayData.lessons.map((lesson: LessonSlot) => {
+              const isCurrent = isLessonNow(lesson.start_time, lesson.end_time, dayData.date);
+              return (
+                <div 
+                  key={lesson.lesson_order} 
+                  className={cn(
+                    "flex gap-2 py-1.5 px-1.5 rounded-md border-b border-border-light last:border-0 text-sm transition-all duration-300",
+                    isCurrent && "bg-accent/10 border border-accent/40 shadow-xs ring-1 ring-accent/30"
+                  )}
+                >
+                  <div className={cn(
+                    "w-5 h-5 rounded-full flex items-center justify-center font-medium text-xs shrink-0 self-start mt-0.5",
+                    isCurrent ? "bg-accent text-white font-bold" : "text-text-muted bg-bg-tertiary"
+                  )}>
+                    {lesson.lesson_order}
                   </div>
-                  <div className="text-[11px] text-text-muted">
-                    {formatTime(lesson.start_time)} - {formatTime(lesson.end_time)}
-                  </div>
-                  <div className="mt-0.5 pl-1 border-l-2 border-border-light">
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <div className="flex justify-between items-baseline gap-2">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="font-medium text-text-primary truncate" style={{ color: lesson.subject.color_hex || 'inherit' }}>
+                          {lesson.subject.name}
+                        </span>
+                        {isCurrent && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-accent text-white shrink-0 animate-pulse">
+                            <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                            {t('now')}
+                          </span>
+                        )}
+                      </div>
+                      {lesson.cabinet && (
+                        <span className="text-xs text-text-muted whitespace-nowrap">{t('cabinet_short')} {lesson.cabinet}</span>
+                      )}
+                    </div>
+                    <div className={cn("text-[11px] text-text-muted", isCurrent && "text-accent font-medium")}>
+                      {formatTime(lesson.start_time)} - {formatTime(lesson.end_time)}
+                    </div>
+                    <div className="mt-0.5 pl-1 border-l-2 border-border-light">
                     {lesson.homework?.map((hw) => (
                       <HomeworkInline key={hw.id} homework={hw} />
                     ))}

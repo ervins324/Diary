@@ -12,6 +12,8 @@ export const translations = {
 
     // Daily Page
     today: 'Today',
+    now: 'Now',
+    lesson_now: 'Ongoing',
     no_lessons_scheduled: 'No lessons scheduled',
     take_a_break: 'Take a break or add something new!',
     import_ai_schedule: 'Import AI Schedule',
@@ -197,6 +199,8 @@ export const translations = {
 
     // Daily Page
     today: 'Сьогодні',
+    now: 'Зараз',
+    lesson_now: 'Триває',
     no_lessons_scheduled: 'Уроків не заплановано',
     take_a_break: 'Відпочиньте або додайте новий розклад!',
     import_ai_schedule: 'Імпортувати розклад через AI',

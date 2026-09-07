@@ -200,61 +200,66 @@ async def bulk_commit(request: BulkCommitRequest, db: AsyncSession = Depends(get
     return {"status": "ok", "message": f"Successfully updated schedule for {request.week_type}"}
 
 
-# Distinct non-overlapping vibrant colors for subjects
+# Distinct non-overlapping, high-contrast vibrant colors for subjects
+# Carefully curated across full 360-degree color wheel with distinct hues
 DISTINCT_SUBJECT_COLORS: list[str] = [
-    "#2563EB",  # Royal Blue
-    "#7C3AED",  # Purple / Violet
-    "#059669",  # Emerald Green
-    "#DB2777",  # Rose Pink
-    "#D97706",  # Amber / Warm Orange
-    "#0891B2",  # Cyan
-    "#EA580C",  # Vibrant Orange
-    "#0D9488",  # Teal
-    "#C026D3",  # Fuchsia
-    "#65A30D",  # Lime Green
-    "#0284C7",  # Sky Blue
-    "#4F46E5",  # Indigo
-    "#E11D48",  # Crimson Red
-    "#9333EA",  # Deep Purple
-    "#16A34A",  # Forest Green
-    "#CA8A04",  # Warm Gold
+    "#2563EB",  # 1. Royal Blue (220°)
+    "#DC2626",  # 2. Crimson Red (0°)
+    "#16A34A",  # 3. Vivid Green (140°)
+    "#D97706",  # 4. Golden Amber (38°)
+    "#7C3AED",  # 5. Deep Violet (265°)
+    "#0891B2",  # 6. Vivid Cyan (190°)
+    "#DB2777",  # 7. Hot Pink (330°)
+    "#65A30D",  # 8. Lime / Olive Green (85°)
+    "#EA580C",  # 9. Bright Orange (20°)
+    "#9333EA",  # 10. Bright Purple (275°)
+    "#0D9488",  # 11. Dark Teal (175°)
+    "#4338CA",  # 12. Deep Indigo (240°)
+    "#C026D3",  # 13. Fuchsia / Magenta (295°)
+    "#CA8A04",  # 14. Mustard Yellow (45°)
+    "#0284C7",  # 15. Sky / Light Blue (200°)
+    "#E11D48",  # 16. Rose Red (345°)
+    "#059669",  # 17. Emerald Green (160°)
+    "#78350F",  # 18. Warm Brown (25°)
+    "#475569",  # 19. Slate Steel (215°)
+    "#4C1D95",  # 20. Midnight Violet (270°)
 ]
 
-# Canonical Ukrainian subject short names and color palette
+# Canonical Ukrainian subject short names and color palette with distinct hues
 UKRAINIAN_SUBJECT_SHORT_NAMES: dict[str, tuple[str, str]] = {
-    "українська мова": ("Укр мова", "#2563EB"),
+    "українська мова": ("Укр мова", "#2563EB"),         # Royal Blue
     "укр мова": ("Укр мова", "#2563EB"),
-    "українська література": ("Укр літ", "#7C3AED"),
+    "українська література": ("Укр літ", "#7C3AED"),    # Deep Violet
     "укр літ": ("Укр літ", "#7C3AED"),
-    "англійська мова": ("Англ мова", "#DB2777"),
+    "англійська мова": ("Англ мова", "#DB2777"),        # Hot Pink
     "англ мова": ("Англ мова", "#DB2777"),
     "іноземна мова": ("Англ мова", "#DB2777"),
-    "фізична культура": ("Фізра", "#059669"),
-    "фізра": ("Фізра", "#059669"),
-    "фізкультура": ("Фізра", "#059669"),
-    "фіз культура": ("Фізра", "#059669"),
-    "зарубіжна література": ("Зар літ", "#EA580C"),
+    "фізична культура": ("Фізра", "#16A34A"),           # Vivid Green
+    "фізра": ("Фізра", "#16A34A"),
+    "фізкультура": ("Фізра", "#16A34A"),
+    "фіз культура": ("Фізра", "#16A34A"),
+    "зарубіжна література": ("Зар літ", "#EA580C"),     # Bright Orange
     "зар літ": ("Зар літ", "#EA580C"),
-    "всесвітня історія": ("Всес. Історія", "#D97706"),
+    "всесвітня історія": ("Всес. Історія", "#D97706"),  # Golden Amber
     "всес. історія": ("Всес. Історія", "#D97706"),
-    "історія україни": ("Історія Укр", "#B45309"),
-    "історія укр": ("Історія Укр", "#B45309"),
-    "громадянська освіта": ("Громадянська Освіта", "#4F46E5"),
-    "інформатика": ("Інформатика", "#0891B2"),
+    "історія україни": ("Історія Укр", "#78350F"),      # Warm Brown
+    "історія укр": ("Історія Укр", "#78350F"),
+    "громадянська освіта": ("Громадянська Освіта", "#4338CA"), # Deep Indigo
+    "інформатика": ("Інформатика", "#0891B2"),          # Vivid Cyan
     "інформ": ("Інформатика", "#0891B2"),
-    "геометрія": ("Геометрія", "#6366F1"),
-    "геом": ("Геометрія", "#6366F1"),
-    "алгебра": ("Алгебра", "#9333EA"),
+    "геометрія": ("Геометрія", "#0284C7"),              # Sky Blue
+    "геом": ("Геометрія", "#0284C7"),
+    "алгебра": ("Алгебра", "#9333EA"),                  # Bright Purple
     "алг": ("Алгебра", "#9333EA"),
     "математика": ("Математика", "#9333EA"),
-    "біологія": ("Біологія", "#0D9488"),
-    "хімія": ("Хімія", "#E11D48"),
-    "фізика": ("Фізика", "#65A30D"),
-    "географія": ("Географія", "#CA8A04"),
-    "мистецтво": ("Мистецтво", "#C026D3"),
+    "біологія": ("Біологія", "#0D9488"),                # Dark Teal
+    "хімія": ("Хімія", "#DC2626"),                      # Crimson Red
+    "фізика": ("Фізика", "#65A30D"),                    # Lime Green
+    "географія": ("Географія", "#CA8A04"),              # Mustard Yellow
+    "мистецтво": ("Мистецтво", "#C026D3"),              # Fuchsia
     "образотворче мистецтво": ("Мистецтво", "#C026D3"),
-    "трудове навчання": ("Труд навч", "#0284C7"),
-    "основи здоров'я": ("Осн здоров'я", "#16A34A"),
+    "трудове навчання": ("Труд навч", "#059669"),       # Emerald Green
+    "основи здоров'я": ("Осн здоров'я", "#475569"),     # Slate Steel
 }
 
 
