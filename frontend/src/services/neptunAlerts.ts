@@ -58,8 +58,8 @@ class NeptunAlertsManager {
   private listeners: Set<AlertListener> = new Set();
   private activeOblasts: string[] = [];
   private lastData: NeptunAlertsResponse | null = null;
-  private reconnectTimeout: NodeJS.Timeout | null = null;
-  private pollInterval: NodeJS.Timeout | null = null;
+  private reconnectTimeout: number | null = null;
+  private pollInterval: number | null = null;
   private isConnecting: boolean = false;
 
   public subscribe(listener: AlertListener): () => void {
@@ -120,7 +120,7 @@ class NeptunAlertsManager {
         this.startFallbackPolling();
         // Try reconnecting in 15 seconds
         if (!this.reconnectTimeout && this.listeners.size > 0) {
-          this.reconnectTimeout = setTimeout(() => {
+          this.reconnectTimeout = window.setTimeout(() => {
             this.reconnectTimeout = null;
             this.connect();
           }, 15000);
@@ -134,7 +134,7 @@ class NeptunAlertsManager {
   private startFallbackPolling() {
     if (this.pollInterval) return;
     this.fetchRestAlerts();
-    this.pollInterval = setInterval(() => {
+    this.pollInterval = window.setInterval(() => {
       this.fetchRestAlerts();
     }, 20000);
   }
@@ -160,11 +160,11 @@ class NeptunAlertsManager {
 
   private disconnect() {
     if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
+      window.clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
     if (this.pollInterval) {
-      clearInterval(this.pollInterval);
+      window.clearInterval(this.pollInterval);
       this.pollInterval = null;
     }
     if (this.ws) {

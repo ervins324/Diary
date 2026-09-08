@@ -24,7 +24,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import type { WeeklyStat, WeeklyStatsResponse, DayStat } from '../types';
 
 export function StatsPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'subjects' | 'days'>('subjects');
   /* Template schedule switcher: actual week vs numerator vs denominator */

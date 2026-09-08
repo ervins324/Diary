@@ -50,7 +50,7 @@ export function HomeworkInline({
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [timerRunning, setTimerRunning] = useState(false);
   const [secondsSpent, setSecondsSpent] = useState<number>(homework.time_spent_seconds || 0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<number | null>(null);
 
   // Sync initial seconds if homework prop updates from server
   useEffect(() => {
@@ -62,15 +62,17 @@ export function HomeworkInline({
   // Stopwatch ticking effect
   useEffect(() => {
     if (timerRunning) {
-      timerRef.current = setInterval(() => {
+      timerRef.current = window.setInterval(() => {
         setSecondsSpent((prev) => prev + 1);
       }, 1000);
     } else if (timerRef.current) {
-      clearInterval(timerRef.current);
+      window.clearInterval(timerRef.current);
     }
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) window.clearInterval(timerRef.current);
     };
+  }, [timerRunning]);
+
   const updateMutation = useUpdateHomework();
   const deleteMutation = useDeleteHomework();
   const uploadMutation = useFileUpload();

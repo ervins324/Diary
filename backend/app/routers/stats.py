@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/v1/stats", tags=["stats"])
 @router.get("/weekly", response_model=dict)
 async def get_weekly_statistics(
     target_date: date = Query(..., alias="date"),
-    mode: str = Query("actual", regex="^(actual|numerator|denominator)$"),
+    mode: str = Query("actual", pattern="^(actual|numerator|denominator)$"),
     db: AsyncSession = Depends(get_db)
 ):
     """Get comprehensive weekly statistics (subjects breakdown, totals, homework completion, breaks, events, cancellations)."""
