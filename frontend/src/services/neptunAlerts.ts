@@ -59,13 +59,25 @@ class NeptunAlertsManager {
   private activeOblasts: string[] = [];
   private lastData: NeptunAlertsResponse | null = null;
   private reconnectTimeout: number | null = null;
+  private reconnectDelay: number = 15000;
   private pollInterval: number | null = null;
   private isConnecting: boolean = false;
+  private lastFetchTime: number = 0;
+  private visibilityBound: boolean = false;
+
+  constructor() {
+    this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
+  }
 
   public subscribe(listener: AlertListener): () => void {
     this.listeners.add(listener);
     // Call immediately with existing data if available
     listener(this.activeOblasts, this.lastData);
+
+    if (!this.visibilityBound && typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.handleVisibilityChange);
+      this.visibilityBound = true;
+    }
 
     if (!this.ws && !this.isConnecting) {
       this.connect();
@@ -79,6 +91,26 @@ class NeptunAlertsManager {
     };
   }
 
+  private handleVisibilityChange() {
+    if (typeof document === 'undefined') return;
+
+    if (document.hidden) {
+      // Tab in background: stop polling to conserve network and battery
+      if (this.pollInterval) {
+        window.clearInterval(this.pollInterval);
+        this.pollInterval = null;
+      }
+    } else {
+      // Tab returned to foreground: refresh only if at least 60s passed or no data
+      if (this.listeners.size > 0 && !this.ws) {
+        if (Date.now() - this.lastFetchTime >= 60000 || !this.lastData) {
+          this.fetchRestAlerts();
+        }
+        this.startFallbackPolling();
+      }
+    }
+  }
+
   private notify() {
     for (const listener of this.listeners) {
       listener(this.activeOblasts, this.lastData);
@@ -86,12 +118,18 @@ class NeptunAlertsManager {
   }
 
   private connect() {
+    if (typeof WebSocket === 'undefined') {
+      this.startFallbackPolling();
+      return;
+    }
+
     this.isConnecting = true;
     try {
       this.ws = new WebSocket('wss://neptun.in.ua/api/v1/stream');
 
       this.ws.onopen = () => {
         this.isConnecting = false;
+        this.reconnectDelay = 15000;
         if (this.pollInterval) {
           clearInterval(this.pollInterval);
           this.pollInterval = null;
@@ -118,12 +156,13 @@ class NeptunAlertsManager {
         this.ws = null;
         this.isConnecting = false;
         this.startFallbackPolling();
-        // Try reconnecting in 15 seconds
+        // Try reconnecting with exponential backoff (15s -> 30s -> 60s)
         if (!this.reconnectTimeout && this.listeners.size > 0) {
           this.reconnectTimeout = window.setTimeout(() => {
             this.reconnectTimeout = null;
             this.connect();
-          }, 15000);
+          }, this.reconnectDelay);
+          this.reconnectDelay = Math.min(60000, this.reconnectDelay * 1.5);
         }
       };
     } catch {
@@ -133,14 +172,26 @@ class NeptunAlertsManager {
 
   private startFallbackPolling() {
     if (this.pollInterval) return;
+    // Only poll if tab is visible
+    if (typeof document !== 'undefined' && document.hidden) return;
+
     this.fetchRestAlerts();
+    // Conservative 60s polling interval to prevent excessive requests
     this.pollInterval = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       this.fetchRestAlerts();
-    }, 20000);
+    }, 60000);
   }
 
   public async fetchRestAlerts(): Promise<void> {
+    // Throttle: don't make requests if fetched less than 45s ago
+    const now = Date.now();
+    if (now - this.lastFetchTime < 45000 && this.lastData) {
+      return;
+    }
+
     try {
+      this.lastFetchTime = now;
       const res = await fetch('https://neptun.in.ua/api/v1/alerts');
       if (res.ok) {
         const data: NeptunAlertsResponse = await res.json();
@@ -170,6 +221,10 @@ class NeptunAlertsManager {
     if (this.ws) {
       this.ws.close();
       this.ws = null;
+    }
+    if (this.visibilityBound && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+      this.visibilityBound = false;
     }
     this.isConnecting = false;
   }

@@ -48,30 +48,81 @@ export function HomeworkInline({
 
   /* Stopwatch state */
   const [isTimerOpen, setIsTimerOpen] = useState(false);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [secondsSpent, setSecondsSpent] = useState<number>(homework.time_spent_seconds || 0);
+  const [timerRunning, setTimerRunning] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(`hw_timer_${homework.id}`);
+      return Boolean(stored);
+    } catch {
+      return false;
+    }
+  });
+  const [secondsSpent, setSecondsSpent] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem(`hw_timer_${homework.id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.startTime) {
+          const elapsed = Math.floor((Date.now() - parsed.startTime) / 1000);
+          return Math.max(0, (parsed.baseSeconds || 0) + elapsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return homework.time_spent_seconds || 0;
+  });
   const timerRef = useRef<number | null>(null);
 
-  // Sync initial seconds if homework prop updates from server
+  // Sync initial seconds if homework prop updates from server and timer is not running
   useEffect(() => {
     if (!timerRunning && homework.time_spent_seconds !== undefined) {
       setSecondsSpent(homework.time_spent_seconds || 0);
     }
   }, [homework.time_spent_seconds, timerRunning]);
 
-  // Stopwatch ticking effect
+  // Stopwatch ticking effect with real-time timestamp calculation to ensure background accuracy
   useEffect(() => {
     if (timerRunning) {
+      // Ensure localStorage has the running entry
+      try {
+        const existing = localStorage.getItem(`hw_timer_${homework.id}`);
+        if (!existing) {
+          localStorage.setItem(
+            `hw_timer_${homework.id}`,
+            JSON.stringify({ startTime: Date.now(), baseSeconds: secondsSpent })
+          );
+        }
+      } catch {
+        // ignore
+      }
+
       timerRef.current = window.setInterval(() => {
+        try {
+          const stored = localStorage.getItem(`hw_timer_${homework.id}`);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed?.startTime) {
+              const elapsed = Math.floor((Date.now() - parsed.startTime) / 1000);
+              setSecondsSpent(Math.max(0, (parsed.baseSeconds || 0) + elapsed));
+              return;
+            }
+          }
+        } catch {
+          // fallback to increment
+        }
         setSecondsSpent((prev) => prev + 1);
       }, 1000);
     } else if (timerRef.current) {
       window.clearInterval(timerRef.current);
+      timerRef.current = null;
     }
     return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [timerRunning]);
+  }, [timerRunning, homework.id]);
 
   const updateMutation = useUpdateHomework();
   const deleteMutation = useDeleteHomework();
@@ -79,7 +130,36 @@ export function HomeworkInline({
 
   /* Toggle the completion status */
   const handleToggle = () => {
-    updateMutation.mutate({ id: homework.id, data: { is_completed: !homework.is_completed } });
+    const nextCompleted = !homework.is_completed;
+    if (nextCompleted && timerRunning) {
+      // If completed while stopwatch was running, stop and save final time
+      let finalSec = secondsSpent;
+      try {
+        const stored = localStorage.getItem(`hw_timer_${homework.id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.startTime) {
+            const elapsed = Math.floor((Date.now() - parsed.startTime) / 1000);
+            finalSec = Math.max(0, (parsed.baseSeconds || 0) + elapsed);
+          }
+        }
+        localStorage.removeItem(`hw_timer_${homework.id}`);
+      } catch {
+        // ignore
+      }
+      setTimerRunning(false);
+      setSecondsSpent(finalSec);
+      updateMutation.mutate({
+        id: homework.id,
+        data: {
+          is_completed: nextCompleted,
+          time_spent_seconds: finalSec,
+        },
+      });
+      return;
+    }
+
+    updateMutation.mutate({ id: homework.id, data: { is_completed: nextCompleted } });
   };
 
   /* Format seconds to mm:ss or hh:mm:ss */
@@ -104,16 +184,45 @@ export function HomeworkInline({
   /* Toggle stopwatch running/pause */
   const handleToggleTimer = () => {
     if (timerRunning) {
-      // Pausing: save current time
+      // Pausing: compute exact elapsed from localStorage, remove storage, set state, save to backend
+      let finalSec = secondsSpent;
+      try {
+        const stored = localStorage.getItem(`hw_timer_${homework.id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.startTime) {
+            const elapsed = Math.floor((Date.now() - parsed.startTime) / 1000);
+            finalSec = Math.max(0, (parsed.baseSeconds || 0) + elapsed);
+          }
+        }
+        localStorage.removeItem(`hw_timer_${homework.id}`);
+      } catch {
+        // ignore
+      }
       setTimerRunning(false);
-      handleSaveTimer(secondsSpent);
+      setSecondsSpent(finalSec);
+      handleSaveTimer(finalSec);
     } else {
+      // Starting: set running in localStorage with current secondsSpent as baseSeconds
+      try {
+        localStorage.setItem(
+          `hw_timer_${homework.id}`,
+          JSON.stringify({ startTime: Date.now(), baseSeconds: secondsSpent })
+        );
+      } catch {
+        // ignore
+      }
       setTimerRunning(true);
     }
   };
 
   /* Reset stopwatch */
   const handleResetTimer = () => {
+    try {
+      localStorage.removeItem(`hw_timer_${homework.id}`);
+    } catch {
+      // ignore
+    }
     setTimerRunning(false);
     setSecondsSpent(0);
     handleSaveTimer(0);
@@ -401,6 +510,30 @@ export function HomeworkInline({
           >
             {homework.is_completed && <Check size={12} />}
           </button>
+
+          {/* Stopwatch badge right next to checkbox */}
+          {(secondsSpent > 0 || timerRunning) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleTimer();
+              }}
+              className={cn(
+                "mt-0.5 inline-flex items-center gap-1 text-[11px] font-mono px-1.5 py-0.5 rounded border transition-colors shrink-0 select-none cursor-pointer",
+                timerRunning
+                  ? "bg-accent/15 border-accent text-accent font-semibold animate-pulse shadow-2xs"
+                  : homework.is_completed
+                  ? "bg-bg-tertiary border-border/60 text-text-muted hover:text-accent hover:border-accent"
+                  : "bg-accent/10 border-accent/30 text-accent hover:bg-accent/20"
+              )}
+              title={timerRunning ? t('hw_timer_pause') : t('hw_timer_start')}
+            >
+              <Timer size={11} className={cn(timerRunning && "animate-spin text-accent")} />
+              <span>{formatTime(secondsSpent)}</span>
+            </button>
+          )}
+
           {/* Homework text with strikethrough when completed */}
           <span className={cn("text-sm flex-1 leading-snug break-words", homework.is_completed && "line-through text-text-muted")}>
             {homework.text}

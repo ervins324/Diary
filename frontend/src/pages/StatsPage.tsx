@@ -15,6 +15,7 @@ import {
   Hash,
   Ban,
   GraduationCap,
+  Timer,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -80,6 +81,10 @@ export function StatsPage() {
   const avgLessons = statsResponse?.avg_lessons_per_day ?? 0;
   const breakMinutes = statsResponse?.total_break_minutes ?? 0;
   const hwStats = statsResponse?.homework_stats ?? { total: 0, completed: 0, completion_rate: 100 };
+  const totalHwSeconds = statsResponse?.homework_stats?.total_time_spent_seconds ?? 0;
+  const avgHwSeconds = statsResponse?.homework_stats?.avg_time_spent_seconds ?? 0;
+  const hwHours = Math.floor(totalHwSeconds / 3600);
+  const hwMins = Math.round((totalHwSeconds % 3600) / 60);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -402,9 +407,17 @@ export function StatsPage() {
                                   </div>
                                 )}
                                 {day.homework_count > 0 && (
-                                  <div className="flex items-center gap-1 text-text-muted" title={t('stats_homework_rate')}>
-                                    <CheckCircle2 size={13} className={day.homework_completed === day.homework_count ? "text-success" : "text-amber-500"} />
-                                    <span>{day.homework_completed}/{day.homework_count}</span>
+                                  <div className="flex items-center gap-1.5 text-text-muted" title={t('stats_homework_rate')}>
+                                    <div className="flex items-center gap-1">
+                                      <CheckCircle2 size={13} className={day.homework_completed === day.homework_count ? "text-success" : "text-amber-500"} />
+                                      <span>{day.homework_completed}/{day.homework_count}</span>
+                                    </div>
+                                    {(day.homework_time_spent_seconds ?? 0) > 0 && (
+                                      <div className="flex items-center gap-0.5 text-accent text-[11px]" title={t('stats_homework_time')}>
+                                        <Timer size={11} />
+                                        <span>{Math.round(day.homework_time_spent_seconds! / 60)}{t('minutes_short')}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -516,6 +529,27 @@ export function StatsPage() {
                 <span className="text-[11px] text-text-muted mt-1">
                   {hwStats.completed} / {hwStats.total} {t('stats_completed')}
                 </span>
+              </div>
+
+              {/* Total Homework Study Time */}
+              <div className="bg-bg-secondary p-4 rounded-xl border border-border shadow-sm flex flex-col items-center text-center col-span-2 md:col-span-1">
+                <div className="flex items-center gap-1.5 text-xs text-text-muted mb-1">
+                  <Timer size={14} className="text-accent" />
+                  <span>{t('stats_homework_time')}</span>
+                </div>
+                <span className="text-xl md:text-2xl font-bold text-text-primary">
+                  {hwHours > 0 ? (
+                    <>
+                      {hwHours}<span className="text-sm text-text-muted font-normal">{t('hours_short')}</span>{' '}
+                    </>
+                  ) : null}
+                  {hwMins}<span className="text-sm text-text-muted font-normal">{t('minutes_short')}</span>
+                </span>
+                {avgHwSeconds > 0 && (
+                  <span className="text-xs text-text-muted mt-0.5">
+                    ~{Math.round(avgHwSeconds / 60)}{t('minutes_short')} {t('stats_avg_homework_time')}
+                  </span>
+                )}
               </div>
             </div>
           </>

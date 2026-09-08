@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Image as ImageIcon, X, Check, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { Plus, Image as ImageIcon, X, Check, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, Loader2, Radio } from 'lucide-react';
 import type { LessonSlot, Attachment } from '../../types';
 import { formatTime, compressImageFile, isLessonNow, cn } from '../../lib/utils';
 import { HomeworkInline } from '../homework/HomeworkInline';
@@ -8,7 +8,7 @@ import { AddLinkModal } from '../homework/AddLinkModal';
 import { LessonOverrideModal } from './LessonOverrideModal';
 import { useCreateHomework } from '../../hooks/useHomework';
 import { useFileUpload } from '../../hooks/useFileUpload';
-import { fetchNextLesson, fetchPreviousLesson } from '../../hooks/useScheduleOverrides';
+import { fetchNextLesson, fetchPreviousLesson, useSetScheduleOverride, useDeleteScheduleOverride } from '../../hooks/useScheduleOverrides';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 interface LessonCardProps {
@@ -30,6 +30,27 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
 
   const createMutation = useCreateHomework();
   const uploadMutation = useFileUpload();
+  const setOverrideMutation = useSetScheduleOverride();
+  const deleteOverrideMutation = useDeleteScheduleOverride();
+
+  /* Quick action: Cancel or un-cancel lesson by air alert */
+  const handleToggleAirAlertCancel = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (lesson.is_cancelled) {
+      deleteOverrideMutation.mutate({
+        targetDate: lesson.date,
+        lessonOrder: lesson.lesson_order,
+      });
+    } else {
+      setOverrideMutation.mutate({
+        date: lesson.date,
+        lesson_order: lesson.lesson_order,
+        subject_id: lesson.subject.id,
+        is_cancelled: true,
+        note: t('air_alert_manual_note'),
+      });
+    }
+  };
 
   const isCurrentLesson = isLessonNow(lesson.start_time, lesson.end_time, lesson.date);
 
@@ -343,6 +364,30 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
               }
             >
               <ArrowLeftRight size={14} />
+            </button>
+
+            {/* Cancel by Air Alert toggle button */}
+            <button
+              type="button"
+              onClick={handleToggleAirAlertCancel}
+              disabled={setOverrideMutation.isPending || deleteOverrideMutation.isPending}
+              className={cn(
+                "p-1 rounded transition-colors",
+                lesson.is_cancelled
+                  ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 hover:bg-rose-500/25"
+                  : "text-text-muted hover:text-danger hover:bg-danger/10"
+              )}
+              title={
+                lesson.is_cancelled
+                  ? t('restore_from_air_alert')
+                  : t('cancel_by_air_alert')
+              }
+            >
+              {setOverrideMutation.isPending || deleteOverrideMutation.isPending ? (
+                <Loader2 size={14} className="animate-spin text-accent" />
+              ) : (
+                <Radio size={14} className={cn(lesson.is_cancelled && "animate-pulse")} />
+              )}
             </button>
           </div>
         </div>

@@ -42,6 +42,8 @@ async def get_weekly_stats(
     hw_total = len(hw_entries)
     hw_completed = sum(1 for h in hw_entries if h.is_completed)
     hw_completion_rate = round((hw_completed / hw_total) * 100, 1) if hw_total > 0 else 100.0
+    hw_total_time_spent = sum(getattr(h, "time_spent_seconds", 0) or 0 for h in hw_entries)
+    hw_avg_time_spent = round(hw_total_time_spent / hw_total) if hw_total > 0 else 0
 
     # In 'actual' mode, pre-fetch overrides for the week
     overrides_by_date_order = {}
@@ -188,6 +190,7 @@ async def get_weekly_stats(
         # Homework due on this specific day
         hw_day = [h for h in hw_entries if h.due_date == current_date]
         hw_day_completed = sum(1 for h in hw_day if h.is_completed)
+        hw_day_time_spent = sum(getattr(h, "time_spent_seconds", 0) or 0 for h in hw_day)
 
         days_list.append({
             "day_of_week": day_of_week,
@@ -199,6 +202,7 @@ async def get_weekly_stats(
             "subjects": day_subjects,
             "homework_count": len(hw_day),
             "homework_completed": hw_day_completed,
+            "homework_time_spent_seconds": hw_day_time_spent,
         })
             
     # Calculate average lessons per active day
@@ -221,5 +225,7 @@ async def get_weekly_stats(
             "total": hw_total,
             "completed": hw_completed,
             "completion_rate": hw_completion_rate,
+            "total_time_spent_seconds": hw_total_time_spent,
+            "avg_time_spent_seconds": hw_avg_time_spent,
         },
     }

@@ -16,13 +16,15 @@ async def get_schedule_for_range(
     db: AsyncSession, 
     start_date: date, 
     end_date: date, 
-    anchor_date: date
+    anchor_date: date | None = None
 ) -> list[DaySchedule]:
     """
     Retrieve the schedule for a given date range with optimized batch queries
     to eliminate N+1 database roundtrips. Integrates temporal schedule overrides
     for weekly substitute lessons while preserving the original lesson context in brackets.
     """
+    if anchor_date is None:
+        anchor_date = date(2026, 9, 1)
     # Pre-fetch all homework entries for the requested date range in a single query
     hw_stmt = select(HomeworkEntry).where(
         HomeworkEntry.due_date >= start_date,
@@ -243,6 +245,8 @@ async def find_closest_next_lesson(
     return None
 
 
+# Alias for schedule builder function
+build_schedule_for_date_range = get_schedule_for_range
 async def find_closest_previous_lesson(
     db: AsyncSession,
     subject_id: any,

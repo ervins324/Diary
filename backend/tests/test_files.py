@@ -1,6 +1,6 @@
 import unittest
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.models.stored_file import StoredFile
 from app.routers.files import delete_file, get_file, upload_file

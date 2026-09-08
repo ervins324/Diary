@@ -293,6 +293,29 @@ export const translations = {
     ai_schedule_settings_desc: 'Upload a photo or enter timetable JSON to automatically generate your weekly schedule with AI',
     ai_schedule_open_import: 'Open AI Schedule Importer',
     search_subject_placeholder: 'Search subject...',
+
+    // Wikipedia-style Table of Contents for Settings
+    settings_contents: 'Contents',
+    settings_contents_hide: 'hide',
+    settings_contents_show: 'show',
+    settings_contents_top: '(Top)',
+    section_appearance: 'Appearance & Language',
+    section_preferences: 'Cabinets & Preferences',
+    section_subjects: 'Subjects Directory',
+    section_schedule_tools: 'Schedule & AI Tools',
+    section_backup: 'Backup & Restore',
+    section_storage: 'Data Cleaning & Storage',
+    section_air_alerts: 'Air Raid Alerts',
+    section_danger_zone: 'Danger Zone',
+
+    // Homework time in stats
+    stats_homework_time: 'Homework Study Time',
+    stats_avg_homework_time: 'Avg per task',
+
+    // Manual air alert cancel & undo
+    cancel_by_air_alert: 'Cancel by Air Alert',
+    restore_from_air_alert: 'Restore Lesson',
+    air_alert_manual_note: 'Air Alert',
   },
   uk: {
     // Navigation
@@ -586,6 +609,29 @@ export const translations = {
     ai_schedule_settings_desc: 'Завантажте фото або вставте JSON для швидкого створення розкладу за допомогою AI',
     ai_schedule_open_import: 'Відкрити імпортер розкладу',
     search_subject_placeholder: 'Пошук предмета...',
+
+    // Wikipedia-style Table of Contents for Settings
+    settings_contents: 'Зміст',
+    settings_contents_hide: 'приховати',
+    settings_contents_show: 'показати',
+    settings_contents_top: '(Вгору)',
+    section_appearance: 'Зовнішній вигляд та мова',
+    section_preferences: 'Кабінети та налаштування',
+    section_subjects: 'Довідник предметів',
+    section_schedule_tools: 'Розклад та AI інструменти',
+    section_backup: 'Резервне копіювання',
+    section_storage: 'Очищення та сховище',
+    section_air_alerts: 'Повітряні тривоги',
+    section_danger_zone: 'Зона небезпеки',
+
+    // Homework time in stats
+    stats_homework_time: 'Час на домашні завдання',
+    stats_avg_homework_time: 'В середньому на одне',
+
+    // Manual air alert cancel & undo
+    cancel_by_air_alert: 'Скасувати через тривогу',
+    restore_from_air_alert: 'Відновити урок',
+    air_alert_manual_note: 'Повітряна тривога',
   },
 } as const;
 

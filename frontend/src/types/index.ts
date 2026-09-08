@@ -112,6 +112,7 @@ export interface DayStat {
   subjects: DayStatSubject[];
   homework_count: number;
   homework_completed: number;
+  homework_time_spent_seconds?: number;
 }
 
 export interface WeeklyStatsResponse {
@@ -133,6 +134,8 @@ export interface WeeklyStatsResponse {
     total: number;
     completed: number;
     completion_rate: number;
+    total_time_spent_seconds?: number;
+    avg_time_spent_seconds?: number;
   };
 }
 

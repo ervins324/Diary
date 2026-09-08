@@ -182,6 +182,64 @@ class TestStatsAndHomeworkTimer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stats["event_counts"]["test"], 0)
         self.assertEqual(stats["total_lessons"], 1)
 
+    async def test_weekly_stats_homework_time_spent(self):
+        """Verify homework time spent metrics are aggregated accurately in weekly stats."""
+        mock_db = AsyncMock()
+        target_date = date(2026, 9, 7)  # Monday
+        subj_id = uuid.uuid4()
+
+        hw1 = HomeworkEntry(
+            id=uuid.uuid4(),
+            subject_id=subj_id,
+            due_date=target_date,
+            lesson_order=1,
+            text="Exercises 1-5",
+            is_completed=True,
+            time_spent_seconds=900,  # 15 mins
+        )
+        hw2 = HomeworkEntry(
+            id=uuid.uuid4(),
+            subject_id=subj_id,
+            due_date=target_date,
+            lesson_order=2,
+            text="Essay preparation",
+            is_completed=False,
+            time_spent_seconds=1500,  # 25 mins
+        )
+
+        mock_hw_res = MagicMock()
+        mock_hw_res.scalars().all.return_value = [hw1, hw2]
+        mock_ov_res = MagicMock()
+        mock_ov_res.scalars().all.return_value = []
+        mock_empty = MagicMock()
+        mock_empty.scalars().all.return_value = []
+
+        mock_db.execute.side_effect = [
+            mock_hw_res,
+            mock_ov_res,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+        ]
+
+        stats = await get_weekly_stats(
+            db=mock_db,
+            target_date=target_date,
+            anchor_date=date(2026, 9, 1),
+            mode="actual",
+        )
+
+        hw_stats = stats["homework_stats"]
+        self.assertEqual(hw_stats["total"], 2)
+        self.assertEqual(hw_stats["completed"], 1)
+        self.assertEqual(hw_stats["total_time_spent_seconds"], 2400)  # 40 mins
+        self.assertEqual(hw_stats["avg_time_spent_seconds"], 1200)   # 20 mins
+        self.assertEqual(stats["days"][0]["homework_time_spent_seconds"], 2400)
+
 
 if __name__ == "__main__":
     unittest.main()

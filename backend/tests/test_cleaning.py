@@ -1,7 +1,7 @@
 import unittest
 import uuid
 from datetime import date, datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.models.homework import HomeworkEntry
 from app.models.schedule_override import ScheduleOverride
@@ -23,16 +23,16 @@ class TestSystemCleaning(unittest.IsolatedAsyncioTestCase):
         mock_db = AsyncMock()
 
         # Mock execute returning rowcount for deleted homework & overrides
-        mock_hw_res = AsyncMock()
+        mock_hw_res = MagicMock()
         mock_hw_res.rowcount = 5
-        mock_ov_res = AsyncMock()
+        mock_ov_res = MagicMock()
         mock_ov_res.rowcount = 2
 
         # Mock file query: 1 active, 1 orphaned
         active_uuid = uuid.uuid4()
         orphan_uuid = uuid.uuid4()
 
-        mock_hw_att_res = AsyncMock()
+        mock_hw_att_res = MagicMock()
         mock_hw_att_res.scalars.return_value.all.return_value = [
             [{"id": str(active_uuid), "name": "active.pdf"}]
         ]
@@ -54,7 +54,7 @@ class TestSystemCleaning(unittest.IsolatedAsyncioTestCase):
             created_at=datetime(2026, 8, 1, tzinfo=timezone.utc),
         )
 
-        mock_files_res = AsyncMock()
+        mock_files_res = MagicMock()
         mock_files_res.scalars.return_value.all.return_value = [active_file, orphan_file]
 
         mock_db.execute = AsyncMock(
@@ -94,15 +94,19 @@ class TestSystemCleaning(unittest.IsolatedAsyncioTestCase):
         """
         mock_db = AsyncMock()
 
-        # 1. Stored files query
-        mock_files_res = AsyncMock()
+        # 1. Stored files aggregate query (.one())
+        mock_file_stats = MagicMock()
+        mock_file_stats.one.return_value = (3, 5_242_880 + 8_388_608 + 1_048_576)
+
+        # 2. Stored files breakdown query (.all())
+        mock_files_res = MagicMock()
         mock_files_res.all.return_value = [
             ("document.pdf", "application/pdf", 5_242_880),  # 5 MB
             ("slides.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", 8_388_608),  # 8 MB
             ("photo.png", "image/png", 1_048_576),  # 1 MB
         ]
 
-        # 2. Homework entries query
+        # 3. Homework entries query
         hw_sample = HomeworkEntry(
             id=uuid.uuid4(),
             subject_id=uuid.uuid4(),
@@ -112,24 +116,25 @@ class TestSystemCleaning(unittest.IsolatedAsyncioTestCase):
             is_completed=False,
             attachments=[{"id": "file-1", "name": "document.pdf"}],
         )
-        mock_hw_res = AsyncMock()
+        mock_hw_res = MagicMock()
         mock_hw_res.scalars.return_value.all.return_value = [hw_sample]
 
-        # 3. Counts queries: rules, overrides, bells, subjects
-        mock_rules_count = AsyncMock()
+        # 4. Counts queries: rules, overrides, bells, subjects
+        mock_rules_count = MagicMock()
         mock_rules_count.scalar.return_value = 25
 
-        mock_overrides_count = AsyncMock()
+        mock_overrides_count = MagicMock()
         mock_overrides_count.scalar.return_value = 4
 
-        mock_bells_count = AsyncMock()
+        mock_bells_count = MagicMock()
         mock_bells_count.scalar.return_value = 7
 
-        mock_subjects_count = AsyncMock()
+        mock_subjects_count = MagicMock()
         mock_subjects_count.scalar.return_value = 12
 
         mock_db.execute = AsyncMock(
             side_effect=[
+                mock_file_stats,
                 mock_files_res,
                 mock_hw_res,
                 mock_rules_count,
@@ -163,17 +168,21 @@ class TestSystemCleaning(unittest.IsolatedAsyncioTestCase):
         """Verify get_storage_stats handles empty database without division errors."""
         mock_db = AsyncMock()
 
-        mock_files_res = AsyncMock()
+        mock_file_stats = MagicMock()
+        mock_file_stats.one.return_value = (0, 0)
+
+        mock_files_res = MagicMock()
         mock_files_res.all.return_value = []
 
-        mock_hw_res = AsyncMock()
+        mock_hw_res = MagicMock()
         mock_hw_res.scalars.return_value.all.return_value = []
 
-        mock_zero_count = AsyncMock()
+        mock_zero_count = MagicMock()
         mock_zero_count.scalar.return_value = 0
 
         mock_db.execute = AsyncMock(
             side_effect=[
+                mock_file_stats,
                 mock_files_res,
                 mock_hw_res,
                 mock_zero_count,

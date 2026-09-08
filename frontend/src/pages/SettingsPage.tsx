@@ -57,6 +57,7 @@ import { AiImportModal } from '../components/ai-import/AiImportModal';
 import { useAirAlerts } from '../hooks/useAirAlerts';
 import { getAutoCleanConfig, saveAutoCleanConfig, type AutoCleanConfig } from '../hooks/useAutoClean';
 import { cn } from '../lib/utils';
+import { SettingsContents } from '../components/settings/SettingsContents';
 import type { Subject } from '../types';
 
 export function SettingsPage() {
@@ -446,115 +447,133 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="flex-1 max-w-3xl mx-auto w-full p-4 md:p-6 overflow-y-auto">
-      <h1 className="text-2xl font-bold text-text-primary mb-8">{t('settings')}</h1>
+    <div id="settings-scroll-container" className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-6 overflow-y-auto">
+      <div className="flex flex-col xl:flex-row-reverse items-start gap-8">
+        {/* Desktop Sticky Wikipedia Contents Sidebar */}
+        <aside className="hidden xl:block shrink-0 sticky top-4 w-64 pt-2">
+          <SettingsContents isSidebar />
+        </aside>
 
-      <div className="space-y-8">
-        {/* Appearance & Language */}
-        <section className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4">
-          <h2 className="text-lg font-semibold text-text-primary border-b border-border-light pb-2">{t('appearance')}</h2>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-text-primary">{t('theme')}</p>
-              <p className="text-sm text-text-muted">{t('theme_desc')}</p>
-            </div>
-            <div className="bg-bg-tertiary rounded-lg">
-              <ThemeToggle />
-            </div>
+        {/* Main Settings Column */}
+        <div className="flex-1 max-w-3xl w-full">
+          <h1 className="text-2xl font-bold text-text-primary mb-6">{t('settings')}</h1>
+
+          {/* Mobile / Tablet Inline Wikipedia Contents */}
+          <div className="xl:hidden mb-6">
+            <SettingsContents />
           </div>
 
-          <div className="pt-3 border-t border-border-light flex items-center justify-between">
-            <div>
-              <p className="font-medium text-text-primary flex items-center gap-1.5">
-                <Globe size={16} className="text-accent" />
-                <span>{t('language')}</span>
-              </p>
-              <p className="text-sm text-text-muted">{t('language_desc')}</p>
-            </div>
-            <div className="flex bg-bg-tertiary p-1 rounded-lg border border-border">
-              <button
-                onClick={() => setLanguage('uk')}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
-                  language === 'uk'
-                    ? 'bg-accent text-white shadow-xs'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                Українська
-              </button>
-              <button
-                onClick={() => setLanguage('en')}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
-                  language === 'en'
-                    ? 'bg-accent text-white shadow-xs'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                English
-              </button>
-            </div>
-          </div>
+          <div className="space-y-8">
+            {/* Appearance & Language */}
+            <section id="appearance" className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4 scroll-mt-6">
+              <h2 className="text-lg font-semibold text-text-primary border-b border-border-light pb-2">{t('appearance')}</h2>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-text-primary">{t('theme')}</p>
+                  <p className="text-sm text-text-muted">{t('theme_desc')}</p>
+                </div>
+                <div className="bg-bg-tertiary rounded-lg">
+                  <ThemeToggle />
+                </div>
+              </div>
 
-          {/* Weekend Auto-Advance Toggle */}
-          <div className="pt-3 border-t border-border-light flex items-center justify-between">
-            <div className="pr-4">
-              <p className="font-medium text-text-primary flex items-center gap-1.5">
-                <CalendarClock size={16} className="text-accent" />
-                <span>{t('skip_weekends_title')}</span>
-              </p>
-              <p className="text-sm text-text-muted">{t('skip_weekends_desc')}</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={skipWeekends}
-              onClick={handleToggleWeekendSkip}
-              className={cn(
-                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent",
-                skipWeekends ? "bg-accent" : "bg-bg-tertiary border border-border"
-              )}
-            >
-              <span
-                className={cn(
-                  "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
-                  skipWeekends ? "translate-x-5" : "translate-x-0"
-                )}
-              />
-            </button>
-          </div>
+              <div className="pt-3 border-t border-border-light flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-text-primary flex items-center gap-1.5">
+                    <Globe size={16} className="text-accent" />
+                    <span>{t('language')}</span>
+                  </p>
+                  <p className="text-sm text-text-muted">{t('language_desc')}</p>
+                </div>
+                <div className="flex bg-bg-tertiary p-1 rounded-lg border border-border">
+                  <button
+                    onClick={() => setLanguage('uk')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                      language === 'uk'
+                        ? 'bg-accent text-white shadow-xs'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    Українська
+                  </button>
+                  <button
+                    onClick={() => setLanguage('en')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                      language === 'en'
+                        ? 'bg-accent text-white shadow-xs'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    English
+                  </button>
+                </div>
+              </div>
+            </section>
 
-          {/* Classroom Cabinets Toggle */}
-          <div className="pt-3 border-t border-border-light flex items-center justify-between">
-            <div className="pr-4">
-              <p className="font-medium text-text-primary flex items-center gap-1.5">
-                {showCabinets ? <Eye size={16} className="text-accent" /> : <EyeOff size={16} className="text-text-muted" />}
-                <span>{t('hide_cabinets_title')}</span>
-              </p>
-              <p className="text-sm text-text-muted">{t('hide_cabinets_desc')}</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={showCabinets}
-              onClick={handleToggleCabinets}
-              className={cn(
-                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent",
-                showCabinets ? "bg-accent" : "bg-bg-tertiary border border-border"
-              )}
-            >
-              <span
-                className={cn(
-                  "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
-                  showCabinets ? "translate-x-5" : "translate-x-0"
-                )}
-              />
-            </button>
-          </div>
-        </section>
+            {/* Preferences & Automation */}
+            <section id="preferences" className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4 scroll-mt-6">
+              <h2 className="text-lg font-semibold text-text-primary border-b border-border-light pb-2">{t('section_preferences')}</h2>
+
+              {/* Weekend Auto-Advance Toggle */}
+              <div className="flex items-center justify-between">
+                <div className="pr-4">
+                  <p className="font-medium text-text-primary flex items-center gap-1.5">
+                    <CalendarClock size={16} className="text-accent" />
+                    <span>{t('skip_weekends_title')}</span>
+                  </p>
+                  <p className="text-sm text-text-muted">{t('skip_weekends_desc')}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={skipWeekends}
+                  onClick={handleToggleWeekendSkip}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent",
+                    skipWeekends ? "bg-accent" : "bg-bg-tertiary border border-border"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                      skipWeekends ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+
+              {/* Classroom Cabinets Toggle */}
+              <div className="pt-3 border-t border-border-light flex items-center justify-between">
+                <div className="pr-4">
+                  <p className="font-medium text-text-primary flex items-center gap-1.5">
+                    {showCabinets ? <Eye size={16} className="text-accent" /> : <EyeOff size={16} className="text-text-muted" />}
+                    <span>{t('hide_cabinets_title')}</span>
+                  </p>
+                  <p className="text-sm text-text-muted">{t('hide_cabinets_desc')}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showCabinets}
+                  onClick={handleToggleCabinets}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent",
+                    showCabinets ? "bg-accent" : "bg-bg-tertiary border border-border"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                      showCabinets ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+            </section>
 
         {/* Subjects */}
-        <section className="bg-bg-secondary p-5 rounded-xl border border-border">
+        <section id="subjects" className="bg-bg-secondary p-5 rounded-xl border border-border scroll-mt-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-border-light pb-3">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-text-primary">{t('manage_subjects')}</h2>
@@ -716,7 +735,7 @@ export function SettingsPage() {
         </section>
 
         {/* Schedule & Data Tools */}
-        <section className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4">
+        <section id="schedule-tools" className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4 scroll-mt-6">
           <h2 className="text-lg font-semibold text-text-primary border-b border-border-light pb-2">{t('schedule_editor')}</h2>
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -779,7 +798,7 @@ export function SettingsPage() {
         </section>
 
         {/* Backup & Restore (Full JSON) */}
-        <section className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4">
+        <section id="backup" className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4 scroll-mt-6">
           <h2 className="text-lg font-semibold text-text-primary border-b border-border-light pb-2 flex items-center gap-2">
             <Archive size={18} className="text-accent" />
             <span>{t('backup_restore')}</span>
@@ -831,7 +850,7 @@ export function SettingsPage() {
         </section>
 
         {/* Data Cleaning & Storage Management */}
-        <section className="bg-bg-secondary p-5 rounded-xl border border-border space-y-6">
+        <section id="storage" className="bg-bg-secondary p-5 rounded-xl border border-border space-y-6 scroll-mt-6">
           <div className="border-b border-border-light pb-2 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
               <Brush size={18} className="text-accent" />
@@ -1304,7 +1323,7 @@ export function SettingsPage() {
         </section>
 
         {/* Air Raid Alerts Integration (Neptun API) */}
-        <section className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4">
+        <section id="air-alerts" className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4 scroll-mt-6">
           <div className="flex items-center justify-between border-b border-border-light pb-3">
             <div className="flex items-center gap-2">
               <Radio size={20} className={isAlertActive ? "text-danger animate-pulse" : "text-accent"} />
@@ -1421,7 +1440,7 @@ export function SettingsPage() {
         </section>
 
         {/* Danger Zone: Data Wipe Controls */}
-        <section className="bg-danger/5 border border-danger/30 p-5 rounded-xl space-y-4">
+        <section id="danger-zone" className="bg-danger/5 border border-danger/30 p-5 rounded-xl space-y-4 scroll-mt-6">
           <div className="flex items-center gap-2.5 text-danger border-b border-danger/20 pb-2">
             <AlertTriangle size={20} />
             <h2 className="text-lg font-bold">{t('danger_zone')}</h2>
@@ -1460,6 +1479,8 @@ export function SettingsPage() {
           </div>
         </section>
       </div>
+    </div>
+  </div>
 
       {/* Confirmation Modal for Complete Data Wipe */}
       {isClearingAll && (

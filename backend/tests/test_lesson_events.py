@@ -42,6 +42,7 @@ class TestLessonEventsAndStability(unittest.IsolatedAsyncioTestCase):
             event_type="control_work",
         )
         mock_full_res = MagicMock()
+        mock_full_res.scalar_one.return_value = mock_saved_override
         mock_full_res.scalar_one_or_none.return_value = mock_saved_override
 
         mock_db.execute.side_effect = [mock_existing_res, mock_full_res]
@@ -111,7 +112,7 @@ class TestLessonEventsAndStability(unittest.IsolatedAsyncioTestCase):
         mock_hw_res = MagicMock()
         mock_hw_res.scalars.return_value.all.return_value = []
 
-        mock_db.execute.side_effect = [mock_rules_res, mock_ov_res, mock_hw_res]
+        mock_db.execute.side_effect = [mock_hw_res, mock_ov_res, mock_rules_res]
 
         days = await build_schedule_for_date_range(
             db=mock_db,

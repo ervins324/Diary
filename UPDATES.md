@@ -1,5 +1,27 @@
 # School Diary — Changelog
 
+## v1.8.1 — 2026-09-08
+
+### 🚀 Wikipedia-Style Settings Navigation, Persistent Homework Timer, Stats Study Time & Air Alert Optimizations
+- **Wikipedia-Style Quick Jump Navigation in Settings (`SettingsContents.tsx` & `SettingsPage.tsx`)**:
+  - Implemented an authentic Wikipedia-style table of contents navigation panel featuring `Contents [hide]` / `[show]` toggle (with persistent state in `localStorage`).
+  - Added `(Top)` jump link and numbered quick links to all 8 settings sections: Appearance & Language, Cabinets & Preferences, Subjects Directory, Schedule & AI Tools, Backup & Restore, Data Cleaning & Storage, Air Raid Alerts, and Danger Zone.
+  - Active section indicator dynamically updates as the user scrolls, with smooth scrolling on click.
+  - **Responsive Mobile Adaptation**: Sticky floating sidebar on desktop viewports (`xl:`), transitioning to a collapsible inline card directly below the Settings header on mobile and tablet screens.
+- **Persistent Background Homework Stopwatch Timer (`HomeworkInline.tsx`)**:
+  - Upgraded the stopwatch to use timestamp-based accumulation (`localStorage`) so the timer keeps ticking accurately in the background even if the student navigates between tabs, switches pages, or closes the browser.
+  - **Relocated Directly Near Checkbox**: Positioned the interactive stopwatch chip right next to the completion checkbox (`[ ] [⏱️ 15m] Read Chapter 4...`), complete with pulsing active indicator and 1-click pause/resume.
+  - Automatically finalizes and persists study time when the assignment is checked off as completed.
+- **Homework Study Time Metrics in Stats (`StatsPage.tsx` & `stats_service.py`)**:
+  - Added `total_time_spent_seconds` and `avg_time_spent_seconds` to `homework_stats` in `WeeklyStatsResponse`.
+  - Added `homework_time_spent_seconds` to daily breakdown objects.
+  - Rendered a new **Homework Study Time** summary metric card on `StatsPage.tsx` showing total hours and minutes spent on homework along with average time per assignment, plus daily timer badges in the breakdown cards.
+- **Optimized Neptun Air Alerts & 1-Click Manual Lesson Cancellation (`neptunAlerts.ts`, `LessonCard.tsx`, `DiaryPage.tsx`)**:
+  - **Request Optimization**: Reduced fallback polling interval to 60s and added a 45s in-memory fetch throttle.
+  - **Visibility Awareness**: Automatically pauses network polling when the browser tab is hidden in the background (`document.hidden`), resuming only when brought back into focus.
+  - **Exponential Reconnection Backoff**: Added smooth backoff (15s → 30s → 60s) for WebSocket reconnection attempts.
+  - **Manual Air Alert Lesson Action**: Added a 1-click "Cancel by Air Alert" button with Radio icon on lesson cards in Daily (`LessonCard.tsx`) and Weekly Diary (`DiaryPage.tsx`), setting `is_cancelled: true` and note `"Повітряна тривога"` with 1-click restore functionality.
+
 ## v1.8.0 — 2026-09-08
 
 ### 🚀 Homework Stopwatch Timer, Stats Overhaul, Neptun Air Alerts, UX Refinements & Expanded Settings
