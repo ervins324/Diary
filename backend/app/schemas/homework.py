@@ -17,6 +17,7 @@ class HomeworkCreate(BaseModel):
     text: str
     images: list[str] = []
     attachments: list[AttachmentItem] = []
+    time_spent_seconds: int | None = 0
 
 class HomeworkUpdate(BaseModel):
     text: str | None = None
@@ -24,6 +25,7 @@ class HomeworkUpdate(BaseModel):
     lesson_order: int | None = None
     images: list[str] | None = None
     attachments: list[AttachmentItem] | None = None
+    time_spent_seconds: int | None = None
 
 class HomeworkRead(BaseModel):
     id: uuid.UUID
@@ -34,6 +36,7 @@ class HomeworkRead(BaseModel):
     is_completed: bool
     images: list[str] | None = []
     attachments: list[AttachmentItem] | None = []
+    time_spent_seconds: int | None = 0
     subject: SubjectRead
 
     model_config = ConfigDict(from_attributes=True)

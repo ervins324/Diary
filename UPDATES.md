@@ -1,5 +1,35 @@
 # School Diary — Changelog
 
+## v1.8.0 — 2026-09-08
+
+### 🚀 Homework Stopwatch Timer, Stats Overhaul, Neptun Air Alerts, UX Refinements & Expanded Settings
+- **Homework Stopwatch Timer (`HomeworkInline.tsx`)**:
+  - Embedded an interactive stopwatch into homework assignment cards with Start, Pause, and Reset controls.
+  - Automatically records and persists study time into `homeworks.time_spent_seconds` upon pausing or stopping.
+  - Displays a compact, stylized elapsed time chip (`⏱️ mm:ss` or `hh:mm:ss`) with live pulsing indicators during active homework sessions.
+  - Added Alembic migration `007_homework_time_spent.py` and zero-downtime startup safety column verification in `main.py`.
+- **Comprehensive Weekly Stats Overhaul (`StatsPage.tsx` & `stats_service.py`)**:
+  - **Template vs Actual Switcher**: Added top mode segmented toggle `[ This Week (Actual) ]` | `[ Numerator Template ]` | `[ Denominator Template ]` to view stats for the live week or recurring schedule templates.
+  - **Study Time vs Lesson Count Metric Toggle**: Added switcher allowing users to view lesson counts (e.g., "1 lesson", "4 lessons") instead of hours/minutes across bar charts and daily breakdown tables.
+  - **Automatic Cancellation Deduction**: Filtered out cancelled lessons (`is_cancelled == True`) from active study hours and lesson totals, with an alert banner highlighting total cancelled lessons for the week.
+  - **Academic Events Milestone Summary**: Integrated event milestone counters for Control Works, Tests, Essays, and Projects scheduled during the selected week.
+- **Real-Time Air Alert Integration (Neptun API - `neptun.in.ua`)**:
+  - Added real-time WebSocket connection to `wss://neptun.in.ua/api/v1/stream` with REST fallback `GET https://neptun.in.ua/api/v1/alerts`.
+  - Configurable region/oblast selector in Settings (covering all 25 Ukrainian regions).
+  - **Automatic Lesson Cancellation**: Option to automatically cancel ongoing lessons during active air alerts with note "Повітряна тривога (Автоскасовано)", with 1-click manual override/undo capability.
+  - Included required attribution: *"Дані: Карта повітряних тривог — NEPTUN (neptun.in.ua)"*.
+- **Hide Classroom Cabinets Setting**:
+  - Added global user setting `show_cabinets` to toggle classroom numbers across Daily cards, Diary schedule rows, and modals.
+- **Lesson Substitution & Events Modal UX Overhaul (`LessonOverrideModal.tsx`)**:
+  - Removed top warning banner and helper description label.
+  - Removed classroom cabinet input from the modal.
+  - Replaced native select with an alphabetical, searchable subject picker featuring colored subject indicators and instant text filtering.
+- **Cleaned UI & Relocated AI Schedule Importer**:
+  - Removed the floating action button (`Wand2`) from `DailyPage.tsx`.
+  - Moved the AI Timetable Importer into `SettingsPage.tsx` under **Schedule & Data Tools**.
+- **Automated Tests**:
+  - Added `backend/tests/test_stats_and_timer.py` testing homework timer schemas, stats cancellation deductions, academic event counts, and mode switching.
+
 ## v1.7.3 — 2026-09-07
 
 ### 🚀 Lesson Event Types (Control Work, Test, Essay, Project) & Maximum Stability Polish

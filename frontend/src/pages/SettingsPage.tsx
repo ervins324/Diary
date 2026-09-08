@@ -28,6 +28,11 @@ import {
   Info,
   FileText,
   PieChart,
+  Wand2,
+  Radio,
+  BellRing,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import {
@@ -48,6 +53,8 @@ import { ThemeToggle } from '../components/layout/ThemeToggle';
 import { useLanguage } from '../i18n/LanguageContext';
 import { useDeleteAllSchedule, useClearAllAppData } from '../hooks/useSchedule';
 import { ScheduleEditorModal } from '../components/schedule/ScheduleEditorModal';
+import { AiImportModal } from '../components/ai-import/AiImportModal';
+import { useAirAlerts } from '../hooks/useAirAlerts';
 import { getAutoCleanConfig, saveAutoCleanConfig, type AutoCleanConfig } from '../hooks/useAutoClean';
 import { cn } from '../lib/utils';
 import type { Subject } from '../types';
@@ -56,9 +63,31 @@ export function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
   const queryClient = useQueryClient();
   const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
+  const [isAiImportModalOpen, setIsAiImportModalOpen] = useState(false);
   const [isClearingAll, setIsClearingAll] = useState(false);
   const [confirmPromptText, setConfirmPromptText] = useState('');
   const [exportNotification, setExportNotification] = useState<string | null>(null);
+
+  /* Cabinets toggle state (defaults to true) */
+  const [showCabinets, setShowCabinets] = useState(() => localStorage.getItem('show_cabinets') !== 'false');
+
+  /* Air Alerts Hook */
+  const {
+    alertsEnabled,
+    setAlertsEnabled,
+    selectedRegion,
+    setSelectedRegion,
+    autoCancelEnabled,
+    setAutoCancelEnabled,
+    isAlertActive,
+    regions,
+  } = useAirAlerts();
+
+  const handleToggleCabinets = () => {
+    const nextVal = !showCabinets;
+    setShowCabinets(nextVal);
+    localStorage.setItem('show_cabinets', nextVal ? 'true' : 'false');
+  };
 
   /* Weekend auto-advance toggle state (defaults to true) */
   const [skipWeekends, setSkipWeekends] = useState(() => localStorage.getItem('skip_weekends_to_monday') !== 'false');
@@ -494,6 +523,34 @@ export function SettingsPage() {
               />
             </button>
           </div>
+
+          {/* Classroom Cabinets Toggle */}
+          <div className="pt-3 border-t border-border-light flex items-center justify-between">
+            <div className="pr-4">
+              <p className="font-medium text-text-primary flex items-center gap-1.5">
+                {showCabinets ? <Eye size={16} className="text-accent" /> : <EyeOff size={16} className="text-text-muted" />}
+                <span>{t('hide_cabinets_title')}</span>
+              </p>
+              <p className="text-sm text-text-muted">{t('hide_cabinets_desc')}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showCabinets}
+              onClick={handleToggleCabinets}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent",
+                showCabinets ? "bg-accent" : "bg-bg-tertiary border border-border"
+              )}
+            >
+              <span
+                className={cn(
+                  "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                  showCabinets ? "translate-x-5" : "translate-x-0"
+                )}
+              />
+            </button>
+          </div>
         </section>
 
         {/* Subjects */}
@@ -676,6 +733,24 @@ export function SettingsPage() {
             >
               <FileSpreadsheet size={16} />
               <span>{t('open_schedule_editor')}</span>
+            </button>
+          </div>
+
+          {/* AI Timetable Importer Card */}
+          <div className="pt-3 border-t border-border-light flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-text-primary flex items-center gap-2">
+                <Wand2 size={18} className="text-accent" />
+                <span>{t('ai_schedule_settings_title')}</span>
+              </p>
+              <p className="text-sm text-text-muted mt-0.5">{t('ai_schedule_settings_desc')}</p>
+            </div>
+            <button
+              onClick={() => setIsAiImportModalOpen(true)}
+              className="px-4 py-2 bg-accent hover:bg-accent/90 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-xs shrink-0"
+            >
+              <Wand2 size={16} />
+              <span>{t('ai_schedule_open_import')}</span>
             </button>
           </div>
 
@@ -1228,6 +1303,123 @@ export function SettingsPage() {
           </div>
         </section>
 
+        {/* Air Raid Alerts Integration (Neptun API) */}
+        <section className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4">
+          <div className="flex items-center justify-between border-b border-border-light pb-3">
+            <div className="flex items-center gap-2">
+              <Radio size={20} className={isAlertActive ? "text-danger animate-pulse" : "text-accent"} />
+              <h2 className="text-lg font-semibold text-text-primary">{t('air_alerts_title')}</h2>
+            </div>
+            {alertsEnabled && (
+              <span className={cn(
+                "inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold border shadow-xs",
+                isAlertActive
+                  ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/40 animate-pulse"
+                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+              )}>
+                <BellRing size={12} />
+                <span>{isAlertActive ? t('air_alerts_active_status') : t('air_alerts_safe_status')}</span>
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-text-muted">{t('air_alerts_desc')}</p>
+
+          <div className="space-y-4 pt-2">
+            {/* Enable switch */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-text-primary text-sm">{t('air_alerts_enable')}</p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {language === 'uk'
+                    ? 'Підключення до живого потоку тривог для вашої області'
+                    : 'Connect to live air alarm updates for your chosen region'}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={alertsEnabled}
+                onClick={() => setAlertsEnabled(!alertsEnabled)}
+                className={cn(
+                  "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent",
+                  alertsEnabled ? "bg-accent" : "bg-bg-tertiary border border-border"
+                )}
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                    alertsEnabled ? "translate-x-5" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </div>
+
+            {alertsEnabled && (
+              <>
+                {/* Region Selector */}
+                <div className="pt-3 border-t border-border-light">
+                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
+                    {t('air_alerts_region')}
+                  </label>
+                  <select
+                    value={selectedRegion}
+                    onChange={(e) => setSelectedRegion(e.target.value)}
+                    className="w-full sm:w-80 bg-bg-primary border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent"
+                  >
+                    {regions.map((reg) => (
+                      <option key={reg.id} value={reg.id}>
+                        {language === 'uk' ? reg.nameUk : reg.nameEn}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Auto Cancel Lessons during active alert */}
+                <div className="pt-3 border-t border-border-light flex items-center justify-between">
+                  <div className="pr-4">
+                    <p className="font-medium text-text-primary text-sm">{t('air_alerts_auto_cancel')}</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {language === 'uk'
+                        ? 'Якщо під час уроку діє тривога, він автоматично позначається скасованим. Ви зможете скасувати це вручну в один клік.'
+                        : 'If an alarm is active during lesson hours, it is marked cancelled automatically. You can undo anytime.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={autoCancelEnabled}
+                    onClick={() => setAutoCancelEnabled(!autoCancelEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent",
+                      autoCancelEnabled ? "bg-accent" : "bg-bg-tertiary border border-border"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                        autoCancelEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Mandatory Attribution Link */}
+            <div className="pt-2 border-t border-border-light text-[11px] text-text-muted">
+              <span>{t('air_alerts_attribution')}: </span>
+              <a
+                href="https://neptun.in.ua"
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent underline hover:text-accent/80 font-medium"
+              >
+                neptun.in.ua
+              </a>
+            </div>
+          </div>
+        </section>
+
         {/* Danger Zone: Data Wipe Controls */}
         <section className="bg-danger/5 border border-danger/30 p-5 rounded-xl space-y-4">
           <div className="flex items-center gap-2.5 text-danger border-b border-danger/20 pb-2">
@@ -1328,6 +1520,12 @@ export function SettingsPage() {
       <ScheduleEditorModal
         isOpen={isScheduleEditorOpen}
         onClose={() => setIsScheduleEditorOpen(false)}
+      />
+
+      {/* AI Schedule Import Modal */}
+      <AiImportModal
+        isOpen={isAiImportModalOpen}
+        onClose={() => setIsAiImportModalOpen(false)}
       />
     </div>
   );

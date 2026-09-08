@@ -254,6 +254,45 @@ export const translations = {
     lesson_override_modal_title: 'Lesson Substitution & Events',
     event_tag_desc: 'Tag this lesson if there is an upcoming test, control work, essay, or project',
     upcoming_events_title: 'Upcoming Tests & Deadlines',
+
+    // Stopwatch / Timer
+    hw_timer_label: 'Stopwatch',
+    hw_timer_start: 'Start',
+    hw_timer_pause: 'Pause',
+    hw_timer_reset: 'Reset',
+    hw_timer_save: 'Save Time',
+    hw_timer_spent: 'Time spent: {time}',
+    hw_timer_active: 'Active timer',
+
+    // Stats View & Modes
+    stats_mode_actual: 'This Week (Actual)',
+    stats_mode_numerator: 'Numerator Template',
+    stats_mode_denominator: 'Denominator Template',
+    stats_metric_time: 'Study Time',
+    stats_metric_lessons: 'Number of Lessons',
+    stats_cancelled_lessons: 'Cancelled Lessons',
+    stats_events_summary: 'Upcoming Assessments & Events',
+    stats_no_events: 'No control works or tests scheduled for this period.',
+    stats_lessons_unit: '{count} lessons',
+    stats_lesson_unit_single: '1 lesson',
+
+    // Settings & Features
+    hide_cabinets_title: 'Classroom Cabinets',
+    hide_cabinets_desc: 'Show or hide classroom room/cabinet numbers across all schedules',
+    show_cabinets_label: 'Show classroom numbers',
+    air_alerts_title: 'Air Raid Alerts Integration (Neptun)',
+    air_alerts_desc: 'Real-time air alerts stream via Neptun API with automatic lesson cancellation',
+    air_alerts_enable: 'Enable Air Alert Tracking',
+    air_alerts_region: 'Select Region / Oblast',
+    air_alerts_auto_cancel: 'Auto-cancel ongoing lessons during active alert',
+    air_alerts_active_status: 'Air Alert is ACTIVE in your region!',
+    air_alerts_safe_status: 'No air alerts in your region',
+    air_alerts_attribution: 'Data provided by Map of Air Alerts — NEPTUN (neptun.in.ua)',
+    air_alert_lesson_note: 'Air Alert (Auto-cancelled)',
+    ai_schedule_settings_title: 'AI Timetable Import',
+    ai_schedule_settings_desc: 'Upload a photo or enter timetable JSON to automatically generate your weekly schedule with AI',
+    ai_schedule_open_import: 'Open AI Schedule Importer',
+    search_subject_placeholder: 'Search subject...',
   },
   uk: {
     // Navigation
@@ -508,6 +547,45 @@ export const translations = {
     lesson_override_modal_title: 'Заміна уроку та події',
     event_tag_desc: 'Позначте цей урок, якщо планується контрольна, тест, твір або захист проєкту',
     upcoming_events_title: 'Найближчі контрольні та дедлайни',
+
+    // Stopwatch / Timer
+    hw_timer_label: 'Секундомір',
+    hw_timer_start: 'Старт',
+    hw_timer_pause: 'Пауза',
+    hw_timer_reset: 'Скинути',
+    hw_timer_save: 'Зберегти час',
+    hw_timer_spent: 'Витрачено часу: {time}',
+    hw_timer_active: 'Активний таймер',
+
+    // Stats View & Modes
+    stats_mode_actual: 'Поточний тиждень (фактичний)',
+    stats_mode_numerator: 'Шаблон чисельника',
+    stats_mode_denominator: 'Шаблон знаменника',
+    stats_metric_time: 'Час занять',
+    stats_metric_lessons: 'Кількість уроків',
+    stats_cancelled_lessons: 'Скасовані уроки',
+    stats_events_summary: 'Заплановані контрольні та події',
+    stats_no_events: 'Немає запланованих контрольних або тестів на цей період.',
+    stats_lessons_unit: '{count} ур.',
+    stats_lesson_unit_single: '1 урок',
+
+    // Settings & Features
+    hide_cabinets_title: 'Номери кабінетів',
+    hide_cabinets_desc: 'Показувати або приховувати номери кабінетів в усіх розділах додатку',
+    show_cabinets_label: 'Відображати номери кабінетів',
+    air_alerts_title: 'Інтеграція тривог (Neptun)',
+    air_alerts_desc: 'Отримання тривог у реальному часі через Neptun API з автоматичним скасуванням уроків',
+    air_alerts_enable: 'Увімкнути моніторинг тривог',
+    air_alerts_region: 'Оберіть область / регіон',
+    air_alerts_auto_cancel: 'Автоматично скасовувати поточні уроки під час тривоги',
+    air_alerts_active_status: 'У вашому регіоні ОГОЛОШЕНО ТРИВОГУ!',
+    air_alerts_safe_status: 'У вашому регіоні тривоги немає',
+    air_alerts_attribution: 'Дані: Карта повітряних тривог — NEPTUN (neptun.in.ua)',
+    air_alert_lesson_note: 'Повітряна тривога (Автоскасовано)',
+    ai_schedule_settings_title: 'Імпорт розкладу через AI',
+    ai_schedule_settings_desc: 'Завантажте фото або вставте JSON для швидкого створення розкладу за допомогою AI',
+    ai_schedule_open_import: 'Відкрити імпортер розкладу',
+    search_subject_placeholder: 'Пошук предмета...',
   },
 } as const;
 

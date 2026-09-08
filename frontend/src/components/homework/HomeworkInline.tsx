@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, RotateCcw, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, RotateCcw, Link as LinkIcon, Loader2, Timer, Play, Pause, RotateCcw as ResetIcon } from 'lucide-react';
 import { useUpdateHomework, useDeleteHomework } from '../../hooks/useHomework';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { fetchNextLesson, fetchPreviousLesson } from '../../hooks/useScheduleOverrides';
@@ -20,7 +20,8 @@ interface HomeworkInlineProps {
 /**
  * Inline homework display within a LessonCard.
  * Shows completion toggle, text, attached image thumbnails with lightbox,
- * PDF and presentation chips, and edit/delete/locate actions on hover.
+ * PDF and presentation chips, edit/delete/locate actions on hover,
+ * and an integrated study stopwatch timer.
  */
 export function HomeworkInline({
   homework,
@@ -29,7 +30,7 @@ export function HomeworkInline({
   onFindNextLesson,
   onFindPreviousLesson,
 }: HomeworkInlineProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   /* Use homework.text to match backend HomeworkRead schema */
   const [editText, setEditText] = useState(homework.text);
@@ -44,7 +45,32 @@ export function HomeworkInline({
   /* Locating status */
   const [isLocating, setIsLocating] = useState(false);
   const [isLocatingPrev, setIsLocatingPrev] = useState(false);
-  
+
+  /* Stopwatch state */
+  const [isTimerOpen, setIsTimerOpen] = useState(false);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [secondsSpent, setSecondsSpent] = useState<number>(homework.time_spent_seconds || 0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync initial seconds if homework prop updates from server
+  useEffect(() => {
+    if (!timerRunning && homework.time_spent_seconds !== undefined) {
+      setSecondsSpent(homework.time_spent_seconds || 0);
+    }
+  }, [homework.time_spent_seconds, timerRunning]);
+
+  // Stopwatch ticking effect
+  useEffect(() => {
+    if (timerRunning) {
+      timerRef.current = setInterval(() => {
+        setSecondsSpent((prev) => prev + 1);
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   const updateMutation = useUpdateHomework();
   const deleteMutation = useDeleteHomework();
   const uploadMutation = useFileUpload();
@@ -52,6 +78,43 @@ export function HomeworkInline({
   /* Toggle the completion status */
   const handleToggle = () => {
     updateMutation.mutate({ id: homework.id, data: { is_completed: !homework.is_completed } });
+  };
+
+  /* Format seconds to mm:ss or hh:mm:ss */
+  const formatTime = (totalSec: number) => {
+    const hours = Math.floor(totalSec / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+    if (hours > 0) {
+      return `${hours}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+    }
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  /* Save stopwatch time to backend */
+  const handleSaveTimer = (newSeconds: number) => {
+    updateMutation.mutate({
+      id: homework.id,
+      data: { time_spent_seconds: newSeconds },
+    });
+  };
+
+  /* Toggle stopwatch running/pause */
+  const handleToggleTimer = () => {
+    if (timerRunning) {
+      // Pausing: save current time
+      setTimerRunning(false);
+      handleSaveTimer(secondsSpent);
+    } else {
+      setTimerRunning(true);
+    }
+  };
+
+  /* Reset stopwatch */
+  const handleResetTimer = () => {
+    setTimerRunning(false);
+    setSecondsSpent(0);
+    handleSaveTimer(0);
   };
 
   /* Save edited text, images, and attachments */
@@ -340,8 +403,19 @@ export function HomeworkInline({
           <span className={cn("text-sm flex-1 leading-snug break-words", homework.is_completed && "line-through text-text-muted")}>
             {homework.text}
           </span>
-          {/* Edit/delete actions and locate previous/next lesson buttons — visible on hover and touch */}
+          {/* Edit/delete actions, locate previous/next lesson, and stopwatch buttons — visible on hover and touch */}
           <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+            {/* Stopwatch toggle button */}
+            <button
+              onClick={() => setIsTimerOpen((prev) => !prev)}
+              className={cn(
+                "p-1 transition-colors rounded",
+                timerRunning ? "text-accent animate-pulse" : (secondsSpent > 0 ? "text-accent/80 hover:text-accent" : "text-text-muted hover:text-accent")
+              )}
+              title={t('hw_timer_label')}
+            >
+              <Timer size={12} />
+            </button>
             {/* Locate previous lesson button */}
             <button
               onClick={handleLocatePrevious}
@@ -376,6 +450,49 @@ export function HomeworkInline({
             </button>
           </div>
         </div>
+
+        {/* Stopwatch Active Controls or Saved Time Chip */}
+        {(isTimerOpen || timerRunning || secondsSpent > 0) && (
+          <div className="flex items-center gap-2 pl-6 py-0.5 text-xs">
+            <div className={cn(
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-mono",
+              timerRunning
+                ? "bg-accent/15 border-accent/40 text-accent"
+                : "bg-bg-tertiary border-border text-text-muted"
+            )}>
+              <Timer size={11} className={timerRunning ? "animate-spin" : ""} />
+              <span>{formatTime(secondsSpent)}</span>
+            </div>
+
+            {/* Stopwatch controls when opened or running */}
+            {(isTimerOpen || timerRunning) && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleToggleTimer}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors",
+                    timerRunning
+                      ? "bg-amber-500/20 text-amber-500 hover:bg-amber-500/30"
+                      : "bg-accent/20 text-accent hover:bg-accent/30"
+                  )}
+                >
+                  {timerRunning ? <><Pause size={11} /> {t('hw_timer_pause')}</> : <><Play size={11} /> {t('hw_timer_start')}</>}
+                </button>
+                {secondsSpent > 0 && !timerRunning && (
+                  <button
+                    type="button"
+                    onClick={handleResetTimer}
+                    className="p-1 text-text-muted hover:text-danger rounded transition-colors"
+                    title={t('hw_timer_reset')}
+                  >
+                    <ResetIcon size={11} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Display attached PDF / Presentation / Link chips */}
         {homework.attachments && homework.attachments.length > 0 && (

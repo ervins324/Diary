@@ -289,7 +289,7 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
 
           {/* Top-right actions: Cabinet badge, Substitution modal trigger, and Next lesson locator */}
           <div className="flex items-center gap-1.5">
-            {lesson.cabinet && !lesson.is_cancelled && (
+            {lesson.cabinet && !lesson.is_cancelled && localStorage.getItem('show_cabinets') !== 'false' && (
               <span className="text-xs px-2 py-0.5 rounded bg-bg-tertiary text-text-secondary font-medium">
                 {t('cabinet_short')} {lesson.cabinet}
               </span>

@@ -365,7 +365,7 @@ export function DiaryPage() {
 
                       {/* Right actions: Cabinet & Quick Substitution / Locate icons */}
                       <div className="flex items-center gap-1 shrink-0">
-                        {lesson.cabinet && !lesson.is_cancelled && (
+                        {lesson.cabinet && !lesson.is_cancelled && localStorage.getItem('show_cabinets') !== 'false' && (
                           <span className="text-xs text-text-muted whitespace-nowrap">
                             {t('cabinet_short')} {lesson.cabinet}
                           </span>

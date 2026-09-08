@@ -1,6 +1,6 @@
 import uuid
 from datetime import date
-from sqlalchemy import String, SmallInteger, ForeignKey, Date, Text, Boolean, JSON
+from sqlalchemy import String, SmallInteger, Integer, ForeignKey, Date, Text, Boolean, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
@@ -20,6 +20,8 @@ class HomeworkEntry(Base):
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     images: Mapped[list[str] | None] = mapped_column(JSON, default=list, nullable=True)
     attachments: Mapped[list[dict] | None] = mapped_column(JSON, default=list, nullable=True)
+    # Total time spent on this homework in seconds (tracked via stopwatch)
+    time_spent_seconds: Mapped[int | None] = mapped_column(Integer, default=0, nullable=True)
 
     subject: Mapped["Subject"] = relationship("Subject", lazy="selectin")
 

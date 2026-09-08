@@ -25,6 +25,9 @@ async def lifespan(app: FastAPI):
             await conn.execute(
                 text("ALTER TABLE schedule_overrides ADD COLUMN IF NOT EXISTS event_type VARCHAR(50);")
             )
+            await conn.execute(
+                text("ALTER TABLE homeworks ADD COLUMN IF NOT EXISTS time_spent_seconds INTEGER DEFAULT 0;")
+            )
             logger.info("Database safety column verification completed.")
     except Exception as e:
         logger.warning(f"Database safety migration check warning: {e}")

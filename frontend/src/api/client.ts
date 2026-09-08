@@ -110,8 +110,8 @@ export const clearAllAppData = async (): Promise<void> => {
   await api.post('/subjects/clear-all-data');
 };
 
-export const fetchWeeklyStats = async (date: string): Promise<WeeklyStatsResponse> => {
-  const { data } = await api.get('/stats/weekly', { params: { date } });
+export const fetchWeeklyStats = async (date: string, mode: 'actual' | 'numerator' | 'denominator' = 'actual'): Promise<WeeklyStatsResponse> => {
+  const { data } = await api.get('/stats/weekly', { params: { date, mode } });
   return data;
 };
 

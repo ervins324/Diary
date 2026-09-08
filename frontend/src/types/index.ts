@@ -25,6 +25,7 @@ export interface HomeworkEntry {
   subject?: Subject;
   images?: string[];
   attachments?: Attachment[];
+  time_spent_seconds?: number;
 }
 
 export type LessonEventType = 'control_work' | 'test' | 'essay' | 'project' | null;
@@ -85,6 +86,7 @@ export interface WeeklyStat {
   short_name: string;
   color_hex: string;
   total_minutes: number;
+  lessons_count?: number;
 }
 
 export interface DayStatSubject {
@@ -95,6 +97,9 @@ export interface DayStatSubject {
   lesson_order: number;
   start_time: string;
   end_time: string;
+  is_cancelled?: boolean;
+  note?: string | null;
+  event_type?: LessonEventType;
 }
 
 export interface DayStat {
@@ -114,8 +119,16 @@ export interface WeeklyStatsResponse {
   days?: DayStat[];
   total_subjects: number;
   total_lessons: number;
+  cancelled_lessons_count?: number;
   avg_lessons_per_day: number;
   total_break_minutes: number;
+  mode?: 'actual' | 'numerator' | 'denominator';
+  event_counts?: {
+    control_work: number;
+    test: number;
+    essay: number;
+    project: number;
+  };
   homework_stats: {
     total: number;
     completed: number;

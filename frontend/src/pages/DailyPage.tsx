@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { format, addDays, subDays, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Wand2, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { fetchNextLesson, fetchPreviousLesson } from '../hooks/useScheduleOverrides';
 import { LessonCard } from '../components/schedule/LessonCard';
-import { AiImportModal } from '../components/ai-import/AiImportModal';
 import { formatDate, getDefaultScheduleDate } from '../lib/utils';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -12,7 +11,6 @@ export function DailyPage() {
   const { t, language } = useLanguage();
   /* Initialize date with weekend auto-advance if today is Saturday/Sunday */
   const [currentDate, setCurrentDate] = useState(getDefaultScheduleDate);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [targetHighlightOrder, setTargetHighlightOrder] = useState<number | null>(null);
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
@@ -174,17 +172,6 @@ export function DailyPage() {
           </div>
         )}
       </div>
-
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setIsAiModalOpen(true)}
-        className="fixed bottom-20 md:bottom-8 right-4 md:right-8 w-14 h-14 bg-accent text-white rounded-full shadow-lg flex items-center justify-center hover:bg-accent/90 transition-transform hover:scale-105 active:scale-95"
-        aria-label={t('import_ai_schedule')}
-      >
-        <Wand2 size={24} />
-      </button>
-
-      <AiImportModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} />
     </div>
   );
 }

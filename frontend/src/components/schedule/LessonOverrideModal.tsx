@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, Check, ArrowLeftRight, RotateCcw, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Check, ArrowLeftRight, RotateCcw, Loader2, Search } from 'lucide-react';
 import { fetchSubjects } from '../../api/client';
 import { useSetScheduleOverride, useDeleteScheduleOverride } from '../../hooks/useScheduleOverrides';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -30,6 +30,15 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
   const [isCancelled, setIsCancelled] = useState<boolean>(lesson.is_cancelled || false);
   const [note, setNote] = useState<string>(lesson.override_note || '');
   const [eventType, setEventType] = useState<LessonEventType>(lesson.event_type || null);
+  const [subjectSearch, setSubjectSearch] = useState<string>('');
+
+  // Alphabetically sorted & filtered subjects
+  const filteredSortedSubjects = useMemo(() => {
+    const list = [...subjects].sort((a, b) => a.name.localeCompare(b.name, language === 'uk' ? 'uk' : 'en'));
+    if (!subjectSearch.trim()) return list;
+    const q = subjectSearch.toLowerCase().trim();
+    return list.filter((s) => s.name.toLowerCase().includes(q) || s.short_name?.toLowerCase().includes(q));
+  }, [subjects, subjectSearch, language]);
 
   if (!isOpen) return null;
 
@@ -114,33 +123,11 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
 
         {/* Body */}
         <div className="p-5 overflow-y-auto space-y-4 text-sm">
-          {/* Original lesson banner */}
-          <div className="p-3 bg-bg-secondary rounded-lg border border-border flex items-start gap-2.5">
-            <AlertCircle size={18} className="text-accent shrink-0 mt-0.5" />
-            <div className="text-xs">
-              <span className="font-semibold text-text-primary">
-                {language === 'uk' ? 'Регулярний урок за розкладом:' : 'Regular scheduled lesson:'}
-              </span>{' '}
-              <span className="font-bold text-text-primary">{originalSubject?.name}</span>
-              {originalSubject?.default_cabinet && (
-                <span className="text-text-muted"> ({t('cabinet_short')} {originalSubject.default_cabinet})</span>
-              )}
-              <p className="text-text-muted mt-0.5">
-                {language === 'uk'
-                  ? 'Зміна застосується тільки для цього конкретного тижня. Інші тижні не зміняться.'
-                  : 'This change only affects this specific date. Other weeks remain unchanged.'}
-              </p>
-            </div>
-          </div>
-
           {/* Lesson Event / Assessment Type Selector */}
           <div>
-            <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
               {t('lesson_event_type')}
             </label>
-            <p className="text-xs text-text-muted mb-2">
-              {t('event_tag_desc')}
-            </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <button
                 type="button"
@@ -235,46 +222,61 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
           </label>
 
           {!isCancelled && (
-            <>
-              {/* Substitute Subject selector */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
-                  {language === 'uk' ? 'Урок на заміну (новий предмет)' : 'Substitute Subject (New Class)'}
-                </label>
-                {isLoadingSubjects ? (
-                  <div className="flex items-center gap-2 text-text-muted py-2">
-                    <Loader2 size={16} className="animate-spin text-accent" />
-                    <span>{language === 'uk' ? 'Завантаження...' : 'Loading...'}</span>
-                  </div>
-                ) : (
-                  <select
-                    value={selectedSubjectId}
-                    onChange={(e) => handleSubjectChange(e.target.value)}
-                    className="w-full bg-bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent"
-                  >
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {s.default_cabinet ? `(${t('cabinet_short')} ${s.default_cabinet})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
+                {language === 'uk' ? 'Урок на заміну (новий предмет)' : 'Substitute Subject (New Class)'}
+              </label>
 
-              {/* Cabinet input */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
-                  {language === 'uk' ? 'Кабінет / Аудиторія' : 'Cabinet / Classroom'}
-                </label>
+              {/* Instant Search Bar */}
+              <div className="relative mb-2">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input
                   type="text"
-                  value={cabinet}
-                  onChange={(e) => setCabinet(e.target.value)}
-                  placeholder={language === 'uk' ? 'Наприклад, 204' : 'e.g. 204'}
-                  className="w-full bg-bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent"
+                  value={subjectSearch}
+                  onChange={(e) => setSubjectSearch(e.target.value)}
+                  placeholder={t('search_subject_placeholder')}
+                  className="w-full bg-bg-secondary border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
-            </>
+
+              {isLoadingSubjects ? (
+                <div className="flex items-center gap-2 text-text-muted py-2">
+                  <Loader2 size={16} className="animate-spin text-accent" />
+                  <span>{language === 'uk' ? 'Завантаження...' : 'Loading...'}</span>
+                </div>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-lg p-1 bg-bg-secondary">
+                  {filteredSortedSubjects.length === 0 ? (
+                    <div className="p-3 text-xs text-center text-text-muted">
+                      {language === 'uk' ? 'Предметів не знайдено' : 'No subjects found'}
+                    </div>
+                  ) : (
+                    filteredSortedSubjects.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => handleSubjectChange(s.id)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 rounded text-xs text-left transition-colors",
+                          selectedSubjectId === s.id
+                            ? "bg-accent text-white font-semibold"
+                            : "hover:bg-bg-tertiary text-text-primary"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: s.color_hex || '#3b82f6' }}
+                          />
+                          <span>{s.name}</span>
+                        </div>
+                        {selectedSubjectId === s.id && <Check size={14} />}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Note / reason */}

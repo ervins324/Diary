@@ -12,6 +12,9 @@ import {
   Calendar,
   BarChart2,
   CalendarDays,
+  Hash,
+  Ban,
+  GraduationCap,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -24,11 +27,16 @@ export function StatsPage() {
   const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'subjects' | 'days'>('subjects');
+  /* Template schedule switcher: actual week vs numerator vs denominator */
+  const [scheduleMode, setScheduleMode] = useState<'actual' | 'numerator' | 'denominator'>('actual');
+  /* Metric toggle: Study time (hours) vs Number of lessons */
+  const [metricMode, setMetricMode] = useState<'time' | 'lessons'>('time');
+
   const { start, end } = getWeekDates(currentDate);
 
   const { data: statsResponse, isLoading } = useQuery<WeeklyStatsResponse>({
-    queryKey: ['stats', start],
-    queryFn: () => fetchWeeklyStats(start),
+    queryKey: ['stats', start, scheduleMode],
+    queryFn: () => fetchWeeklyStats(start, scheduleMode),
   });
 
   const handlePrevWeek = () => setCurrentDate((prev) => subWeeks(prev, 1));
@@ -38,10 +46,14 @@ export function StatsPage() {
   const rawSubjects: WeeklyStat[] = statsResponse?.subjects || (Array.isArray(statsResponse) ? statsResponse : []);
   const subjectsList: WeeklyStat[] = [...rawSubjects].sort((a, b) => a.subject_name.localeCompare(b.subject_name));
 
-  // Prepare data for Recharts (convert minutes to hours)
+  // Prepare data for Recharts (hours or lesson count depending on metricMode)
   const chartData = subjectsList.map(stat => ({
     ...stat,
     hours: Math.round((stat.total_minutes / 60) * 10) / 10,
+    lessons: stat.lessons_count ?? Math.round(stat.total_minutes / 45),
+    displayValue: metricMode === 'time'
+      ? Math.round((stat.total_minutes / 60) * 10) / 10
+      : (stat.lessons_count ?? Math.round(stat.total_minutes / 45)),
   }));
 
   // Daily statistics data for day view
@@ -52,6 +64,10 @@ export function StatsPage() {
     ...d,
     label: t(d.day_key as any),
     hours: Math.round((d.total_minutes / 60) * 10) / 10,
+    lessons: d.lessons_count,
+    displayValue: metricMode === 'time'
+      ? Math.round((d.total_minutes / 60) * 10) / 10
+      : d.lessons_count,
   }));
 
   const totalMinutes = subjectsList.reduce((acc, curr) => acc + curr.total_minutes, 0);
@@ -67,7 +83,7 @@ export function StatsPage() {
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload as WeeklyStat;
+      const data = payload[0].payload as any;
       const hours = Math.floor(data.total_minutes / 60);
       const mins = Math.round(data.total_minutes % 60);
       return (
@@ -75,6 +91,9 @@ export function StatsPage() {
           <p className="font-semibold text-text-primary mb-1">{data.subject_name}</p>
           <p className="text-sm text-text-secondary">
             {t('duration')}: <span className="font-medium text-text-primary">{hours}{t('hours_short')} {mins}{t('minutes_short')}</span>
+          </p>
+          <p className="text-sm text-text-secondary">
+            {t('stats_lessons_count')}: <span className="font-medium text-text-primary">{data.lessons}</span>
           </p>
         </div>
       );
@@ -127,7 +146,124 @@ export function StatsPage() {
         </button>
       </header>
 
-      {/* View Mode Segmented Switcher */}
+      {/* Top Controls: Schedule Mode Switcher (Actual / Numerator / Denominator) and Metric Switcher (Time / Lessons) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4">
+        {/* Schedule Mode: Actual / Numerator / Denominator */}
+        <div className="flex bg-bg-secondary p-1 rounded-xl border border-border w-full sm:w-auto justify-center">
+          <button
+            type="button"
+            onClick={() => setScheduleMode('actual')}
+            className={cn(
+              "flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors",
+              scheduleMode === 'actual' ? "bg-accent text-white shadow-xs" : "text-text-secondary hover:text-text-primary"
+            )}
+          >
+            {t('stats_mode_actual')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setScheduleMode('numerator')}
+            className={cn(
+              "flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors",
+              scheduleMode === 'numerator' ? "bg-accent text-white shadow-xs" : "text-text-secondary hover:text-text-primary"
+            )}
+          >
+            {t('stats_mode_numerator')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setScheduleMode('denominator')}
+            className={cn(
+              "flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors",
+              scheduleMode === 'denominator' ? "bg-accent text-white shadow-xs" : "text-text-secondary hover:text-text-primary"
+            )}
+          >
+            {t('stats_mode_denominator')}
+          </button>
+        </div>
+
+        {/* Metric Switcher: Study Time vs Number of Lessons */}
+        <div className="flex bg-bg-secondary p-1 rounded-xl border border-border shrink-0">
+          <button
+            type="button"
+            onClick={() => setMetricMode('time')}
+            className={cn(
+              "flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors",
+              metricMode === 'time' ? "bg-accent text-white shadow-xs" : "text-text-secondary hover:text-text-primary"
+            )}
+            title={t('stats_metric_time')}
+          >
+            <Clock size={13} />
+            <span>{t('stats_metric_time')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMetricMode('lessons')}
+            className={cn(
+              "flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors",
+              metricMode === 'lessons' ? "bg-accent text-white shadow-xs" : "text-text-secondary hover:text-text-primary"
+            )}
+            title={t('stats_metric_lessons')}
+          >
+            <Hash size={13} />
+            <span>{t('stats_metric_lessons')}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Cancelled Lessons Notice & Academic Events Milestone Badges */}
+      <div className="flex flex-col gap-2.5 mb-4">
+        {/* Cancelled lessons callout if any */}
+        {(statsResponse?.cancelled_lessons_count ?? 0) > 0 && (
+          <div className="flex items-center justify-between p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs">
+            <div className="flex items-center gap-2">
+              <Ban size={15} />
+              <span className="font-semibold">{t('stats_cancelled_lessons')}:</span>
+              <span>{statsResponse?.cancelled_lessons_count} {language === 'uk' ? 'уроків скасовано (вирахувано із загальної статистики)' : 'lessons cancelled (deducted from total)'}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Academic Events Summary (Control works, tests, essays, projects) */}
+        {statsResponse?.event_counts && (
+          <div className="p-3 rounded-xl bg-bg-secondary border border-border flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
+              <GraduationCap size={15} className="text-accent" />
+              <span>{t('stats_events_summary')}:</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap text-xs font-bold">
+              {statsResponse.event_counts.control_work > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                  🔥 {statsResponse.event_counts.control_work} {t('event_control_work')}
+                </span>
+              )}
+              {statsResponse.event_counts.test > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  📝 {statsResponse.event_counts.test} {t('event_test')}
+                </span>
+              )}
+              {statsResponse.event_counts.essay > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                  ✍️ {statsResponse.event_counts.essay} {t('event_essay')}
+                </span>
+              )}
+              {statsResponse.event_counts.project > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+                  🚀 {statsResponse.event_counts.project} {t('event_project')}
+                </span>
+              )}
+              {statsResponse.event_counts.control_work === 0 &&
+                statsResponse.event_counts.test === 0 &&
+                statsResponse.event_counts.essay === 0 &&
+                statsResponse.event_counts.project === 0 && (
+                  <span className="text-text-muted font-normal text-xs">{t('stats_no_events')}</span>
+                )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* View Mode Segmented Switcher (Subjects vs Days) */}
       <div className="flex justify-center mb-6">
         <div className="flex bg-bg-secondary p-1 rounded-xl border border-border">
           <button
@@ -185,7 +321,7 @@ export function StatsPage() {
                       tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }} 
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--color-bg-tertiary)' }} />
-                    <Bar dataKey="hours" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                    <Bar dataKey="displayValue" radius={[4, 4, 0, 0]} maxBarSize={50}>
                       {chartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color_hex || 'var(--color-accent)'} />
                       ))}
@@ -215,7 +351,7 @@ export function StatsPage() {
                         tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }} 
                       />
                       <Tooltip content={<CustomDayTooltip />} cursor={{ fill: 'var(--color-bg-tertiary)' }} />
-                      <Bar dataKey="hours" radius={[4, 4, 0, 0]} maxBarSize={48} fill="var(--color-accent)" />
+                      <Bar dataKey="displayValue" radius={[4, 4, 0, 0]} maxBarSize={48} fill="var(--color-accent)" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
