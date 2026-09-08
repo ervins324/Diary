@@ -86,6 +86,7 @@ async def get_weekly_stats(
     
     total_lessons = 0
     total_break_minutes = 0.0
+    total_cancelled_minutes = 0.0
     active_days_count = 0
     days_list = []
     day_keys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -126,6 +127,11 @@ async def get_weekly_stats(
             
             # If lesson is cancelled in actual mode, do not count it in active lesson minutes/counts
             if override and override.is_cancelled:
+                # Track cancelled lesson duration for separate interruption statistics
+                dt_c_start = datetime.combine(date.today(), rule.start_time)
+                dt_c_end = datetime.combine(date.today(), rule.end_time)
+                total_cancelled_minutes += (dt_c_end - dt_c_start).total_seconds() / 60
+
                 day_subjects.append({
                     "name": (override.subject or rule.subject).name,
                     "short_name": (override.subject or rule.subject).short_name,
@@ -217,6 +223,7 @@ async def get_weekly_stats(
         "total_subjects": len(stats_map),
         "total_lessons": total_lessons,
         "cancelled_lessons_count": cancelled_lessons_count,
+        "total_cancelled_minutes": int(total_cancelled_minutes),
         "avg_lessons_per_day": avg_lessons,
         "total_break_minutes": int(total_break_minutes),
         "mode": mode,

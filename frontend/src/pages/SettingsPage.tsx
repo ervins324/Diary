@@ -58,6 +58,16 @@ import { useAirAlerts } from '../hooks/useAirAlerts';
 import { getAutoCleanConfig, saveAutoCleanConfig, type AutoCleanConfig } from '../hooks/useAutoClean';
 import { cn } from '../lib/utils';
 import { SettingsContents } from '../components/settings/SettingsContents';
+import {
+  getAllEventTypes,
+  getCustomEventTypes,
+  saveCustomEventTypes,
+  getAllLessonTypes,
+  getCustomLessonTypes,
+  saveCustomLessonTypes,
+  type CustomEventType,
+  type CustomLessonType,
+} from '../lib/customTypes';
 import type { Subject } from '../types';
 
 export function SettingsPage() {
@@ -92,6 +102,89 @@ export function SettingsPage() {
 
   /* Weekend auto-advance toggle state (defaults to true) */
   const [skipWeekends, setSkipWeekends] = useState(() => localStorage.getItem('skip_weekends_to_monday') !== 'false');
+
+  /* Live Status Widget Settings */
+  const [liveWidgetEnabled, setLiveWidgetEnabled] = useState(() => localStorage.getItem('live_widget_enabled') !== 'false');
+  const [liveWidgetLesson, setLiveWidgetLesson] = useState(() => localStorage.getItem('live_widget_show_lesson') !== 'false');
+  const [liveWidgetHw, setLiveWidgetHw] = useState(() => localStorage.getItem('live_widget_show_homework') !== 'false');
+  const [liveWidgetEvents, setLiveWidgetEvents] = useState(() => localStorage.getItem('live_widget_show_events') !== 'false');
+
+  const updateLiveWidgetSetting = (key: string, val: boolean, setter: (v: boolean) => void) => {
+    setter(val);
+    localStorage.setItem(key, val ? 'true' : 'false');
+    window.dispatchEvent(new Event('live_widget_settings_changed'));
+  };
+
+  /* Custom Event & Lesson Types State */
+  const [customEvents, setCustomEvents] = useState<CustomEventType[]>(getAllEventTypes);
+  const [customLessons, setCustomLessons] = useState<CustomLessonType[]>(getAllLessonTypes);
+
+  // Form states for adding custom event
+  const [newEventNameUk, setNewEventNameUk] = useState('');
+  const [newEventNameEn, setNewEventNameEn] = useState('');
+  const [newEventIcon, setNewEventIcon] = useState('🏆');
+  const [newEventColor, setNewEventColor] = useState('#f59e0b');
+
+  // Form states for adding custom lesson type
+  const [newLessonNameUk, setNewLessonNameUk] = useState('');
+  const [newLessonNameEn, setNewLessonNameEn] = useState('');
+  const [newLessonIcon, setNewLessonIcon] = useState('🎓');
+  const [newLessonColor, setNewLessonColor] = useState('#6366f1');
+
+  const handleAddCustomEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEventNameUk.trim()) return;
+    const slug = newEventNameUk.toLowerCase().trim().replace(/[^a-z0-9а-яіїєґ]/gi, '_');
+    const existing = getCustomEventTypes();
+    const newEntry: CustomEventType = {
+      id: slug || `custom_event_${Date.now()}`,
+      nameUk: newEventNameUk.trim(),
+      nameEn: newEventNameEn.trim() || newEventNameUk.trim(),
+      icon: newEventIcon.trim() || '📌',
+      color: newEventColor || '#3b82f6',
+      isCustom: true,
+    };
+    const updated = [...existing, newEntry];
+    saveCustomEventTypes(updated);
+    setCustomEvents(getAllEventTypes());
+    setNewEventNameUk('');
+    setNewEventNameEn('');
+  };
+
+  const handleDeleteCustomEvent = (id: string) => {
+    const existing = getCustomEventTypes();
+    const updated = existing.filter((e) => e.id !== id);
+    saveCustomEventTypes(updated);
+    setCustomEvents(getAllEventTypes());
+  };
+
+  const handleAddCustomLesson = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLessonNameUk.trim()) return;
+    const slug = newLessonNameUk.toLowerCase().trim().replace(/[^a-z0-9а-яіїєґ]/gi, '_');
+    const existing = getCustomLessonTypes();
+    const newEntry: CustomLessonType = {
+      id: slug || `custom_lesson_${Date.now()}`,
+      nameUk: newLessonNameUk.trim(),
+      nameEn: newLessonNameEn.trim() || newLessonNameUk.trim(),
+      icon: newLessonIcon.trim() || '📚',
+      color: newLessonColor || '#6366f1',
+      isCustom: true,
+    };
+    const updated = [...existing, newEntry];
+    saveCustomLessonTypes(updated);
+    setCustomLessons(getAllLessonTypes());
+    setNewLessonNameUk('');
+    setNewLessonNameEn('');
+  };
+
+  const handleDeleteCustomLesson = (id: string) => {
+    const existing = getCustomLessonTypes();
+    const updated = existing.filter((l) => l.id !== id);
+    saveCustomLessonTypes(updated);
+    setCustomLessons(getAllLessonTypes());
+  };
+
   const [isExportingBackup, setIsExportingBackup] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
 
@@ -447,23 +540,15 @@ export function SettingsPage() {
   };
 
   return (
-    <div id="settings-scroll-container" className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-6 overflow-y-auto">
-      <div className="flex flex-col xl:flex-row-reverse items-start gap-8">
-        {/* Desktop Sticky Wikipedia Contents Sidebar */}
-        <aside className="hidden xl:block shrink-0 sticky top-4 w-64 pt-2">
-          <SettingsContents isSidebar />
-        </aside>
+    <div id="settings-scroll-container" className="flex-1 max-w-4xl mx-auto w-full p-4 md:p-6 overflow-y-auto">
+      <h1 className="text-2xl font-bold text-text-primary mb-6">{t('settings')}</h1>
 
-        {/* Main Settings Column */}
-        <div className="flex-1 max-w-3xl w-full">
-          <h1 className="text-2xl font-bold text-text-primary mb-6">{t('settings')}</h1>
+      {/* Mobile / Tablet Inline Wikipedia Contents (Hidden on desktop where it is in the sidebar) */}
+      <div className="md:hidden mb-6">
+        <SettingsContents />
+      </div>
 
-          {/* Mobile / Tablet Inline Wikipedia Contents */}
-          <div className="xl:hidden mb-6">
-            <SettingsContents />
-          </div>
-
-          <div className="space-y-8">
+      <div className="space-y-8">
             {/* Appearance & Language */}
             <section id="appearance" className="bg-bg-secondary p-5 rounded-xl border border-border space-y-4 scroll-mt-6">
               <h2 className="text-lg font-semibold text-text-primary border-b border-border-light pb-2">{t('appearance')}</h2>
@@ -569,6 +654,319 @@ export function SettingsPage() {
                     )}
                   />
                 </button>
+              </div>
+
+              {/* Live Schedule Status Widget Toggles */}
+              <div className="pt-3 border-t border-border-light space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="pr-4">
+                    <p className="font-medium text-text-primary flex items-center gap-1.5">
+                      <Sparkles size={16} className="text-accent" />
+                      <span>{t('live_widget_title')}</span>
+                    </p>
+                    <p className="text-sm text-text-muted">{t('live_widget_desc')}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={liveWidgetEnabled}
+                    onClick={() => updateLiveWidgetSetting('live_widget_enabled', !liveWidgetEnabled, setLiveWidgetEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent",
+                      liveWidgetEnabled ? "bg-accent" : "bg-bg-tertiary border border-border"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                        liveWidgetEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {liveWidgetEnabled && (
+                  <div className="pl-4 space-y-2 border-l-2 border-accent/30 py-1">
+                    <label className="flex items-center justify-between text-xs text-text-secondary cursor-pointer">
+                      <span>{t('live_widget_show_lesson_label')}</span>
+                      <input
+                        type="checkbox"
+                        checked={liveWidgetLesson}
+                        onChange={(e) => updateLiveWidgetSetting('live_widget_show_lesson', e.target.checked, setLiveWidgetLesson)}
+                        className="rounded text-accent focus:ring-accent"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between text-xs text-text-secondary cursor-pointer">
+                      <span>{t('live_widget_show_hw_label')}</span>
+                      <input
+                        type="checkbox"
+                        checked={liveWidgetHw}
+                        onChange={(e) => updateLiveWidgetSetting('live_widget_show_homework', e.target.checked, setLiveWidgetHw)}
+                        className="rounded text-accent focus:ring-accent"
+                      />
+                    </label>
+                    <label className="flex items-center justify-between text-xs text-text-secondary cursor-pointer">
+                      <span>{t('live_widget_show_events_label')}</span>
+                      <input
+                        type="checkbox"
+                        checked={liveWidgetEvents}
+                        onChange={(e) => updateLiveWidgetSetting('live_widget_show_events', e.target.checked, setLiveWidgetEvents)}
+                        className="rounded text-accent focus:ring-accent"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Custom Event & Lesson Types */}
+            <section id="custom-types" className="bg-bg-secondary p-5 rounded-xl border border-border space-y-6 scroll-mt-6">
+              <div className="border-b border-border-light pb-2">
+                <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                  <Layers size={18} className="text-accent" />
+                  <span>{t('section_custom_types')}</span>
+                </h2>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {language === 'uk'
+                    ? 'Створюйте власні типи контрольних, подій та занять з унікальними іконками та кольорами'
+                    : 'Manage built-in templates and create custom event and lesson types with custom icons and colors'}
+                </p>
+              </div>
+
+              {/* Subsection: Event Types (Assessments & Deadlines) */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider text-xs flex items-center gap-1.5">
+                  <span>🔥</span>
+                  <span>{language === 'uk' ? 'Типи подій та оцінювання (контрольні, тести)' : 'Event & Assessment Types'}</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {customEvents.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="p-2.5 rounded-lg bg-bg-tertiary/60 border border-border flex items-center justify-between gap-2 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-base shrink-0">{ev.icon}</span>
+                        <div className="truncate">
+                          <span className="font-semibold text-xs text-text-primary block truncate">
+                            {language === 'uk' ? ev.nameUk : ev.nameEn}
+                          </span>
+                          <span className="text-[10px] text-text-muted">
+                            {ev.isCustom ? (language === 'uk' ? 'Користувацький' : 'Custom') : (language === 'uk' ? 'Вбудований шаблон' : 'Built-in template')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-xs"
+                          style={{ backgroundColor: ev.color }}
+                          title={ev.color}
+                        />
+                        {ev.isCustom && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCustomEvent(ev.id)}
+                            className="text-text-muted hover:text-danger p-1 rounded transition-colors"
+                            title={language === 'uk' ? 'Видалити цей тип' : 'Delete this event type'}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add new event type form */}
+                <form
+                  onSubmit={handleAddCustomEvent}
+                  className="p-3 bg-bg-tertiary/30 rounded-lg border border-border/80 space-y-3"
+                >
+                  <span className="font-semibold text-xs text-text-secondary flex items-center gap-1">
+                    <Plus size={13} className="text-accent" />
+                    <span>{language === 'uk' ? 'Додати новий тип події' : 'Add New Event Type'}</span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder={language === 'uk' ? 'Назва українською (напр., Олімпіада)' : 'Name (e.g., Olympiad)'}
+                      value={newEventNameUk}
+                      onChange={(e) => setNewEventNameUk(e.target.value)}
+                      required
+                      className="bg-bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary focus:border-accent focus:outline-none"
+                    />
+                    <input
+                      type="text"
+                      placeholder={language === 'uk' ? 'Назва англійською (необовʼязково)' : 'English name (optional)'}
+                      value={newEventNameEn}
+                      onChange={(e) => setNewEventNameEn(e.target.value)}
+                      className="bg-bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-text-muted">{language === 'uk' ? 'Іконка:' : 'Icon:'}</label>
+                      <input
+                        type="text"
+                        value={newEventIcon}
+                        onChange={(e) => setNewEventIcon(e.target.value)}
+                        className="w-10 text-center bg-bg-secondary border border-border rounded-lg py-1 text-sm focus:border-accent focus:outline-none"
+                      />
+                      <div className="flex items-center gap-1">
+                        {['🏆', '🔬', '🎓', '💡', '📌', '🎯', '🧪'].map((ic) => (
+                          <button
+                            key={ic}
+                            type="button"
+                            onClick={() => setNewEventIcon(ic)}
+                            className="p-1 text-xs hover:bg-bg-secondary rounded cursor-pointer"
+                          >
+                            {ic}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-text-muted">{language === 'uk' ? 'Колір:' : 'Color:'}</label>
+                      <input
+                        type="color"
+                        value={newEventColor}
+                        onChange={(e) => setNewEventColor(e.target.value)}
+                        className="w-8 h-8 rounded border border-border cursor-pointer bg-transparent"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newEventNameUk.trim()}
+                        className="px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus size={13} />
+                        <span>{language === 'uk' ? 'Додати' : 'Add'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              {/* Subsection: Lesson Types */}
+              <div className="space-y-3 pt-3 border-t border-border-light">
+                <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider text-xs flex items-center gap-1.5">
+                  <span>📖</span>
+                  <span>{language === 'uk' ? 'Типи уроків (лекція, практика, семінар)' : 'Lesson Types'}</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {customLessons.map((les) => (
+                    <div
+                      key={les.id}
+                      className="p-2.5 rounded-lg bg-bg-tertiary/60 border border-border flex items-center justify-between gap-2 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-base shrink-0">{les.icon}</span>
+                        <div className="truncate">
+                          <span className="font-semibold text-xs text-text-primary block truncate">
+                            {language === 'uk' ? les.nameUk : les.nameEn}
+                          </span>
+                          <span className="text-[10px] text-text-muted">
+                            {les.isCustom ? (language === 'uk' ? 'Користувацький' : 'Custom') : (language === 'uk' ? 'Вбудований' : 'Default')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-xs"
+                          style={{ backgroundColor: les.color }}
+                          title={les.color}
+                        />
+                        {les.isCustom && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCustomLesson(les.id)}
+                            className="text-text-muted hover:text-danger p-1 rounded transition-colors"
+                            title={language === 'uk' ? 'Видалити цей тип уроку' : 'Delete this lesson type'}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add new lesson type form */}
+                <form
+                  onSubmit={handleAddCustomLesson}
+                  className="p-3 bg-bg-tertiary/30 rounded-lg border border-border/80 space-y-3"
+                >
+                  <span className="font-semibold text-xs text-text-secondary flex items-center gap-1">
+                    <Plus size={13} className="text-accent" />
+                    <span>{language === 'uk' ? 'Додати новий тип уроку' : 'Add New Lesson Type'}</span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder={language === 'uk' ? 'Назва уроку (напр., Майстер-клас)' : 'Lesson type name'}
+                      value={newLessonNameUk}
+                      onChange={(e) => setNewLessonNameUk(e.target.value)}
+                      required
+                      className="bg-bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary focus:border-accent focus:outline-none"
+                    />
+                    <input
+                      type="text"
+                      placeholder={language === 'uk' ? 'Англійська назва' : 'English name'}
+                      value={newLessonNameEn}
+                      onChange={(e) => setNewLessonNameEn(e.target.value)}
+                      className="bg-bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-text-primary focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-text-muted">{language === 'uk' ? 'Іконка:' : 'Icon:'}</label>
+                      <input
+                        type="text"
+                        value={newLessonIcon}
+                        onChange={(e) => setNewLessonIcon(e.target.value)}
+                        className="w-10 text-center bg-bg-secondary border border-border rounded-lg py-1 text-sm focus:border-accent focus:outline-none"
+                      />
+                      <div className="flex items-center gap-1">
+                        {['📖', '🛠️', '🔬', '💬', '💡', '⭐', '🎓', '🎨'].map((ic) => (
+                          <button
+                            key={ic}
+                            type="button"
+                            onClick={() => setNewLessonIcon(ic)}
+                            className="p-1 text-xs hover:bg-bg-secondary rounded cursor-pointer"
+                          >
+                            {ic}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-text-muted">{language === 'uk' ? 'Колір:' : 'Color:'}</label>
+                      <input
+                        type="color"
+                        value={newLessonColor}
+                        onChange={(e) => setNewLessonColor(e.target.value)}
+                        className="w-8 h-8 rounded border border-border cursor-pointer bg-transparent"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newLessonNameUk.trim()}
+                        className="px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus size={13} />
+                        <span>{language === 'uk' ? 'Додати' : 'Add'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
             </section>
 
@@ -1479,8 +1877,6 @@ export function SettingsPage() {
           </div>
         </section>
       </div>
-    </div>
-  </div>
 
       {/* Confirmation Modal for Complete Data Wipe */}
       {isClearingAll && (

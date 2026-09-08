@@ -301,12 +301,21 @@ export const translations = {
     settings_contents_top: '(Top)',
     section_appearance: 'Appearance & Language',
     section_preferences: 'Cabinets & Preferences',
+    section_custom_types: 'Custom Event & Lesson Types',
     section_subjects: 'Subjects Directory',
     section_schedule_tools: 'Schedule & AI Tools',
     section_backup: 'Backup & Restore',
     section_storage: 'Data Cleaning & Storage',
     section_air_alerts: 'Air Raid Alerts',
     section_danger_zone: 'Danger Zone',
+
+    // Live Schedule Widget
+    live_widget_title: 'Live Status Widget',
+    live_widget_desc: 'Display real-time summary of ongoing lesson, break countdown, pending homework, and planned control works',
+    live_widget_enable: 'Enable Live Status Widget',
+    live_widget_show_lesson_label: 'Show ongoing lesson or break',
+    live_widget_show_hw_label: 'Show pending homework counter',
+    live_widget_show_events_label: 'Show planned control works & tests',
 
     // Homework time in stats
     stats_homework_time: 'Homework Study Time',
@@ -617,12 +626,21 @@ export const translations = {
     settings_contents_top: '(Вгору)',
     section_appearance: 'Зовнішній вигляд та мова',
     section_preferences: 'Кабінети та налаштування',
+    section_custom_types: 'Типи подій та уроків',
     section_subjects: 'Довідник предметів',
     section_schedule_tools: 'Розклад та AI інструменти',
     section_backup: 'Резервне копіювання',
     section_storage: 'Очищення та сховище',
     section_air_alerts: 'Повітряні тривоги',
     section_danger_zone: 'Зона небезпеки',
+
+    // Live Schedule Widget
+    live_widget_title: 'Віджет «Зараз у школі»',
+    live_widget_desc: 'Показ у реальному часі поточного уроку, перерви, кількості невиконаного ДЗ та запланованих контрольних',
+    live_widget_enable: 'Увімкнути віджет «Зараз у школі»',
+    live_widget_show_lesson_label: 'Показувати поточний урок або перерву',
+    live_widget_show_hw_label: 'Показувати лічильник домашніх завдань',
+    live_widget_show_events_label: 'Показувати заплановані контрольні та тести',
 
     // Homework time in stats
     stats_homework_time: 'Час на домашні завдання',

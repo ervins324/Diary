@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { format, addWeeks, subWeeks, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, Radio } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { useCreateHomework } from '../hooks/useHomework';
 import { useFileUpload } from '../hooks/useFileUpload';
-import { fetchNextLesson, fetchPreviousLesson, useSetScheduleOverride, useDeleteScheduleOverride } from '../hooks/useScheduleOverrides';
+import { fetchNextLesson, fetchPreviousLesson } from '../hooks/useScheduleOverrides';
 import { getWeekDates, formatTime, cn, getDefaultScheduleDate, compressImageFile, isLessonNow } from '../lib/utils';
+import { getEventTypeInfo } from '../lib/customTypes';
 import { HomeworkInline } from '../components/homework/HomeworkInline';
 import { AttachmentChip } from '../components/homework/AttachmentChip';
 import { AddLinkModal } from '../components/homework/AddLinkModal';
@@ -22,26 +23,6 @@ export function DiaryPage() {
   const { data: schedule, isLoading } = useSchedule(start, end);
   const createMutation = useCreateHomework();
   const uploadMutation = useFileUpload();
-  const setOverrideMutation = useSetScheduleOverride();
-  const deleteOverrideMutation = useDeleteScheduleOverride();
-
-  /* Quick action: Cancel or un-cancel lesson by air alert */
-  const handleToggleAirAlertCancel = (lesson: LessonSlot, targetDate: string) => {
-    if (lesson.is_cancelled) {
-      deleteOverrideMutation.mutate({
-        targetDate: targetDate,
-        lessonOrder: lesson.lesson_order,
-      });
-    } else {
-      setOverrideMutation.mutate({
-        date: targetDate,
-        lesson_order: lesson.lesson_order,
-        subject_id: lesson.subject.id,
-        is_cancelled: true,
-        note: t('air_alert_manual_note'),
-      });
-    }
-  };
 
   /* Target highlight lesson state */
   const [targetHighlight, setTargetHighlight] = useState<{ date: string; lessonOrder: number } | null>(null);
@@ -359,21 +340,24 @@ export function DiaryPage() {
                           </span>
                         )}
 
-                        {/* Event type badge (Control Work, Test, Essay, Project) */}
-                        {lesson.event_type && (
-                          <span className={cn(
-                            "inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.2 rounded font-bold border shrink-0",
-                            lesson.event_type === 'control_work' && "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
-                            lesson.event_type === 'test' && "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-                            lesson.event_type === 'essay' && "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
-                            lesson.event_type === 'project' && "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30",
-                          )}>
-                            {lesson.event_type === 'control_work' && `🔥 ${t('event_control_work')}`}
-                            {lesson.event_type === 'test' && `📝 ${t('event_test')}`}
-                            {lesson.event_type === 'essay' && `✍️ ${t('event_essay')}`}
-                            {lesson.event_type === 'project' && `🚀 ${t('event_project')}`}
-                          </span>
-                        )}
+                        {/* Event type badge (Control Work, Test, Essay, Project, and Custom Types) */}
+                        {lesson.event_type && (() => {
+                          const info = getEventTypeInfo(lesson.event_type, language);
+                          if (!info) return null;
+                          return (
+                            <span
+                              className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.2 rounded font-bold border shrink-0 shadow-2xs"
+                              style={{
+                                backgroundColor: `${info.color}20`,
+                                color: info.color,
+                                borderColor: `${info.color}40`,
+                              }}
+                            >
+                              <span>{info.icon}</span>
+                              <span>{info.label}</span>
+                            </span>
+                          );
+                        })()}
 
                         {isCurrent && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-accent text-white shrink-0 animate-pulse">
@@ -440,30 +424,6 @@ export function DiaryPage() {
                           }
                         >
                           <ArrowLeftRight size={12} />
-                        </button>
-
-                        {/* Cancel by Air Alert toggle button */}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleAirAlertCancel(lesson, dayData?.date || format(currentDate, 'yyyy-MM-dd'))}
-                          disabled={setOverrideMutation.isPending || deleteOverrideMutation.isPending}
-                          className={cn(
-                            "p-0.5 rounded transition-colors",
-                            lesson.is_cancelled
-                              ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 hover:bg-rose-500/25"
-                              : "text-text-muted hover:text-danger hover:bg-danger/10"
-                          )}
-                          title={
-                            lesson.is_cancelled
-                              ? t('restore_from_air_alert')
-                              : t('cancel_by_air_alert')
-                          }
-                        >
-                          {setOverrideMutation.isPending || deleteOverrideMutation.isPending ? (
-                            <Loader2 size={12} className="animate-spin text-accent" />
-                          ) : (
-                            <Radio size={12} className={cn(lesson.is_cancelled && "animate-pulse")} />
-                          )}
                         </button>
                       </div>
                     </div>

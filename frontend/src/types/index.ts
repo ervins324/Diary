@@ -28,7 +28,8 @@ export interface HomeworkEntry {
   time_spent_seconds?: number;
 }
 
-export type LessonEventType = 'control_work' | 'test' | 'essay' | 'project' | null;
+/* Special event / assessment type: built-in templates or user-defined custom event type */
+export type LessonEventType = 'control_work' | 'test' | 'essay' | 'project' | (string & {}) | null;
 
 export interface LessonSlot {
   date: string;
@@ -121,6 +122,7 @@ export interface WeeklyStatsResponse {
   total_subjects: number;
   total_lessons: number;
   cancelled_lessons_count?: number;
+  total_cancelled_minutes?: number;
   avg_lessons_per_day: number;
   total_break_minutes: number;
   mode?: 'actual' | 'numerator' | 'denominator';

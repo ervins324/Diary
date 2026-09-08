@@ -1,5 +1,28 @@
 # School Diary — Changelog
 
+## v1.8.2 — 2026-09-08
+
+### 🚀 Sidebar Wikipedia Navigation, Live Schedule & HW Widget, Custom Event/Lesson Types & Stats Breakdown
+- **Sidebar Wikipedia Table of Contents Navigation (`Sidebar.tsx`)**:
+  - Relocated the Wikipedia-style table of contents navigation directly into the main app sidebar (`Sidebar.tsx`) when browsing `/settings`.
+  - Synchronizes active section highlights on scroll and automatically hides when the user navigates away to other tabs.
+  - Removed the redundant desktop right sidebar from `SettingsPage.tsx`, keeping a compact collapsible accordion on mobile viewports.
+- **Persistent Live Schedule & Homework Status Widget (`LiveScheduleWidget.tsx`, `Sidebar.tsx`, `Layout.tsx`)**:
+  - Added a persistent real-time schedule awareness widget in the desktop sidebar and mobile header.
+  - Displays ongoing lesson status (subject, times, room) OR break state (`Break • X min until [Next Subject]`), or day end state.
+  - Displays live pending homework counter (`3 HW to do`) and planned academic events counter (`1 control work planned`).
+  - Added user toggles in Settings under Preferences to customize which indicators are visible or disable the widget.
+- **Air Alert Cancellation in Lesson Substitution Modal (`LessonOverrideModal.tsx`)**:
+  - Moved the Air Alert cancellation button away from lesson card headers (`LessonCard.tsx`, `DiaryPage.tsx`), cleaning up the card action toolbar.
+  - Added a prominent 1-click **Air Alert Cancellation** preset inside `LessonOverrideModal.tsx` that sets `is_cancelled: true` and notes `"Повітряна тривога"` / `"Air raid alert"`.
+- **Custom Event Types & Lesson Types Manager (`customTypes.ts`, `SettingsPage.tsx`, `LessonOverrideModal.tsx`)**:
+  - Added user management in Settings to create, customize, and delete custom event types (e.g. Olympiad, Exam, Lab, Presentation) and custom lesson types with custom names, emoji icons, and color palettes.
+  - Dynamically integrated all user-defined types into the `LessonOverrideModal.tsx` selector and rendered dynamic custom badges on lesson cards across Daily and Diary views.
+- **Stats Tab Clean Up & Standalone Breaks / Interruptions Box (`StatsPage.tsx` & `stats_service.py`)**:
+  - Excluded break duration from the main study metrics grid, focusing core metrics strictly on academic instruction time.
+  - Updated backend `stats_service.py` to calculate `total_cancelled_minutes` for scheduled lessons that were cancelled.
+  - Created a dedicated standalone **"Breaks & Schedule Interruptions"** (`Перерви та скасовані уроки`) box displaying break time, cancelled lessons count, and cancelled duration separately from study hours.
+
 ## v1.8.1 — 2026-09-08
 
 ### 🚀 Wikipedia-Style Settings Navigation, Persistent Homework Timer, Stats Study Time & Air Alert Optimizations

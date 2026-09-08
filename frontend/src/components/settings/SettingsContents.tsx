@@ -11,6 +11,7 @@ export interface TocSection {
 const SECTIONS: TocSection[] = [
   { id: 'appearance', labelKey: 'section_appearance' },
   { id: 'preferences', labelKey: 'section_preferences' },
+  { id: 'custom-types', labelKey: 'section_custom_types' },
   { id: 'subjects', labelKey: 'section_subjects' },
   { id: 'schedule-tools', labelKey: 'section_schedule_tools' },
   { id: 'backup', labelKey: 'section_backup' },

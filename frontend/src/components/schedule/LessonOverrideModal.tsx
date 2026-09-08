@@ -5,6 +5,7 @@ import { fetchSubjects } from '../../api/client';
 import { useSetScheduleOverride, useDeleteScheduleOverride } from '../../hooks/useScheduleOverrides';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { formatDate, cn } from '../../lib/utils';
+import { getAllEventTypes, getEventTypeInfo } from '../../lib/customTypes';
 import type { LessonSlot, Subject, LessonEventType } from '../../types';
 
 interface LessonOverrideModalProps {
@@ -143,63 +144,79 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
                 <span>{t('event_none')}</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setEventType('control_work')}
-                className={cn(
-                  "px-3 py-2 rounded-lg text-xs font-semibold border transition-all text-left flex items-center gap-2",
-                  eventType === 'control_work'
-                    ? "bg-rose-500/20 border-rose-500 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/40 shadow-xs"
-                    : "bg-bg-secondary border-border text-text-secondary hover:bg-rose-500/10 hover:border-rose-500/30"
-                )}
-              >
-                <span>🔥</span>
-                <span>{t('event_control_work')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setEventType('test')}
-                className={cn(
-                  "px-3 py-2 rounded-lg text-xs font-semibold border transition-all text-left flex items-center gap-2",
-                  eventType === 'test'
-                    ? "bg-amber-500/20 border-amber-500 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/40 shadow-xs"
-                    : "bg-bg-secondary border-border text-text-secondary hover:bg-amber-500/10 hover:border-amber-500/30"
-                )}
-              >
-                <span>📝</span>
-                <span>{t('event_test')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setEventType('essay')}
-                className={cn(
-                  "px-3 py-2 rounded-lg text-xs font-semibold border transition-all text-left flex items-center gap-2",
-                  eventType === 'essay'
-                    ? "bg-purple-500/20 border-purple-500 text-purple-600 dark:text-purple-400 ring-1 ring-purple-500/40 shadow-xs"
-                    : "bg-bg-secondary border-border text-text-secondary hover:bg-purple-500/10 hover:border-purple-500/30"
-                )}
-              >
-                <span>✍️</span>
-                <span>{t('event_essay')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setEventType('project')}
-                className={cn(
-                  "px-3 py-2 rounded-lg text-xs font-semibold border transition-all text-left flex items-center gap-2",
-                  eventType === 'project'
-                    ? "bg-sky-500/20 border-sky-500 text-sky-600 dark:text-sky-400 ring-1 ring-sky-500/40 shadow-xs"
-                    : "bg-bg-secondary border-border text-text-secondary hover:bg-sky-500/10 hover:border-sky-500/30"
-                )}
-              >
-                <span>🚀</span>
-                <span>{t('event_project')}</span>
-              </button>
+              {getAllEventTypes().map((et) => {
+                const isSelected = eventType === et.id;
+                return (
+                  <button
+                    key={et.id}
+                    type="button"
+                    onClick={() => setEventType(et.id)}
+                    className={cn(
+                      "px-3 py-2 rounded-lg text-xs font-semibold border transition-all text-left flex items-center gap-2 truncate",
+                      isSelected
+                        ? "shadow-xs font-bold ring-1 ring-current"
+                        : "bg-bg-secondary border-border text-text-secondary hover:bg-bg-tertiary"
+                    )}
+                    style={
+                      isSelected
+                        ? { backgroundColor: `${et.color}20`, color: et.color, borderColor: et.color }
+                        : {}
+                    }
+                  >
+                    <span>{et.icon}</span>
+                    <span className="truncate">{language === 'uk' ? et.nameUk : et.nameEn}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* Quick Air Alert 1-Click Cancellation Button */}
+          <button
+            type="button"
+            onClick={() => {
+              const isAlertNote = note.toLowerCase().includes('тривог') || note.toLowerCase().includes('alert');
+              if (isCancelled && isAlertNote) {
+                setIsCancelled(false);
+                setNote('');
+              } else {
+                setIsCancelled(true);
+                setNote(language === 'uk' ? 'Повітряна тривога' : 'Air raid alert');
+              }
+            }}
+            className={cn(
+              "w-full flex items-center justify-between p-3 rounded-lg border text-left transition-colors cursor-pointer",
+              isCancelled && (note.toLowerCase().includes('тривог') || note.toLowerCase().includes('alert'))
+                ? "bg-rose-500/15 border-rose-500/40 text-rose-600 dark:text-rose-400 shadow-xs"
+                : "bg-bg-secondary border-border text-text-primary hover:bg-rose-500/10 hover:border-rose-500/30"
+            )}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-base animate-pulse">🚨</span>
+              <div>
+                <span className="font-semibold text-xs block">
+                  {language === 'uk' ? 'Повітряна тривога (скасувати)' : 'Air Alert (Cancel Lesson)'}
+                </span>
+                <span className="text-[11px] text-text-muted">
+                  {language === 'uk'
+                    ? 'Швидко позначити цей урок скасованим через повітряну тривогу'
+                    : '1-click mark lesson as cancelled due to air raid alert'}
+                </span>
+              </div>
+            </div>
+            <span
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-md font-bold transition-colors",
+                isCancelled && (note.toLowerCase().includes('тривог') || note.toLowerCase().includes('alert'))
+                  ? "bg-rose-500 text-white"
+                  : "bg-bg-tertiary text-text-muted hover:text-text-primary"
+              )}
+            >
+              {isCancelled && (note.toLowerCase().includes('тривог') || note.toLowerCase().includes('alert'))
+                ? (language === 'uk' ? 'Скасовано' : 'Cancelled')
+                : (language === 'uk' ? 'Скасувати' : 'Cancel')}
+            </span>
+          </button>
 
           {/* Cancelled toggle */}
           <label className="flex items-center gap-3 p-3 bg-bg-secondary rounded-lg border border-border cursor-pointer hover:bg-bg-tertiary transition-colors">
@@ -309,20 +326,23 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
                 </span>
               )}
 
-              {eventType && (
-                <span className={cn(
-                  "inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold border",
-                  eventType === 'control_work' && "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
-                  eventType === 'test' && "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-                  eventType === 'essay' && "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
-                  eventType === 'project' && "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30",
-                )}>
-                  {eventType === 'control_work' && `🔥 ${t('event_control_work')}`}
-                  {eventType === 'test' && `📝 ${t('event_test')}`}
-                  {eventType === 'essay' && `✍️ ${t('event_essay')}`}
-                  {eventType === 'project' && `🚀 ${t('event_project')}`}
-                </span>
-              )}
+              {eventType && (() => {
+                const info = getEventTypeInfo(eventType, language);
+                if (!info) return null;
+                return (
+                  <span
+                    className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold border shadow-2xs"
+                    style={{
+                      backgroundColor: `${info.color}20`,
+                      color: info.color,
+                      borderColor: `${info.color}40`,
+                    }}
+                  >
+                    <span>{info.icon}</span>
+                    <span>{info.label}</span>
+                  </span>
+                );
+              })()}
             </div>
           </div>
         </div>

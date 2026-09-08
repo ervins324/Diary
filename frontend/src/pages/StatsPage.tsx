@@ -80,6 +80,7 @@ export function StatsPage() {
   const totalLessons = statsResponse?.total_lessons ?? 0;
   const avgLessons = statsResponse?.avg_lessons_per_day ?? 0;
   const breakMinutes = statsResponse?.total_break_minutes ?? 0;
+  const cancelledMinutes = statsResponse?.total_cancelled_minutes ?? 0;
   const hwStats = statsResponse?.homework_stats ?? { total: 0, completed: 0, completion_rate: 100 };
   const totalHwSeconds = statsResponse?.homework_stats?.total_time_spent_seconds ?? 0;
   const avgHwSeconds = statsResponse?.homework_stats?.avg_time_spent_seconds ?? 0;
@@ -500,17 +501,6 @@ export function StatsPage() {
                 </span>
               </div>
 
-              {/* Total Break Time */}
-              <div className="bg-bg-secondary p-4 rounded-xl border border-border shadow-sm flex flex-col items-center text-center">
-                <div className="flex items-center gap-1.5 text-xs text-text-muted mb-1">
-                  <Coffee size={14} className="text-emerald-500" />
-                  <span>{t('stats_breaks_duration')}</span>
-                </div>
-                <span className="text-xl md:text-2xl font-bold text-text-primary">
-                  {Math.floor(breakMinutes / 60)}<span className="text-sm text-text-muted font-normal">{t('hours_short')}</span> {Math.round(breakMinutes % 60)}<span className="text-sm text-text-muted font-normal">{t('minutes_short')}</span>
-                </span>
-              </div>
-
               {/* Homework Completion Rate */}
               <div className="bg-bg-secondary p-4 rounded-xl border border-border shadow-sm flex flex-col items-center text-center">
                 <div className="flex items-center gap-1.5 text-xs text-text-muted mb-1">
@@ -550,6 +540,64 @@ export function StatsPage() {
                     ~{Math.round(avgHwSeconds / 60)}{t('minutes_short')} {t('stats_avg_homework_time')}
                   </span>
                 )}
+              </div>
+            </div>
+
+            {/* Standalone Box: Breaks & Schedule Interruptions */}
+            <div className="bg-bg-secondary p-4 md:p-5 rounded-xl border border-border shadow-xs flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-border-light pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Coffee size={18} className="text-emerald-500" />
+                  <span className="font-bold text-sm text-text-primary">
+                    {language === 'uk' ? 'Перерви та скасовані уроки' : 'Breaks & Schedule Interruptions'}
+                  </span>
+                </div>
+                <span className="text-xs text-text-muted">
+                  {language === 'uk' ? 'Відокремлено від навчального часу' : 'Tracked separately from study hours'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {/* Total Break Duration */}
+                <div className="p-3 bg-bg-tertiary rounded-lg flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                    <Coffee size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted">{t('stats_breaks_duration')}</p>
+                    <p className="text-base font-bold text-text-primary">
+                      {Math.floor(breakMinutes / 60)}{t('hours_short')} {Math.round(breakMinutes % 60)}{t('minutes_short')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Cancelled Lessons Count */}
+                <div className="p-3 bg-bg-tertiary rounded-lg flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <Ban size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted">{t('stats_cancelled_lessons')}</p>
+                    <p className="text-base font-bold text-text-primary">
+                      {statsResponse?.cancelled_lessons_count ?? 0} {t('stats_lessons_count') || 'lessons'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Cancelled Lessons Time */}
+                <div className="p-3 bg-bg-tertiary rounded-lg flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-muted">
+                      {language === 'uk' ? 'Час скасованих уроків' : 'Cancelled Lessons Time'}
+                    </p>
+                    <p className="text-base font-bold text-text-primary">
+                      {Math.floor(cancelledMinutes / 60)}{t('hours_short')} {Math.round(cancelledMinutes % 60)}{t('minutes_short')}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </>
