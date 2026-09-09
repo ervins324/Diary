@@ -8,6 +8,7 @@ import { cn, compressImageFile } from '../../lib/utils';
 import { AttachmentChip } from './AttachmentChip';
 import { AddLinkModal } from './AddLinkModal';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { LightboxGallery } from './LightboxGallery';
 
 interface HomeworkInlineProps {
   homework: HomeworkEntry;
@@ -38,8 +39,8 @@ export function HomeworkInline({
   const [editImages, setEditImages] = useState<string[]>(homework.images || []);
   /* Editable attachments array */
   const [editAttachments, setEditAttachments] = useState<Attachment[]>(homework.attachments || []);
-  /* State for lightbox modal */
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  /* State for lightbox gallery modal (index into allImages array) */
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   /* State for add link modal */
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   /* Locating status */
@@ -127,6 +128,12 @@ export function HomeworkInline({
   const updateMutation = useUpdateHomework();
   const deleteMutation = useDeleteHomework();
   const uploadMutation = useFileUpload();
+
+  /* Collect all viewable images for the lightbox gallery (inline images + image attachments) */
+  const allImages: string[] = [
+    ...(homework.images || []),
+    ...(homework.attachments || []).filter(a => a.type === 'image').map(a => a.url),
+  ];
 
   /* Toggle the completion status */
   const handleToggle = () => {
@@ -461,7 +468,7 @@ export function HomeworkInline({
                 key={idx}
                 attachment={att}
                 onRemove={() => handleRemoveAttachment(idx)}
-                onClickImage={(url) => setLightboxImage(url)}
+                onClickImage={(url) => setLightboxIndex(allImages.indexOf(url))}
               />
             ))}
           </div>
@@ -539,7 +546,7 @@ export function HomeworkInline({
             {homework.text}
           </span>
           {/* Edit/delete actions, locate previous/next lesson, and stopwatch buttons — visible on hover and touch */}
-          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+          <div className="flex items-center gap-1 transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100">
             {/* Stopwatch toggle button */}
             <button
               onClick={() => setIsTimerOpen((prev) => !prev)}
@@ -636,7 +643,7 @@ export function HomeworkInline({
               <AttachmentChip
                 key={idx}
                 attachment={att}
-                onClickImage={(url) => setLightboxImage(url)}
+                onClickImage={(url) => setLightboxIndex(allImages.indexOf(url))}
               />
             ))}
           </div>
@@ -649,7 +656,7 @@ export function HomeworkInline({
               <button
                 key={idx}
                 type="button"
-                onClick={() => setLightboxImage(imgUrl)}
+                onClick={() => setLightboxIndex(idx)}
                 className="relative rounded border border-border overflow-hidden hover:opacity-85 focus:outline-none focus:ring-1 focus:ring-accent transition shadow-2xs"
               >
                 <img src={imgUrl} alt={`hw-img-${idx}`} className="w-12 h-12 object-cover" />
@@ -659,27 +666,14 @@ export function HomeworkInline({
         )}
       </div>
 
-      {/* Lightbox full-size image modal */}
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs"
-          onClick={() => setLightboxImage(null)}
-        >
-          <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
-            <button
-              onClick={() => setLightboxImage(null)}
-              className="absolute -top-10 right-0 text-white hover:text-accent p-1 rounded-full bg-black/50"
-            >
-              <X size={24} />
-            </button>
-            <img
-              src={lightboxImage}
-              alt="Full size homework"
-              className="max-w-full max-h-[85vh] object-contain rounded-lg border border-border shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        </div>
+      {/* Improved lightbox gallery modal with keyboard navigation and gallery controls */}
+      {lightboxIndex !== null && allImages[lightboxIndex] && (
+        <LightboxGallery
+          images={allImages}
+          currentIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={(idx) => setLightboxIndex(idx)}
+        />
       )}
     </>
   );

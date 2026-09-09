@@ -62,9 +62,14 @@ export function Sidebar() {
         <LiveScheduleWidget variant="sidebar" />
       </div>
 
-      <div className="mt-auto p-4 border-t border-border flex justify-between items-center shrink-0">
-        <span className="text-sm text-text-muted">{t('theme')}</span>
-        <ThemeToggle />
+      <div className="mt-auto border-t border-border shrink-0">
+        <div className="px-4 pt-3 pb-1 flex justify-between items-center">
+          <span className="text-sm text-text-muted">{t('theme')}</span>
+          <ThemeToggle />
+        </div>
+        <div className="px-4 pb-3 text-[11px] text-text-muted/60">
+          v{__APP_VERSION__}
+        </div>
       </div>
     </aside>
   );

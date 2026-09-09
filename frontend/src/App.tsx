@@ -20,8 +20,9 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes fresh: tab switching is instant with 0 network latency
       gcTime: 1000 * 60 * 30,    // 30 minutes in memory cache retention
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true, // Auto-refresh stale queries when tab becomes visible again
       retry: 1,
+      refetchOnReconnect: true,   // Also refetch stale data when network reconnects
     },
   },
 });

@@ -1,5 +1,26 @@
 # School Diary — Changelog
 
+## v1.8.3 — 2026-09-09
+
+### 🚀 Mobile HW Actions, App Version Display, Improved Media Viewer & Background Auto-Refresh
+- **Mobile Homework Edit/Delete Actions (`HomeworkInline.tsx`)**:
+  - Made homework edit, delete, timer, and locate action buttons always visible on mobile (touch) devices using responsive opacity classes (`opacity-100 md:opacity-0 md:group-hover:opacity-100`).
+  - Desktop retains the clean hover-to-reveal behavior.
+- **App Version Display in Sidebar (`Sidebar.tsx`, `vite.config.ts`)**:
+  - Added build-time version injection via Vite `define` block, reading from `package.json` version field.
+  - Displays `v1.8.3` label in the sidebar footer below the theme toggle.
+  - Added `__APP_VERSION__` TypeScript declaration in `vite-env.d.ts`.
+- **Improved Lightbox Media Viewer (`LightboxGallery.tsx`, `HomeworkInline.tsx`)**:
+  - Replaced the basic single-image lightbox with a full-featured gallery component.
+  - Gallery navigation with prev/next arrows and dot indicators for multi-image homework.
+  - Keyboard support: Escape to close, Arrow keys to navigate, +/- to zoom.
+  - Touch swipe support for mobile navigation between images.
+  - Double-click or button-based zoom (up to 4x).
+  - Combined gallery view across inline images and image-type attachments.
+- **Background Auto-Refresh on Tab Focus (`App.tsx`)**:
+  - Enabled `refetchOnWindowFocus: true` so stale queries (>5 min) automatically refresh when the user returns to the browser tab.
+  - Added `refetchOnReconnect: true` to also refresh stale data when network connectivity is restored.
+
 ## v1.8.2 — 2026-09-08
 
 ### 🚀 Sidebar Wikipedia Navigation, Live Schedule & HW Widget, Custom Event/Lesson Types & Stats Breakdown
