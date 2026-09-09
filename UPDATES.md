@@ -16,7 +16,12 @@
 - **Subscription Lifecycle Debouncing & Reconnect Backoff (`neptunAlerts.ts`, `useAirAlerts.ts`)**:
   - Introduced a 10-second debounce grace period on unsubscribing before tearing down WebSocket connections, preventing connection thrashing during React page transitions and hook re-evaluations.
   - Isolated the air alerts stream subscription from schedule query refetches and mutation callbacks in `useAirAlerts.ts`, eliminating the root cause of `HTTP 429: Too Many Requests` rate limits.
-  - Added exponential reconnect backoff with cooldown limits if server rate limits are detected.
+- **Command Palette & Alt-Tab Quick Runner (`CommandPalette.tsx`, `mathEvaluator.ts`, `Layout.tsx`)**:
+  - Added a global Spotlight / Flow Launcher / KRunner command panel accessible via `Ctrl+K`, `Cmd+K`, `Alt+Space`, and `Alt+Q`.
+  - Added an **Alt-Tab rapid tab switcher**: displays recent pages in visited order, allowing seamless back-and-forth toggling between recent views with `Tab` or number keys (`1`..`5`).
+  - **Built-in Safe Math Calculator**: typing arithmetic expressions (e.g. `25 * 4`, `(120 - 30) / 3`, `15% of 200`, `sqrt(144)`) calculates results in real-time without `eval()`, with one-click or `Enter` copying to clipboard.
+  - **Fast Subject & Action Search**: search across all configured subjects with colored badges, jump to Today/Tomorrow, toggle themes, switch languages, open backup exports, and access bell timetables instantly.
+  - **Desktop & Mobile Ergonomics**: full keyboard navigation (`↑`/`↓`/`Tab` to navigate, `↵` to select, `ESC` to close), styled button in the desktop sidebar (`⌘K`), and mobile header trigger button.
 
 ## v1.8.3 — 2026-09-09
 

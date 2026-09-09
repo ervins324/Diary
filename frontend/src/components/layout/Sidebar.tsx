@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Calendar, BookOpen, Bell, BarChart3, Settings } from 'lucide-react';
+import { Calendar, BookOpen, Bell, BarChart3, Settings, Search } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { SettingsContents } from '../settings/SettingsContents';
 import { LiveScheduleWidget } from '../schedule/LiveScheduleWidget';
@@ -24,6 +24,23 @@ export function Sidebar() {
       <div className="p-6 flex items-center gap-3 shrink-0">
         <img src="/favicon.svg" alt="School Diary Logo" className="w-8 h-8 rounded-lg shadow-xs shrink-0" />
         <h1 className="text-xl font-bold text-text-primary tracking-tight">{t('app_title')}</h1>
+      </div>
+
+      {/* Quick Search & Command Palette Button (Spotlight / Flow Launcher style) */}
+      <div className="px-4 mb-3 shrink-0">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-medium text-text-muted bg-bg-tertiary/60 hover:bg-bg-tertiary hover:text-text-primary border border-border/80 transition-all cursor-pointer shadow-2xs group"
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <Search size={14} className="text-accent group-hover:scale-110 transition-transform shrink-0" />
+            <span className="truncate">{t('command_palette_search_btn')}</span>
+          </span>
+          <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-text-muted/80 bg-bg-primary border border-border rounded shadow-2xs shrink-0">
+            ⌘K
+          </kbd>
+        </button>
       </div>
       
       <nav className="px-4 space-y-1 shrink-0">

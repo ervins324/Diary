@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { LiveScheduleWidget } from '../schedule/LiveScheduleWidget';
+import { CommandPalette } from './CommandPalette';
 
 interface LayoutProps {
   children: ReactNode;
@@ -19,6 +20,8 @@ export function Layout({ children }: LayoutProps) {
         {children}
       </main>
       <BottomNav />
+      {/* Global Command Palette / Spotlight Quick Runner */}
+      <CommandPalette />
     </div>
   );
 }

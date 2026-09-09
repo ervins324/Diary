@@ -333,6 +333,31 @@ export const translations = {
 
     // Shortcuts & Gestures
     shortcut_nav_hint: '← / → to navigate, T for Today',
+
+    // Command Palette / Spotlight / Alt-Tab Quick Runner
+    command_palette_title: 'Quick Runner & Command Palette',
+    command_palette_placeholder: 'Search pages, subjects, actions, or calculate (e.g. 25 * 4)...',
+    command_palette_search_btn: 'Quick Search / Commands',
+    command_palette_cat_recent: 'Alt-Tab / Recent Tabs',
+    command_palette_cat_pages: 'Pages & Views',
+    command_palette_cat_subjects: 'Subjects Directory',
+    command_palette_cat_actions: 'Quick Actions',
+    command_palette_cat_calc: 'Calculator',
+    command_palette_no_results: 'No matching commands, subjects, or math expressions',
+    command_palette_tip: '↑↓ or Tab to navigate, ↵ to select, ESC to close',
+    command_copied: 'Result copied to clipboard!',
+    action_toggle_theme: 'Toggle Dark / Light Theme',
+    action_toggle_language: 'Switch Language (UK / EN)',
+    action_jump_today: 'Jump to Today',
+    action_jump_tomorrow: 'Jump to Tomorrow',
+    action_jump_yesterday: 'Jump to Yesterday',
+    action_export_backup: 'Export Data Backup (JSON)',
+    action_clean_data: 'Clean Historical Data',
+    action_bell_schedule: 'Open Bell Schedule Timetable',
+    action_manage_subjects: 'Manage Subjects & Cabinet Colors',
+    action_ai_import: 'AI Schedule Importer',
+    action_calc_copy: 'Copy calculated result to clipboard',
+    subject_action_view: 'View lessons and homework for this subject',
   },
   uk: {
     // Navigation
@@ -666,6 +691,31 @@ export const translations = {
 
     // Shortcuts & Gestures
     shortcut_nav_hint: '← / → або свайп для переходу, T — сьогодні',
+
+    // Command Palette / Spotlight / Alt-Tab Quick Runner
+    command_palette_title: 'Швидкий запуск та Палітра команд',
+    command_palette_placeholder: 'Пошук сторінок, предметів, дій або калькулятор (напр. 25 * 4)...',
+    command_palette_search_btn: 'Швидкий пошук / Команди',
+    command_palette_cat_recent: 'Alt-Tab / Недавні вкладки',
+    command_palette_cat_pages: 'Сторінки та Розділи',
+    command_palette_cat_subjects: 'Довідник предметів',
+    command_palette_cat_actions: 'Швидкі дії',
+    command_palette_cat_calc: 'Калькулятор',
+    command_palette_no_results: 'Нічого не знайдено за вашим запитом',
+    command_palette_tip: '↑↓ або Tab для навігації, ↵ щоб вибрати, ESC закрити',
+    command_copied: 'Результат скопійовано в буфер обміну!',
+    action_toggle_theme: 'Перемкнути темну / світлу тему',
+    action_toggle_language: 'Змінити мову (UK / EN)',
+    action_jump_today: 'Перейти на Сьогодні',
+    action_jump_tomorrow: 'Перейти на Завтра',
+    action_jump_yesterday: 'Перейти на Вчора',
+    action_export_backup: 'Експорт резервної копії (JSON)',
+    action_clean_data: 'Очищення застарілих даних',
+    action_bell_schedule: 'Відкрити розклад дзвінків',
+    action_manage_subjects: 'Керування предметами та кольорами кабінетів',
+    action_ai_import: 'ШІ-імпорт розкладу',
+    action_calc_copy: 'Скопіювати обчислений результат у буфер',
+    subject_action_view: 'Переглянути уроки та завдання з цього предмета',
   },
 } as const;
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Clock, BookOpen, Coffee, CheckCircle, Flame, Sparkles, AlertTriangle } from 'lucide-react';
+import { Clock, BookOpen, Coffee, CheckCircle, Flame, Sparkles, AlertTriangle, Search } from 'lucide-react';
 import { useSchedule } from '../../hooks/useSchedule';
 import { useAirAlerts } from '../../hooks/useAirAlerts';
 import { getWeekDates, isLessonNow, cn } from '../../lib/utils';
@@ -261,8 +261,8 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
           </div>
         )}
 
-        {/* Homework & Event Quick Counters */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Homework & Event Quick Counters & Quick Runner */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {config.showHomework && pendingHwCount > 0 && (
             <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold text-[11px] bg-amber-500/10 px-2 py-0.5 rounded-full">
               <BookOpen size={11} />
@@ -275,6 +275,15 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
               <span>{upcomingEvents.length}</span>
             </span>
           )}
+          {/* Quick Runner / Command Palette Trigger */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+            aria-label={t('command_palette_search_btn')}
+            className="p-1 rounded-full text-text-muted hover:text-text-primary bg-bg-tertiary/60 border border-border/60 shrink-0 cursor-pointer active:scale-95 transition-transform"
+          >
+            <Search size={12} className="text-accent" />
+          </button>
         </div>
       </div>
     );
