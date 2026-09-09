@@ -27,10 +27,16 @@
   - Added a background heartbeat watchdog checking every 25s to detect and recover from silent or stalled WebSocket streams.
   - Reduced REST fallback throttle from 45s to 20s and polling interval to 30s for prompt alert activations and all-clear notifications.
   - Decreased tab refocus refresh delay to 15s and added instant initial REST sync upon subscription.
-- **Lesson Substitution vs Event Tagging Bugfix (`LessonCard.tsx`, `DiaryPage.tsx`)**:
-  - Fixed tautological label bug where regular lessons tagged with an assessment event displayed redundant parentheses (e.g. `Мистецтво (Мистецтво)`).
-  - Corrected false `Заміна` (Substitution) badge appearing alongside `🚀 Проєкт` or other event badges when only an assessment type was scheduled without substituting the subject.
-  - Aligned badge margins, vertical centering, and added top clearance padding to eliminate border cutoffs and cramped spacing.
+- **Lesson Card & Homework Button Touch Target UX (`LessonCard.tsx`, `HomeworkInline.tsx`)**:
+  - Enforced touch-friendly button hit targets (34-36px minimum on mobile, tactile `active:scale-95` feedback).
+  - Increased icon sizes to 14-16px and enlarged homework checkbox to `w-5 h-5` for effortless tapping on touchscreens.
+  - Upgraded "Add Homework" from plain text to a styled, accessible button with a plus icon.
+- **Keyboard Shortcuts & Mobile Touch Swipes (`DailyPage.tsx`, `DiaryPage.tsx`, `StatsPage.tsx`, `useSwipeGesture.ts`)**:
+  - Added natural touch swipe gestures (horizontal swipe left for next day/week, right for previous day/week) with vertical scroll discrimination.
+  - Added global keyboard navigation: `←` / `A` for previous day/week, `→` / `D` for next day/week, and `T` to jump directly to today/current week (automatically disabled while editing inputs/textareas).
+- **Cancellation Reasons Statistics Breakdown (`stats_service.py`, `StatsPage.tsx`)**:
+  - Tracked and aggregated lesson cancellation reasons and durations across weekly schedules.
+  - Added an interactive reasons breakdown card in the Stats view displaying proportional progress bars, lesson counts, and lost study minutes for air alerts, teacher illness, or custom notes.
 
 ## v1.8.2 — 2026-09-08
 

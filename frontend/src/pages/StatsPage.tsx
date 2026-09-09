@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format, addWeeks, subWeeks, parseISO } from 'date-fns';
 import {
   ChevronLeft,
@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { fetchWeeklyStats } from '../api/client';
 import { getWeekDates, cn } from '../lib/utils';
+import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { WeeklyStat, WeeklyStatsResponse, DayStat } from '../types';
 
@@ -40,8 +41,40 @@ export function StatsPage() {
     queryFn: () => fetchWeeklyStats(start, scheduleMode),
   });
 
-  const handlePrevWeek = () => setCurrentDate((prev) => subWeeks(prev, 1));
-  const handleNextWeek = () => setCurrentDate((prev) => addWeeks(prev, 1));
+  const handlePrevWeek = useCallback(() => setCurrentDate((prev) => subWeeks(prev, 1)), []);
+  const handleNextWeek = useCallback(() => setCurrentDate((prev) => addWeeks(prev, 1)), []);
+
+  const headerSwipeHandlers = useSwipeGesture({
+    onSwipeLeft: handleNextWeek,
+    onSwipeRight: handlePrevWeek,
+  });
+
+  /* Keyboard shortcuts for week navigation in stats */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        handlePrevWeek();
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        handleNextWeek();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePrevWeek, handleNextWeek]);
 
   /* Handle both rich response and legacy array fallback, sorted alphabetically for stable order across numerator/denominator */
   const rawSubjects: WeeklyStat[] = statsResponse?.subjects || (Array.isArray(statsResponse) ? statsResponse : []);
@@ -134,21 +167,32 @@ export function StatsPage() {
 
   return (
     <div className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full p-4 md:p-6 overflow-y-auto">
-      {/* Header */}
-      <header className="flex items-center justify-between mb-4">
-        <button onClick={handlePrevWeek} className="p-2 rounded-full hover:bg-bg-tertiary transition-colors">
-          <ChevronLeft size={24} className="text-text-secondary" />
+      {/* Header with week navigation, shortcut titles, and mobile swipe support */}
+      <header
+        {...headerSwipeHandlers}
+        className="flex items-center justify-between mb-4 touch-pan-y"
+      >
+        <button
+          onClick={handlePrevWeek}
+          className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
+          title="← / A (Previous week)"
+        >
+          <ChevronLeft size={24} />
         </button>
         
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center select-none">
           <h1 className="text-xl font-bold text-text-primary">{t('weekly_stats')}</h1>
           <span className="text-sm text-text-muted">
             {format(parseISO(start), 'MMM d')} - {format(parseISO(end), 'MMM d, yyyy')}
           </span>
         </div>
         
-        <button onClick={handleNextWeek} className="p-2 rounded-full hover:bg-bg-tertiary transition-colors">
-          <ChevronRight size={24} className="text-text-secondary" />
+        <button
+          onClick={handleNextWeek}
+          className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
+          title="→ / D (Next week)"
+        >
+          <ChevronRight size={24} />
         </button>
       </header>
 
@@ -599,6 +643,41 @@ export function StatsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Cancellation Reasons Breakdown */}
+              {statsResponse?.cancellation_reasons && statsResponse.cancellation_reasons.length > 0 && (
+                <div className="pt-2 border-t border-border-light flex flex-col gap-2">
+                  <span className="text-xs font-semibold text-text-secondary">
+                    {t('stats_cancellation_reasons')}
+                  </span>
+                  <div className="flex flex-col gap-1.5">
+                    {statsResponse.cancellation_reasons.map((item, idx) => {
+                      const totalCancelled = statsResponse.cancelled_lessons_count || 1;
+                      const percent = Math.round((item.count / totalCancelled) * 100);
+                      const isAirAlert = item.reason.toLowerCase().includes('тривог') || item.reason.toLowerCase().includes('alert');
+                      return (
+                        <div key={idx} className="flex flex-col gap-1 p-2 rounded-lg bg-bg-tertiary/60">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-medium text-text-primary flex items-center gap-1.5 truncate">
+                              <span className={cn("w-2 h-2 rounded-full shrink-0", isAirAlert ? "bg-rose-500" : "bg-amber-500")} />
+                              <span className="truncate">{item.reason || t('stats_reason_not_specified')}</span>
+                            </span>
+                            <span className="text-text-muted shrink-0 text-[11px] font-mono ml-2">
+                              {item.count} ({item.total_minutes}{t('minutes_short')}) • {percent}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-bg-primary/70 overflow-hidden">
+                            <div
+                              className={cn("h-full rounded-full transition-all duration-500", isAirAlert ? "bg-rose-500" : "bg-amber-500")}
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}

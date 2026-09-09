@@ -132,6 +132,11 @@ export interface WeeklyStatsResponse {
     essay: number;
     project: number;
   };
+  cancellation_reasons?: {
+    reason: string;
+    count: number;
+    total_minutes: number;
+  }[];
   homework_stats: {
     total: number;
     completed: number;

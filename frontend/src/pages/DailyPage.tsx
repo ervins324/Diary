@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format, addDays, subDays, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { fetchNextLesson, fetchPreviousLesson } from '../hooks/useScheduleOverrides';
+import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { LessonCard } from '../components/schedule/LessonCard';
 import { formatDate, getDefaultScheduleDate } from '../lib/utils';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -16,9 +17,45 @@ export function DailyPage() {
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const { data: schedule, isLoading } = useSchedule(dateStr, dateStr);
 
-  const handlePrevDay = () => setCurrentDate((prev) => subDays(prev, 1));
-  const handleNextDay = () => setCurrentDate((prev) => addDays(prev, 1));
-  const handleToday = () => setCurrentDate(getDefaultScheduleDate());
+  const handlePrevDay = useCallback(() => setCurrentDate((prev) => subDays(prev, 1)), []);
+  const handleNextDay = useCallback(() => setCurrentDate((prev) => addDays(prev, 1)), []);
+  const handleToday = useCallback(() => setCurrentDate(getDefaultScheduleDate()), []);
+
+  /* Mobile touch swipe gesture handler */
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: handleNextDay,
+    onSwipeRight: handlePrevDay,
+  });
+
+  /* Keyboard shortcuts for day navigation (ArrowLeft / ArrowRight / A / D / T) */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        handlePrevDay();
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        handleNextDay();
+      } else if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        handleToday();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePrevDay, handleNextDay, handleToday]);
 
   const currentDaySchedule = schedule?.[0];
 
@@ -109,12 +146,19 @@ export function DailyPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full p-4 md:p-6 relative">
-      {/* Header */}
+    <div
+      {...swipeHandlers}
+      className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full p-4 md:p-6 relative touch-pan-y"
+    >
+      {/* Header with date navigation, shortcut indicators, and swipe support */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center justify-between w-full sm:w-auto gap-4">
-          <button onClick={handlePrevDay} className="p-2 rounded-full hover:bg-bg-tertiary transition-colors">
-            <ChevronLeft size={24} className="text-text-secondary" />
+          <button
+            onClick={handlePrevDay}
+            className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
+            title="← / A (Previous day)"
+          >
+            <ChevronLeft size={24} />
           </button>
           
           <div className="flex flex-col items-center text-center">
@@ -124,8 +168,12 @@ export function DailyPage() {
             <span className="text-sm text-text-muted">{formatDate(dateStr)}</span>
           </div>
           
-          <button onClick={handleNextDay} className="p-2 rounded-full hover:bg-bg-tertiary transition-colors">
-            <ChevronRight size={24} className="text-text-secondary" />
+          <button
+            onClick={handleNextDay}
+            className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
+            title="→ / D (Next day)"
+          >
+            <ChevronRight size={24} />
           </button>
         </div>
 
@@ -141,7 +189,8 @@ export function DailyPage() {
           )}
           <button 
             onClick={handleToday}
-            className="px-4 py-1.5 bg-bg-secondary border border-border rounded-md text-sm font-medium text-text-primary hover:bg-bg-tertiary transition-colors"
+            className="px-4 py-1.5 bg-bg-secondary border border-border rounded-md text-sm font-medium text-text-primary hover:bg-bg-tertiary active:scale-95 transition-all shadow-2xs"
+            title="T (Jump to Today)"
           >
             {t('today')}
           </button>

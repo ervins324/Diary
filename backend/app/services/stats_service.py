@@ -87,6 +87,7 @@ async def get_weekly_stats(
     total_lessons = 0
     total_break_minutes = 0.0
     total_cancelled_minutes = 0.0
+    cancellation_reasons_map = defaultdict(lambda: {"count": 0, "total_minutes": 0})
     active_days_count = 0
     days_list = []
     day_keys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -127,10 +128,17 @@ async def get_weekly_stats(
             
             # If lesson is cancelled in actual mode, do not count it in active lesson minutes/counts
             if override and override.is_cancelled:
-                # Track cancelled lesson duration for separate interruption statistics
+                # Track cancelled lesson duration and reason for separate interruption statistics
                 dt_c_start = datetime.combine(date.today(), rule.start_time)
                 dt_c_end = datetime.combine(date.today(), rule.end_time)
-                total_cancelled_minutes += (dt_c_end - dt_c_start).total_seconds() / 60
+                c_dur = (dt_c_end - dt_c_start).total_seconds() / 60
+                total_cancelled_minutes += c_dur
+
+                reason_key = (override.note or "").strip()
+                if not reason_key:
+                    reason_key = "Не вказано"
+                cancellation_reasons_map[reason_key]["count"] += 1
+                cancellation_reasons_map[reason_key]["total_minutes"] += int(c_dur)
 
                 day_subjects.append({
                     "name": (override.subject or rule.subject).name,
@@ -217,6 +225,15 @@ async def get_weekly_stats(
     # Sort subjects alphabetically so bar chart order remains consistent across numerator and denominator weeks
     sorted_subjects = sorted(stats_map.values(), key=lambda s: s["subject_name"].lower())
 
+    cancellation_reasons = [
+        {
+            "reason": r,
+            "count": d["count"],
+            "total_minutes": d["total_minutes"],
+        }
+        for r, d in sorted(cancellation_reasons_map.items(), key=lambda x: x[1]["count"], reverse=True)
+    ]
+
     return {
         "subjects": sorted_subjects,
         "days": days_list,
@@ -224,6 +241,7 @@ async def get_weekly_stats(
         "total_lessons": total_lessons,
         "cancelled_lessons_count": cancelled_lessons_count,
         "total_cancelled_minutes": int(total_cancelled_minutes),
+        "cancellation_reasons": cancellation_reasons,
         "avg_lessons_per_day": avg_lessons,
         "total_break_minutes": int(total_break_minutes),
         "mode": mode,

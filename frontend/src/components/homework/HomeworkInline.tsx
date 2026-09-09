@@ -507,15 +507,15 @@ export function HomeworkInline({
     <>
       <div className="group flex flex-col gap-1 mt-1">
         <div className="flex items-start gap-2">
-          {/* Completion checkbox */}
+          {/* Completion checkbox - larger touch target for mobile */}
           <button
             onClick={handleToggle}
             className={cn(
-              "mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors",
-              homework.is_completed ? "bg-success border-success text-white" : "border-border hover:border-accent"
+              "mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95",
+              homework.is_completed ? "bg-success border-success text-white shadow-2xs" : "border-border hover:border-accent"
             )}
           >
-            {homework.is_completed && <Check size={12} />}
+            {homework.is_completed && <Check size={13} />}
           </button>
 
           {/* Stopwatch badge right next to checkbox */}
@@ -527,7 +527,7 @@ export function HomeworkInline({
                 handleToggleTimer();
               }}
               className={cn(
-                "mt-0.5 inline-flex items-center gap-1 text-[11px] font-mono px-1.5 py-0.5 rounded border transition-colors shrink-0 select-none cursor-pointer",
+                "mt-0.5 inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-md border transition-colors shrink-0 select-none cursor-pointer",
                 timerRunning
                   ? "bg-accent/15 border-accent text-accent font-semibold animate-pulse shadow-2xs"
                   : homework.is_completed
@@ -546,49 +546,57 @@ export function HomeworkInline({
             {homework.text}
           </span>
           {/* Edit/delete actions, locate previous/next lesson, and stopwatch buttons — visible on hover and touch */}
-          <div className="flex items-center gap-1 transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100">
+          <div className="flex items-center gap-0.5 md:gap-1 transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0">
             {/* Stopwatch toggle button */}
             <button
               onClick={() => setIsTimerOpen((prev) => !prev)}
               className={cn(
-                "p-1 transition-colors rounded",
-                timerRunning ? "text-accent animate-pulse" : (secondsSpent > 0 ? "text-accent/80 hover:text-accent" : "text-text-muted hover:text-accent")
+                "p-1.5 md:p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]",
+                timerRunning ? "text-accent bg-accent/10 animate-pulse" : (secondsSpent > 0 ? "text-accent/80 hover:text-accent hover:bg-bg-tertiary" : "text-text-muted hover:text-accent hover:bg-bg-tertiary")
               )}
               title={t('hw_timer_label')}
             >
-              <Timer size={12} />
+              <Timer size={14} />
             </button>
             {/* Locate previous lesson button */}
             <button
               onClick={handleLocatePrevious}
               disabled={isLocatingPrev}
-              className="text-text-muted hover:text-accent p-1 transition-colors"
+              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]"
               title={
                 language === 'uk'
                   ? 'Повернутися до попереднього уроку цього предмету'
                   : 'Return to previous lesson of this subject'
               }
             >
-              {isLocatingPrev ? <Loader2 size={12} className="animate-spin text-accent" /> : <RotateCcw size={12} />}
+              {isLocatingPrev ? <Loader2 size={14} className="animate-spin text-accent" /> : <RotateCcw size={14} />}
             </button>
             {/* Locate next lesson button */}
             <button
               onClick={handleLocateNext}
               disabled={isLocating}
-              className="text-text-muted hover:text-accent p-1 transition-colors"
+              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]"
               title={
                 language === 'uk'
                   ? 'Перейти та підсвітити наступний урок (найближчий до сьогодні)'
                   : 'Locate & highlight next lesson closest to today'
               }
             >
-              {isLocating ? <Loader2 size={12} className="animate-spin text-accent" /> : <Compass size={12} />}
+              {isLocating ? <Loader2 size={14} className="animate-spin text-accent" /> : <Compass size={14} />}
             </button>
-            <button onClick={() => setIsEditing(true)} className="text-text-muted hover:text-accent p-1" title="Edit">
-              <Edit2 size={12} />
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]"
+              title="Edit"
+            >
+              <Edit2 size={14} />
             </button>
-            <button onClick={handleDelete} className="text-text-muted hover:text-danger p-1" title="Delete">
-              <Trash2 size={12} />
+            <button
+              onClick={handleDelete}
+              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 active:scale-95 transition-all flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]"
+              title="Delete"
+            >
+              <Trash2 size={14} />
             </button>
           </div>
         </div>

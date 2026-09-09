@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { format, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { useCreateHomework } from '../hooks/useHomework';
 import { useFileUpload } from '../hooks/useFileUpload';
+import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { fetchNextLesson, fetchPreviousLesson } from '../hooks/useScheduleOverrides';
 import { getWeekDates, formatTime, cn, getDefaultScheduleDate, compressImageFile, isLessonNow } from '../lib/utils';
 import { getEventTypeInfo } from '../lib/customTypes';
@@ -40,9 +41,45 @@ export function DiaryPage() {
   /* Container ref for mobile horizontal swipe container */
   const mobileContainerRef = useRef<HTMLDivElement>(null);
 
-  const handlePrevWeek = () => setCurrentDate((prev) => subWeeks(prev, 1));
-  const handleNextWeek = () => setCurrentDate((prev) => addWeeks(prev, 1));
-  const handleCurrentWeek = () => setCurrentDate(getDefaultScheduleDate());
+  const handlePrevWeek = useCallback(() => setCurrentDate((prev) => subWeeks(prev, 1)), []);
+  const handleNextWeek = useCallback(() => setCurrentDate((prev) => addWeeks(prev, 1)), []);
+  const handleCurrentWeek = useCallback(() => setCurrentDate(getDefaultScheduleDate()), []);
+
+  /* Header touch swipe gesture handler for mobile week switching */
+  const headerSwipeHandlers = useSwipeGesture({
+    onSwipeLeft: handleNextWeek,
+    onSwipeRight: handlePrevWeek,
+  });
+
+  /* Keyboard shortcuts for week navigation (ArrowLeft / ArrowRight / A / D / T) */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        handlePrevWeek();
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        handleNextWeek();
+      } else if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        handleCurrentWeek();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePrevWeek, handleNextWeek, handleCurrentWeek]);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -572,21 +609,36 @@ export function DiaryPage() {
 
   return (
     <div className="flex-1 flex flex-col h-full max-w-6xl mx-auto w-full p-4 md:p-6">
-      {/* Header */}
-      <header className="flex items-center justify-between mb-6">
-        <button onClick={handlePrevWeek} className="p-2 rounded-full hover:bg-bg-tertiary transition-colors">
-          <ChevronLeft size={24} className="text-text-secondary" />
+      {/* Header with week navigation, shortcut titles, and mobile swipe support */}
+      <header
+        {...headerSwipeHandlers}
+        className="flex items-center justify-between mb-6 touch-pan-y"
+      >
+        <button
+          onClick={handlePrevWeek}
+          className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
+          title="← / A (Previous week)"
+        >
+          <ChevronLeft size={24} />
         </button>
         
-        <div className="flex flex-col items-center text-center cursor-pointer" onClick={handleCurrentWeek}>
+        <div
+          className="flex flex-col items-center text-center cursor-pointer select-none p-1 rounded-lg hover:bg-bg-tertiary/50 active:scale-98 transition-all"
+          onClick={handleCurrentWeek}
+          title="T (Jump to Current Week)"
+        >
           <h1 className="text-xl font-bold text-text-primary">{t('week')}</h1>
           <span className="text-sm text-text-muted">
             {format(parseISO(start), 'MMM d')} - {format(parseISO(end), 'MMM d, yyyy')}
           </span>
         </div>
         
-        <button onClick={handleNextWeek} className="p-2 rounded-full hover:bg-bg-tertiary transition-colors">
-          <ChevronRight size={24} className="text-text-secondary" />
+        <button
+          onClick={handleNextWeek}
+          className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
+          title="→ / D (Next week)"
+        >
+          <ChevronRight size={24} />
         </button>
       </header>
 

@@ -118,6 +118,7 @@ class TestStatsAndHomeworkTimer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stats["total_lessons"], 1)
         self.assertEqual(stats["cancelled_lessons_count"], 1)
         self.assertEqual(stats["total_cancelled_minutes"], 45)
+        self.assertEqual(stats["cancellation_reasons"], [{"reason": "Air raid alarm", "count": 1, "total_minutes": 45}])
         # Math has 45 minutes and 1 lesson; History has 0 minutes / 0 lessons
         math_stat = next(s for s in stats["subjects"] if s["subject_name"] == "Math")
         self.assertEqual(math_stat["lessons_count"], 1)

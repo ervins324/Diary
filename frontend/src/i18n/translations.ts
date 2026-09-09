@@ -325,6 +325,14 @@ export const translations = {
     cancel_by_air_alert: 'Cancel by Air Alert',
     restore_from_air_alert: 'Restore Lesson',
     air_alert_manual_note: 'Air Alert',
+
+    // Cancellation reasons in stats
+    stats_cancellation_reasons: 'Cancellation Reasons Breakdown',
+    stats_reason_not_specified: 'Reason not specified',
+    stats_cancellations_empty: 'No cancelled lessons this week',
+
+    // Shortcuts & Gestures
+    shortcut_nav_hint: '← / → to navigate, T for Today',
   },
   uk: {
     // Navigation
@@ -650,6 +658,14 @@ export const translations = {
     cancel_by_air_alert: 'Скасувати через тривогу',
     restore_from_air_alert: 'Відновити урок',
     air_alert_manual_note: 'Повітряна тривога',
+
+    // Cancellation reasons in stats
+    stats_cancellation_reasons: 'Причини скасування уроків',
+    stats_reason_not_specified: 'Причину не вказано',
+    stats_cancellations_empty: 'Цього тижня скасованих уроків не було',
+
+    // Shortcuts & Gestures
+    shortcut_nav_hint: '← / → або свайп для переходу, T — сьогодні',
   },
 } as const;
 

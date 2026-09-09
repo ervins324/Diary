@@ -309,35 +309,35 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
             <button
               onClick={handleLocatePrevious}
               disabled={isLocatingPrev}
-              className="p-1 text-text-muted hover:text-accent rounded hover:bg-bg-tertiary transition-colors"
+              className="p-2 md:p-1.5 rounded-lg text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all min-w-[34px] min-h-[34px] md:min-w-[28px] md:min-h-[28px] flex items-center justify-center"
               title={
                 language === 'uk'
                   ? 'Повернутися до попереднього уроку цього предмету'
                   : 'Return to previous lesson of this subject'
               }
             >
-              {isLocatingPrev ? <Loader2 size={14} className="animate-spin text-accent" /> : <RotateCcw size={14} />}
+              {isLocatingPrev ? <Loader2 size={16} className="animate-spin text-accent" /> : <RotateCcw size={16} />}
             </button>
 
             {/* Locate next lesson button */}
             <button
               onClick={handleLocateNext}
               disabled={isLocating}
-              className="p-1 text-text-muted hover:text-accent rounded hover:bg-bg-tertiary transition-colors"
+              className="p-2 md:p-1.5 rounded-lg text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all min-w-[34px] min-h-[34px] md:min-w-[28px] md:min-h-[28px] flex items-center justify-center"
               title={
                 language === 'uk'
                   ? 'Знайти найближчий наступний урок цього предмету'
                   : 'Find closest next lesson of this subject'
               }
             >
-              {isLocating ? <Loader2 size={14} className="animate-spin text-accent" /> : <Compass size={14} />}
+              {isLocating ? <Loader2 size={16} className="animate-spin text-accent" /> : <Compass size={16} />}
             </button>
 
             {/* Substitution & Event override trigger button */}
             <button
               onClick={() => setIsOverrideModalOpen(true)}
               className={cn(
-                "p-1 rounded transition-colors",
+                "p-2 md:p-1.5 rounded-lg transition-all active:scale-95 min-w-[34px] min-h-[34px] md:min-w-[28px] md:min-h-[28px] flex items-center justify-center",
                 lesson.event_type === 'control_work'
                   ? "text-rose-500 hover:bg-rose-500/10"
                   : lesson.event_type
@@ -352,7 +352,7 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
                   : 'Lesson substitution or event (control work, test, essay, project)'
               }
             >
-              <ArrowLeftRight size={14} />
+              <ArrowLeftRight size={16} />
             </button>
           </div>
         </div>
@@ -490,9 +490,10 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
           ) : (
             <button
               onClick={() => setIsAddingHomework(true)}
-              className="mt-2 flex items-center gap-1 text-xs text-text-muted hover:text-accent transition-colors"
+              className="mt-2.5 inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg text-xs font-medium text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all w-fit cursor-pointer border border-border/50 hover:border-accent/40 shadow-2xs"
             >
-              <Plus size={12} /> {t('add_homework') || 'Add Homework'}
+              <Plus size={14} className="text-accent" />
+              <span>{t('add_homework') || 'Add Homework'}</span>
             </button>
           )}
         </div>
