@@ -1,5 +1,23 @@
 # School Diary — Changelog
 
+## v1.8.4 — 2026-09-09
+
+### 🛡️ Neptun Air Alerts Stream Stability & Visual De-Flickering
+- **Eliminated Visual Blinking on Alert Banners (`LiveScheduleWidget.tsx`)**:
+  - Removed `animate-pulse` from the outer banner container (`Sidebar.tsx`) and mobile pill (`LiveScheduleWidget.tsx`), which was causing the entire component to continuously cycle opacity (100% → 50%) every 2 seconds.
+  - Kept a calm radar ping on the indicator dot (`animate-ping`) for clear alert status without visually jarring card-level blinking.
+- **Canonical Stem Region Matching (`neptunAlerts.ts`)**:
+  - Replaced naive substring checking (`ukName.includes(...)`) with an explicit canonical stems dictionary (`REGION_STEMS`) and minimum string length guards (`length >= 3`).
+  - Completely resolved false-positive alarms caused by empty strings (`""`) in API payloads matching all regions.
+  - Distinctly separated Kyiv City (`м. Київ`) from Kyiv Oblast (`Київська область`) to avoid cross-triggering alarms between municipality and province.
+- **WebSocket Frame Handling & Snapshot Recovery (`neptunAlerts.ts`)**:
+  - Updated message parsing to accept raw payload objects regardless of whether top-level `payload.type` is specified.
+  - Fixed false watchdog disconnects that were forcibly dropping the connection every 90 seconds due to ignored snapshot frames.
+- **Subscription Lifecycle Debouncing & Reconnect Backoff (`neptunAlerts.ts`, `useAirAlerts.ts`)**:
+  - Introduced a 10-second debounce grace period on unsubscribing before tearing down WebSocket connections, preventing connection thrashing during React page transitions and hook re-evaluations.
+  - Isolated the air alerts stream subscription from schedule query refetches and mutation callbacks in `useAirAlerts.ts`, eliminating the root cause of `HTTP 429: Too Many Requests` rate limits.
+  - Added exponential reconnect backoff with cooldown limits if server rate limits are detected.
+
 ## v1.8.3 — 2026-09-09
 
 ### 🚀 Mobile HW Actions, App Version Display, Improved Media Viewer & Background Auto-Refresh

@@ -88,9 +88,9 @@ class TestScheduleLocator(unittest.IsolatedAsyncioTestCase):
 
     @patch("app.services.schedule_service.get_schedule_for_range")
     async def test_find_next_lesson_jumps_to_following_day(self, mock_get_sched):
-        # Day 1: Math at order 1; Day 3: Math at order 2
-        d1 = date(2026, 9, 7)
-        d3 = date(2026, 9, 9)
+        # Future dates: Day 1: Math at order 1; Day 3: Math at order 2
+        d1 = date(2030, 9, 9)
+        d3 = date(2030, 9, 11)
         l1 = make_lesson(d1, 1, self.sub_math)
         l2 = make_lesson(d3, 2, self.sub_math)
 

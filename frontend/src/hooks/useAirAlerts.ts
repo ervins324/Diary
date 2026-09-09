@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { neptunAlertsService, UKRAINIAN_REGIONS } from '../services/neptunAlerts';
 import { useSchedule } from './useSchedule';
 import { useSetScheduleOverride } from './useScheduleOverrides';
@@ -28,43 +28,69 @@ export function useAirAlerts() {
   const { data: schedule } = useSchedule(todayIso, todayIso);
   const setOverrideMutation = useSetScheduleOverride();
 
+  // Stable references to prevent effect teardown and reconnect thrashing on schedule refetches
+  const selectedRegionRef = useRef(selectedRegion);
+  selectedRegionRef.current = selectedRegion;
+
+  const scheduleRef = useRef(schedule);
+  scheduleRef.current = schedule;
+
+  const mutateRef = useRef(setOverrideMutation.mutate);
+  mutateRef.current = setOverrideMutation.mutate;
+
+  const tRef = useRef(t);
+  tRef.current = t;
+
+  // 1. Alert stream subscription: depends ONLY on alertsEnabled
   useEffect(() => {
     if (!alertsEnabled) {
       setIsAlertActive(false);
+      setRawAlerts([]);
       return;
     }
 
     const unsubscribe = neptunAlertsService.subscribe((activeOblasts) => {
       setRawAlerts(activeOblasts);
-      const active = neptunAlertsService.isRegionAlarmed(selectedRegion);
-      setIsAlertActive(active);
-
-      // If alert is active, auto-cancel enabled, and there's a currently ongoing lesson, auto-cancel it
-      if (active && autoCancelEnabled && schedule?.[0]?.lessons) {
-        for (const lesson of schedule[0].lessons) {
-          if (
-            !lesson.is_cancelled &&
-            isLessonNow(lesson.start_time, lesson.end_time, todayIso)
-          ) {
-            setOverrideMutation.mutate({
-              date: todayIso,
-              lesson_order: lesson.lesson_order,
-              subject_id: null,
-              original_subject_id: lesson.subject?.id || null,
-              original_subject_name: lesson.subject?.name || null,
-              is_cancelled: true,
-              note: t('air_alert_lesson_note'),
-              event_type: lesson.event_type || null,
-            });
-          }
-        }
-      }
+      setIsAlertActive(neptunAlertsService.isRegionAlarmed(selectedRegionRef.current));
     });
 
     return () => {
       unsubscribe();
     };
-  }, [alertsEnabled, selectedRegion, autoCancelEnabled, schedule, todayIso, setOverrideMutation, t]);
+  }, [alertsEnabled]);
+
+  // 2. Re-evaluate alarm status when user selects a different region
+  useEffect(() => {
+    if (alertsEnabled) {
+      setIsAlertActive(neptunAlertsService.isRegionAlarmed(selectedRegion));
+    }
+  }, [alertsEnabled, selectedRegion]);
+
+  // 3. Isolated auto-cancellation: fires only when alarm becomes active during ongoing lesson hours
+  useEffect(() => {
+    if (!isAlertActive || !autoCancelEnabled) return;
+
+    const curSchedule = scheduleRef.current;
+    if (!curSchedule?.[0]?.lessons) return;
+
+    for (const lesson of curSchedule[0].lessons) {
+      if (
+        !lesson.is_cancelled &&
+        isLessonNow(lesson.start_time, lesson.end_time, todayIso)
+      ) {
+        mutateRef.current({
+          date: todayIso,
+          lesson_order: lesson.lesson_order,
+          subject_id: null,
+          original_subject_id: lesson.subject?.id || null,
+          original_subject_name: lesson.subject?.name || null,
+          is_cancelled: true,
+          note: tRef.current('air_alert_lesson_note'),
+          event_type: lesson.event_type || null,
+        });
+      }
+    }
+  }, [isAlertActive, autoCancelEnabled, todayIso]);
 
   const updateAlertsEnabled = (val: boolean) => {
     setAlertsEnabled(val);

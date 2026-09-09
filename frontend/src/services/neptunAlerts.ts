@@ -51,6 +51,39 @@ export const UKRAINIAN_REGIONS: NeptunRegion[] = [
   { id: 'crimea', nameUk: 'АР Крим', nameEn: 'Autonomous Republic of Crimea' },
 ];
 
+/**
+ * Canonical stem keywords for each Ukrainian region to ensure robust, unambiguous matching.
+ * Differentiates Kyiv City from Kyiv Oblast and eliminates false alarms from empty strings.
+ */
+const REGION_STEMS: Record<string, string[]> = {
+  kyiv_city: ['м. київ', 'м.київ'],
+  kyiv: ['київськ', 'київщин'],
+  vinnytsia: ['вінницьк'],
+  volyn: ['волинськ'],
+  dnipro: ['дніпро', 'дніпропетровськ'],
+  donetsk: ['донецьк'],
+  zhytomyr: ['житомир'],
+  zakarpattia: ['закарпат'],
+  zaporizhzhia: ['запорізьк'],
+  ivano_frankivsk: ['івано-франківськ', 'прикарпатт'],
+  kirovohrad: ['кіровоград'],
+  luhansk: ['луганськ'],
+  lviv: ['львів'],
+  mykolaiv: ['миколаїв'],
+  odesa: ['одес'],
+  poltava: ['полтав'],
+  rivne: ['рівнен'],
+  sumy: ['сумськ', 'м. суми'],
+  ternopil: ['тернопіль'],
+  kharkiv: ['харків'],
+  kherson: ['херсон'],
+  khmelnytskyi: ['хмельницьк'],
+  cherkasy: ['черкас'],
+  chernivtsi: ['чернівецьк', 'буковин'],
+  chernihiv: ['чернігів'],
+  crimea: ['крим', 'севастополь'],
+};
+
 type AlertListener = (activeOblasts: string[], rawResponse: NeptunAlertsResponse | null) => void;
 
 class NeptunAlertsManager {
@@ -60,6 +93,7 @@ class NeptunAlertsManager {
   private lastData: NeptunAlertsResponse | null = null;
   private reconnectTimeout: number | null = null;
   private reconnectDelay: number = 15000;
+  private disconnectTimeout: number | null = null;
   private pollInterval: number | null = null;
   private isConnecting: boolean = false;
   private lastFetchTime: number = 0;
@@ -72,6 +106,12 @@ class NeptunAlertsManager {
   }
 
   public subscribe(listener: AlertListener): () => void {
+    // If a disconnect was scheduled due to grace period, cancel it
+    if (this.disconnectTimeout) {
+      window.clearTimeout(this.disconnectTimeout);
+      this.disconnectTimeout = null;
+    }
+
     this.listeners.add(listener);
     // Call immediately with existing data if available
     listener(this.activeOblasts, this.lastData);
@@ -110,7 +150,17 @@ class NeptunAlertsManager {
     return () => {
       this.listeners.delete(listener);
       if (this.listeners.size === 0) {
-        this.disconnect();
+        // Grace period (10s): delay disconnect so fast page changes or React effect re-runs
+        // do not tear down and immediately reconnect the WebSocket, preventing HTTP 429 rate limits.
+        if (this.disconnectTimeout) {
+          window.clearTimeout(this.disconnectTimeout);
+        }
+        this.disconnectTimeout = window.setTimeout(() => {
+          if (this.listeners.size === 0) {
+            this.disconnect();
+          }
+          this.disconnectTimeout = null;
+        }, 10000);
       }
     };
   }
@@ -162,9 +212,10 @@ class NeptunAlertsManager {
 
       this.ws.onmessage = (event) => {
         try {
-          const payload = JSON.parse(event.data);
-          if (payload.type === 'snapshot' || payload.type === 'alerts') {
-            const data: NeptunAlertsResponse = payload.data || payload;
+          const payload = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          // Accept snapshot, alerts, or raw top-level response objects
+          const data: NeptunAlertsResponse = payload.data || payload;
+          if (data && (Array.isArray(data.oblasts) || Array.isArray(data.raions))) {
             this.handleAlertsData(data);
           }
         } catch (e) {
@@ -176,17 +227,21 @@ class NeptunAlertsManager {
         this.startFallbackPolling();
       };
 
-      this.ws.onclose = () => {
+      this.ws.onclose = (event) => {
         this.ws = null;
         this.isConnecting = false;
         this.startFallbackPolling();
-        // Try reconnecting with exponential backoff (15s -> 30s -> 60s)
+        // If HTTP 429 rate limit was encountered, back off to at least 60s
+        if (event.code === 1008 || event.reason?.includes('429')) {
+          this.reconnectDelay = Math.max(this.reconnectDelay, 60000);
+        }
+        // Try reconnecting with exponential backoff (15s -> 30s -> 60s -> max 120s)
         if (!this.reconnectTimeout && this.listeners.size > 0) {
           this.reconnectTimeout = window.setTimeout(() => {
             this.reconnectTimeout = null;
             this.connect();
           }, this.reconnectDelay);
-          this.reconnectDelay = Math.min(60000, this.reconnectDelay * 1.5);
+          this.reconnectDelay = Math.min(120000, this.reconnectDelay * 1.5);
         }
       };
     } catch {
@@ -235,6 +290,10 @@ class NeptunAlertsManager {
   }
 
   private disconnect() {
+    if (this.disconnectTimeout) {
+      window.clearTimeout(this.disconnectTimeout);
+      this.disconnectTimeout = null;
+    }
     if (this.watchdogInterval) {
       window.clearInterval(this.watchdogInterval);
       this.watchdogInterval = null;
@@ -259,35 +318,48 @@ class NeptunAlertsManager {
   }
 
   /**
-   * Helper to check if a given region ID is currently alarmed
+   * Helper to check if a given region ID is currently alarmed.
+   * Uses canonical region stems and minimum-length guards to prevent false alarms from empty strings.
    */
   public isRegionAlarmed(regionId: string): boolean {
     if (!regionId || !this.lastData) return false;
-    const regionObj = UKRAINIAN_REGIONS.find((r) => r.id === regionId);
-    if (!regionObj) return false;
 
-    const ukName = regionObj.nameUk.toLowerCase();
+    const stems = REGION_STEMS[regionId];
+    const isKyivCity = regionId === 'kyiv_city';
 
-    // Check oblasts - compare against both key and name fields
+    const matchesRegion = (text: string | undefined): boolean => {
+      if (!text) return false;
+      const clean = text.trim().toLowerCase();
+      // Guard against empty strings or fragments matching everything
+      if (clean.length < 3) return false;
+
+      // When matching Kyiv City, exclude general "київська область" / "київщина"
+      if (isKyivCity && (clean.includes('київськ') || clean.includes('київщин'))) {
+        return false;
+      }
+
+      if (stems && stems.length > 0) {
+        return stems.some((stem) => clean.includes(stem));
+      }
+
+      // Fallback: match against UKRAINIAN_REGIONS nameUk
+      const regionObj = UKRAINIAN_REGIONS.find((r) => r.id === regionId);
+      if (!regionObj) return false;
+      const ukName = regionObj.nameUk.trim().toLowerCase();
+      return ukName.length >= 3 && (clean.includes(ukName) || ukName.includes(clean));
+    };
+
+    // Check oblasts - compare against key, name, and parent oblast fields
     const inOblasts = (this.lastData.oblasts || []).some((o) => {
-      const oKey = (o.key || '').toLowerCase();
-      const oName = (o.name || '').toLowerCase();
-      // Exact key match (e.g. "м. київ" === "м. київ")
-      if (oKey === ukName || oName === ukName) return true;
-      // Partial match: check if oblast key is contained in our region name or vice versa
-      if (ukName.includes(oKey) || oKey.includes(ukName)) return true;
-      if (ukName.includes(oName) || oName.includes(ukName)) return true;
-      // ID-based match (e.g. o.key could directly be our regionId)
-      if (oKey === regionId) return true;
-      return false;
+      if (!o) return false;
+      return matchesRegion(o.key) || matchesRegion(o.name) || matchesRegion(o.oblast);
     });
     if (inOblasts) return true;
 
     // Check raions - if any raion belongs to our oblast, consider it alarmed
     const inRaions = (this.lastData.raions || []).some((r) => {
-      const rOblast = (r.oblast || '').toLowerCase();
-      // Compare raion's parent oblast with our region name
-      return ukName.includes(rOblast) || rOblast.includes(ukName);
+      if (!r) return false;
+      return matchesRegion(r.oblast) || matchesRegion(r.name) || matchesRegion(r.key);
     });
 
     return inRaions;

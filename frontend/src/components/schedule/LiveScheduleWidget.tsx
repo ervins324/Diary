@@ -208,7 +208,7 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
       <div className={cn("px-3 py-2 bg-bg-secondary/90 backdrop-blur-xs border-b border-border text-xs flex items-center justify-between gap-2 overflow-x-auto", className)}>
         {/* Air Alert Warning Pill */}
         {alertsEnabled && isAlertActive && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 bg-rose-500/15 px-2 py-0.5 rounded-full border border-rose-500/30 animate-pulse shrink-0">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 bg-rose-500/15 px-2 py-0.5 rounded-full border border-rose-500/30 shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
             <AlertTriangle size={11} />
             <span>{language === 'uk' ? 'Тривога' : 'Alert'}</span>
@@ -299,7 +299,7 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
 
       {/* Air Alert Warning Banner when active in region */}
       {alertsEnabled && isAlertActive && (
-        <div className="flex items-center gap-2 p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold animate-pulse">
+        <div className="flex items-center gap-2 p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold">
           <span className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
