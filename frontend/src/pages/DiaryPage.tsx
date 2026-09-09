@@ -322,8 +322,8 @@ export function DiaryPage() {
                               </span>
                             )}
                           </span>
-                        ) : lesson.is_override && lesson.original_subject ? (
-                          <div className="flex items-baseline gap-1 truncate">
+                        ) : lesson.is_override && lesson.original_subject && lesson.original_subject.name.trim().toLowerCase() !== lesson.subject.name.trim().toLowerCase() ? (
+                          <div className="flex items-center gap-1 truncate">
                             <span className="font-bold text-text-primary truncate">
                               {lesson.subject.name}
                             </span>

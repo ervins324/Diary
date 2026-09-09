@@ -20,6 +20,17 @@
 - **Background Auto-Refresh on Tab Focus (`App.tsx`)**:
   - Enabled `refetchOnWindowFocus: true` so stale queries (>5 min) automatically refresh when the user returns to the browser tab.
   - Added `refetchOnReconnect: true` to also refresh stale data when network connectivity is restored.
+- **Dynamic Island Live Schedule & Alerts Widget (`LiveScheduleWidget.tsx`)**:
+  - Redesigned the sidebar widget with Dynamic Island aesthetics (smooth live progress bar, remaining time countdown, circular ring indicator on mobile, and next lesson preview with color accents).
+  - Integrated real-time air alert status directly into the widget: active alerts display a high-visibility pulsing warning banner and mobile pill indicator.
+- **Neptun Air Alerts Watchdog & Low-Latency Polling (`neptunAlerts.ts`)**:
+  - Added a background heartbeat watchdog checking every 25s to detect and recover from silent or stalled WebSocket streams.
+  - Reduced REST fallback throttle from 45s to 20s and polling interval to 30s for prompt alert activations and all-clear notifications.
+  - Decreased tab refocus refresh delay to 15s and added instant initial REST sync upon subscription.
+- **Lesson Substitution vs Event Tagging Bugfix (`LessonCard.tsx`, `DiaryPage.tsx`)**:
+  - Fixed tautological label bug where regular lessons tagged with an assessment event displayed redundant parentheses (e.g. `Мистецтво (Мистецтво)`).
+  - Corrected false `Заміна` (Substitution) badge appearing alongside `🚀 Проєкт` or other event badges when only an assessment type was scheduled without substituting the subject.
+  - Aligned badge margins, vertical centering, and added top clearance padding to eliminate border cutoffs and cramped spacing.
 
 ## v1.8.2 — 2026-09-08
 

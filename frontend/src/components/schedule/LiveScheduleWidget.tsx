@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Clock, BookOpen, Coffee, CheckCircle, Flame, Sparkles } from 'lucide-react';
+import { Clock, BookOpen, Coffee, CheckCircle, Flame, Sparkles, AlertTriangle } from 'lucide-react';
 import { useSchedule } from '../../hooks/useSchedule';
+import { useAirAlerts } from '../../hooks/useAirAlerts';
 import { getWeekDates, isLessonNow, cn } from '../../lib/utils';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { getEventTypeInfo } from '../../lib/customTypes';
@@ -14,6 +15,7 @@ interface LiveScheduleWidgetProps {
 
 export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveScheduleWidgetProps) {
   const { t, language } = useLanguage();
+  const { isAlertActive, alertsEnabled } = useAirAlerts();
 
   // Settings from localStorage with reactive state
   const [config, setConfig] = useState(() => ({
@@ -42,7 +44,7 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(new Date());
-    }, 30000);
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -122,6 +124,48 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
     return { type: 'finished' as const };
   }, [todayLessons, now, todayStr]);
 
+  // Calculate lesson progress percentage and time remaining
+  const lessonProgress = useMemo(() => {
+    if (liveStatus.type !== 'lesson_now') return null;
+    const lesson = liveStatus.lesson;
+    const parseTime = (t: string) => {
+      const p = t.split(':');
+      return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+    };
+    const startMins = parseTime(lesson.start_time);
+    const endMins = parseTime(lesson.end_time);
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const totalDuration = endMins - startMins;
+    const elapsed = currentMins - startMins;
+    const percent = totalDuration > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100))) : 0;
+    const remaining = Math.max(0, endMins - currentMins);
+    return { percent, remaining, totalDuration };
+  }, [liveStatus, now]);
+
+  // Next upcoming lesson (after current one)
+  const nextLesson = useMemo(() => {
+    if (!todayLessons.length) return null;
+    // If we're in a lesson, find the one after it
+    if (liveStatus.type === 'lesson_now') {
+      const currentOrder = liveStatus.lesson.lesson_order;
+      return todayLessons.find(l => !l.is_cancelled && l.lesson_order > currentOrder) || null;
+    }
+    // If we're on break, the next lesson is already in liveStatus
+    if (liveStatus.type === 'break_now') return liveStatus.nextLesson;
+    if (liveStatus.type === 'before_school') return liveStatus.firstLesson;
+    return null;
+  }, [todayLessons, liveStatus]);
+
+  // Remaining lessons count for today
+  const remainingLessonsCount = useMemo(() => {
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const parseTime = (t: string) => {
+      const p = t.split(':');
+      return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+    };
+    return todayLessons.filter(l => !l.is_cancelled && parseTime(l.start_time) > currentMins).length;
+  }, [todayLessons, now]);
+
   // Pending homework count
   const pendingHwCount = useMemo(() => {
     if (!weekSchedule) return 0;
@@ -158,24 +202,42 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
     return null;
   }
 
-  // Mobile compact banner
+  // Mobile Dynamic Island-style compact banner
   if (variant === 'mobile') {
     return (
       <div className={cn("px-3 py-2 bg-bg-secondary/90 backdrop-blur-xs border-b border-border text-xs flex items-center justify-between gap-2 overflow-x-auto", className)}>
+        {/* Air Alert Warning Pill */}
+        {alertsEnabled && isAlertActive && (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 bg-rose-500/15 px-2 py-0.5 rounded-full border border-rose-500/30 animate-pulse shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+            <AlertTriangle size={11} />
+            <span>{language === 'uk' ? 'Тривога' : 'Alert'}</span>
+          </span>
+        )}
+
         {/* Lesson / Break Status */}
         {config.showLesson && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            {liveStatus.type === 'lesson_now' && (
-              <span className="inline-flex items-center gap-1 font-semibold text-accent">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>{liveStatus.lesson.subject.name}</span>
-                <span className="text-[10px] text-text-muted">({liveStatus.lesson.start_time.slice(0, 5)}-{liveStatus.lesson.end_time.slice(0, 5)})</span>
+          <div className="flex items-center gap-1.5 shrink-0 min-w-0">
+            {liveStatus.type === 'lesson_now' && lessonProgress && (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-accent min-w-0">
+                <span className="relative w-5 h-5 shrink-0">
+                  {/* Circular progress ring */}
+                  <svg viewBox="0 0 20 20" className="w-5 h-5 -rotate-90">
+                    <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-15" />
+                    <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="2.5"
+                      strokeDasharray={`${lessonProgress.percent * 0.5} 50`}
+                      strokeLinecap="round" className="transition-all duration-1000" />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-[7px] font-bold">{liveStatus.lesson.lesson_order}</span>
+                </span>
+                <span className="truncate">{liveStatus.lesson.subject.name}</span>
+                <span className="text-[10px] text-text-muted font-normal shrink-0">{lessonProgress.remaining}{t('minutes_short')}</span>
               </span>
             )}
             {liveStatus.type === 'break_now' && (
               <span className="inline-flex items-center gap-1 text-emerald-500 font-medium">
                 <Coffee size={13} />
-                <span>{language === 'uk' ? 'Перерва' : 'Break'} ({liveStatus.minutesLeft}m)</span>
+                <span>{liveStatus.minutesLeft}{t('minutes_short')}</span>
                 <span className="text-[10px] text-text-muted">→ {liveStatus.nextLesson.subject.name}</span>
               </span>
             )}
@@ -218,9 +280,9 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
     );
   }
 
-  // Sidebar Desktop Card
+  // Sidebar Desktop Dynamic Island Card
   return (
-    <div className={cn("p-3 mx-3 rounded-xl border border-border/70 bg-bg-tertiary/40 backdrop-blur-xs flex flex-col gap-2.5 shadow-2xs transition-all", className)}>
+    <div className={cn("p-3 mx-3 rounded-2xl border border-border/80 bg-bg-secondary/60 dark:bg-bg-secondary/40 backdrop-blur-md flex flex-col gap-2.5 shadow-sm transition-all", className)}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1">
@@ -235,34 +297,73 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
         )}
       </div>
 
+      {/* Air Alert Warning Banner when active in region */}
+      {alertsEnabled && isAlertActive && (
+        <div className="flex items-center gap-2 p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold animate-pulse">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+          </span>
+          <AlertTriangle size={13} className="shrink-0 text-rose-500" />
+          <span className="truncate">{language === 'uk' ? 'Повітряна тривога в регіоні!' : 'Air alert in your region!'}</span>
+        </div>
+      )}
+
       {/* Lesson / Break Status Card */}
       {config.showLesson && (
-        <div className="p-2.5 rounded-lg bg-bg-secondary border border-border-light text-xs">
-          {liveStatus.type === 'lesson_now' && (
-            <div className="space-y-1">
+        <div className="p-2.5 rounded-xl bg-bg-primary/70 border border-border/60 text-xs shadow-2xs">
+          {liveStatus.type === 'lesson_now' && lessonProgress && (
+            <div className="space-y-2">
               <div className="flex items-center justify-between gap-1">
-                <span className="font-bold text-text-primary truncate">
-                  {liveStatus.lesson.subject.name}
-                </span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
+                    style={{ backgroundColor: liveStatus.lesson.subject.color_hex || 'var(--color-accent)' }}
+                  />
+                  <span className="font-bold text-text-primary text-sm truncate">
+                    {liveStatus.lesson.subject.name}
+                  </span>
+                </div>
                 {liveStatus.lesson.cabinet && localStorage.getItem('show_cabinets') !== 'false' && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-bg-tertiary text-text-muted font-medium">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-bg-tertiary text-text-muted font-medium shrink-0">
                     {t('cabinet_short')} {liveStatus.lesson.cabinet}
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-text-muted flex items-center justify-between">
-                <span>
-                  {liveStatus.lesson.start_time.slice(0, 5)} – {liveStatus.lesson.end_time.slice(0, 5)}
-                </span>
-                <span className="text-accent font-semibold">
-                  #{liveStatus.lesson.lesson_order}
-                </span>
+              {/* Progress bar showing lesson completion */}
+              <div className="space-y-1">
+                <div className="w-full h-1.5 rounded-full bg-bg-tertiary overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all duration-1000 ease-linear"
+                    style={{ width: `${lessonProgress.percent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-text-muted">
+                  <span>{liveStatus.lesson.start_time.slice(0, 5)} – {liveStatus.lesson.end_time.slice(0, 5)}</span>
+                  <span className="font-semibold text-accent">
+                    {lessonProgress.remaining > 0
+                      ? `${lessonProgress.remaining} ${t('minutes_short')} ${language === 'uk' ? 'лишилось' : 'left'}`
+                      : (language === 'uk' ? 'Завершується' : 'Ending')}
+                  </span>
+                </div>
               </div>
+              {/* Next lesson preview */}
+              {nextLesson && (
+                <div className="flex items-center gap-1.5 pt-1 border-t border-border/50 text-[11px] text-text-muted">
+                  <span>{language === 'uk' ? 'Далі:' : 'Next:'}</span>
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: nextLesson.subject.color_hex || 'var(--color-accent)' }}
+                  />
+                  <span className="font-medium text-text-primary truncate">{nextLesson.subject.name}</span>
+                  <span className="shrink-0">({nextLesson.start_time.slice(0, 5)})</span>
+                </div>
+              )}
             </div>
           )}
 
           {liveStatus.type === 'break_now' && (
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
                 <Coffee size={14} />
                 <span>
@@ -270,8 +371,23 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
                   {liveStatus.minutesLeft > 0 && ` (${liveStatus.minutesLeft} ${t('minutes_short')})`}
                 </span>
               </div>
-              <div className="text-[11px] text-text-muted truncate">
-                {language === 'uk' ? 'Далі:' : 'Next:'} <span className="font-medium text-text-primary">{liveStatus.nextLesson.subject.name}</span> ({liveStatus.nextLesson.start_time.slice(0, 5)})
+              {/* Break countdown bar */}
+              {liveStatus.minutesLeft > 0 && (
+                <div className="w-full h-1 rounded-full bg-bg-tertiary overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-emerald-500/60 transition-all duration-1000 ease-linear"
+                    style={{ width: `${Math.max(5, Math.min(100, (1 - liveStatus.minutesLeft / 15) * 100))}%` }}
+                  />
+                </div>
+              )}
+              <div className="text-[11px] text-text-muted flex items-center gap-1 truncate">
+                <span>{language === 'uk' ? 'Далі:' : 'Next:'}</span>
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: liveStatus.nextLesson.subject.color_hex || 'var(--color-accent)' }}
+                />
+                <span className="font-medium text-text-primary truncate">{liveStatus.nextLesson.subject.name}</span>
+                <span className="shrink-0">({liveStatus.nextLesson.start_time.slice(0, 5)})</span>
               </div>
             </div>
           )}
@@ -331,6 +447,15 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
               <span className="font-bold text-rose-600 dark:text-rose-400 text-xs shrink-0 ml-1">
                 {upcomingEvents.length}
               </span>
+            </div>
+          )}
+
+          {/* Remaining lessons counter */}
+          {remainingLessonsCount > 0 && liveStatus.type !== 'finished' && liveStatus.type !== 'no_lessons' && (
+            <div className="text-[10px] text-text-muted/70 text-center">
+              {language === 'uk'
+                ? `Ще ${remainingLessonsCount} ${remainingLessonsCount === 1 ? 'урок' : remainingLessonsCount < 5 ? 'уроки' : 'уроків'}`
+                : `${remainingLessonsCount} lesson${remainingLessonsCount !== 1 ? 's' : ''} remaining`}
             </div>
           )}
         </div>

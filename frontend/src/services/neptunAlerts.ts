@@ -63,6 +63,8 @@ class NeptunAlertsManager {
   private pollInterval: number | null = null;
   private isConnecting: boolean = false;
   private lastFetchTime: number = 0;
+  private lastDataReceivedTime: number = 0;
+  private watchdogInterval: number | null = null;
   private visibilityBound: boolean = false;
 
   constructor() {
@@ -81,6 +83,28 @@ class NeptunAlertsManager {
 
     if (!this.ws && !this.isConnecting) {
       this.connect();
+    }
+    // Immediate REST fetch for fast initial data even before WS connects
+    if (!this.lastData) {
+      this.fetchRestAlerts();
+    }
+
+    // Start background watchdog: checks for stalled WS and ensures data stays fresh
+    if (!this.watchdogInterval) {
+      this.watchdogInterval = window.setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        const now = Date.now();
+        if (now - this.lastDataReceivedTime >= 35000) {
+          this.fetchRestAlerts();
+        }
+        if (this.ws && now - this.lastDataReceivedTime >= 90000) {
+          try {
+            this.ws.close();
+          } catch {
+            // ignore
+          }
+        }
+      }, 25000);
     }
 
     return () => {
@@ -101,9 +125,9 @@ class NeptunAlertsManager {
         this.pollInterval = null;
       }
     } else {
-      // Tab returned to foreground: refresh only if at least 60s passed or no data
+      // Tab returned to foreground: refresh only if at least 15s passed or no data
       if (this.listeners.size > 0 && !this.ws) {
-        if (Date.now() - this.lastFetchTime >= 60000 || !this.lastData) {
+        if (Date.now() - this.lastFetchTime >= 15000 || !this.lastData) {
           this.fetchRestAlerts();
         }
         this.startFallbackPolling();
@@ -176,17 +200,17 @@ class NeptunAlertsManager {
     if (typeof document !== 'undefined' && document.hidden) return;
 
     this.fetchRestAlerts();
-    // Conservative 60s polling interval to prevent excessive requests
+    // Responsive 30s polling interval for timely alert detection
     this.pollInterval = window.setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
       this.fetchRestAlerts();
-    }, 60000);
+    }, 30000);
   }
 
   public async fetchRestAlerts(): Promise<void> {
-    // Throttle: don't make requests if fetched less than 45s ago
+    // Throttle: don't make requests if fetched less than 20s ago
     const now = Date.now();
-    if (now - this.lastFetchTime < 45000 && this.lastData) {
+    if (now - this.lastFetchTime < 20000 && this.lastData) {
       return;
     }
 
@@ -204,12 +228,17 @@ class NeptunAlertsManager {
 
   private handleAlertsData(data: NeptunAlertsResponse) {
     this.lastData = data;
+    this.lastDataReceivedTime = Date.now();
     const oblasts = (data.oblasts || []).map((o) => o.name || o.key);
     this.activeOblasts = oblasts;
     this.notify();
   }
 
   private disconnect() {
+    if (this.watchdogInterval) {
+      window.clearInterval(this.watchdogInterval);
+      this.watchdogInterval = null;
+    }
     if (this.reconnectTimeout) {
       window.clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
@@ -238,28 +267,27 @@ class NeptunAlertsManager {
     if (!regionObj) return false;
 
     const ukName = regionObj.nameUk.toLowerCase();
-    const enName = regionObj.nameEn.toLowerCase();
 
-    // Check oblasts
+    // Check oblasts - compare against both key and name fields
     const inOblasts = (this.lastData.oblasts || []).some((o) => {
-      const oName = (o.name || o.key || '').toLowerCase();
-      return (
-        ukName.includes(oName) ||
-        oName.includes(ukName) ||
-        enName.includes(oName) ||
-        o.key === regionId
-      );
+      const oKey = (o.key || '').toLowerCase();
+      const oName = (o.name || '').toLowerCase();
+      // Exact key match (e.g. "м. київ" === "м. київ")
+      if (oKey === ukName || oName === ukName) return true;
+      // Partial match: check if oblast key is contained in our region name or vice versa
+      if (ukName.includes(oKey) || oKey.includes(ukName)) return true;
+      if (ukName.includes(oName) || oName.includes(ukName)) return true;
+      // ID-based match (e.g. o.key could directly be our regionId)
+      if (oKey === regionId) return true;
+      return false;
     });
     if (inOblasts) return true;
 
-    // Check raions
+    // Check raions - if any raion belongs to our oblast, consider it alarmed
     const inRaions = (this.lastData.raions || []).some((r) => {
       const rOblast = (r.oblast || '').toLowerCase();
-      return (
-        ukName.includes(rOblast) ||
-        rOblast.includes(ukName) ||
-        enName.includes(rOblast)
-      );
+      // Compare raion's parent oblast with our region name
+      return ukName.includes(rOblast) || rOblast.includes(ukName);
     });
 
     return inRaions;

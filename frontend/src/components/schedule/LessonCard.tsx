@@ -33,6 +33,12 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
   const uploadMutation = useFileUpload();
 
   const isCurrentLesson = isLessonNow(lesson.start_time, lesson.end_time, lesson.date);
+  const isSubstitution = Boolean(
+    lesson.is_override &&
+    lesson.original_subject &&
+    !lesson.is_cancelled &&
+    lesson.original_subject.name.trim().toLowerCase() !== lesson.subject.name.trim().toLowerCase()
+  );
 
   /* Submit new homework entry with text, images, and attachments */
   const handleAddHomework = () => {
@@ -226,17 +232,17 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
         }} 
       />
       
-      <div className="pl-4 pr-3 py-3 flex flex-col gap-2">
+      <div className="pl-4 pr-3 pt-3.5 pb-3 flex flex-col gap-2">
         <div className="flex justify-between items-start">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-x-2 gap-y-1.5 flex-wrap">
             <span className={cn(
-              "inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full",
+              "inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full shrink-0",
               isCurrentLesson ? "bg-accent text-white font-bold" : "bg-bg-tertiary text-text-secondary"
             )}>
               {lesson.lesson_order}
             </span>
 
-            {/* Subject display: If overridden, shows changed lesson and previous in brackets */}
+            {/* Subject display: If cancelled or truly substituted, render accordingly */}
             {lesson.is_cancelled ? (
               <span className="font-semibold text-text-muted line-through">
                 {language === 'uk' ? 'Скасовано' : 'Cancelled'}
@@ -246,15 +252,15 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
                   </span>
                 )}
               </span>
-            ) : lesson.is_override && lesson.original_subject ? (
-              <div className="flex items-baseline gap-1.5 flex-wrap">
+            ) : isSubstitution && lesson.original_subject ? (
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-bold text-text-primary">
                   {lesson.subject.name}
                 </span>
                 <span className="text-xs text-text-muted font-medium">
                   ({lesson.original_subject.name})
                 </span>
-                <span className="inline-flex items-center text-[10px] px-1.5 py-0.2 rounded font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 leading-none">
                   {language === 'uk' ? 'Заміна' : 'Substitution'}
                 </span>
               </div>
@@ -270,21 +276,21 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
               if (!info) return null;
               return (
                 <span
-                  className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold border shadow-2xs"
+                  className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-bold border shadow-2xs leading-none"
                   style={{
                     backgroundColor: `${info.color}20`,
                     color: info.color,
                     borderColor: `${info.color}40`,
                   }}
                 >
-                  <span>{info.icon}</span>
-                  <span>{info.label}</span>
+                  <span className="shrink-0">{info.icon}</span>
+                  <span className="truncate">{info.label}</span>
                 </span>
               );
             })()}
 
             {isCurrentLesson && (
-              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold bg-accent text-white shadow-xs animate-pulse">
+              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-accent text-white shadow-xs animate-pulse leading-none">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                 {t('now')}
               </span>
