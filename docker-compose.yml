@@ -5,7 +5,11 @@
 services:
   # ── PostgreSQL Database ──────────────────────────────────────
   db:
-    image: postgres:16-alpine
+    image: diary-db:16-alpine
+    build:
+      context: ./docker/db
+      dockerfile: Dockerfile
+    container_name: diary-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-diary}
@@ -26,9 +30,11 @@ services:
 
   # ── FastAPI Backend API ──────────────────────────────────────
   api:
+    image: diary-api:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: diary-api
     restart: unless-stopped
     depends_on:
       db:
@@ -49,9 +55,11 @@ services:
 
   # ── Nginx Frontend (SPA + Reverse Proxy) ────────────────────
   web:
+    image: diary-web:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: diary-web
     restart: unless-stopped
     depends_on:
       - api

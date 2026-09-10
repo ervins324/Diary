@@ -142,13 +142,16 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
 
   /* Locate next lesson closest to today */
   const handleLocateNext = async () => {
+    const subjId = lesson.subject?.id || lesson.original_subject?.id;
+    if (!subjId) return;
+
     if (onFindNextLesson) {
-      onFindNextLesson(lesson.subject.id, lesson.date, lesson.lesson_order);
+      onFindNextLesson(subjId, lesson.date, lesson.lesson_order);
       return;
     }
     try {
       setIsLocating(true);
-      const result = await fetchNextLesson(lesson.subject.id, lesson.date, lesson.lesson_order);
+      const result = await fetchNextLesson(subjId, lesson.date, lesson.lesson_order);
       if (!result) {
         alert(
           language === 'uk'
@@ -175,13 +178,16 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
 
   /* Return to previous lesson of this subject */
   const handleLocatePrevious = async () => {
+    const subjId = lesson.subject?.id || lesson.original_subject?.id;
+    if (!subjId) return;
+
     if (onFindPreviousLesson) {
-      onFindPreviousLesson(lesson.subject.id, lesson.date, lesson.lesson_order);
+      onFindPreviousLesson(subjId, lesson.date, lesson.lesson_order);
       return;
     }
     try {
       setIsLocatingPrev(true);
-      const result = await fetchPreviousLesson(lesson.subject.id, lesson.date, lesson.lesson_order);
+      const result = await fetchPreviousLesson(subjId, lesson.date, lesson.lesson_order);
       if (!result) {
         alert(
           language === 'uk'
@@ -228,7 +234,7 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
         style={{
           backgroundColor: lesson.is_cancelled
             ? '#94A3B8'
-            : lesson.subject.color_hex || 'var(--color-accent)',
+            : lesson.subject?.color_hex || 'var(--color-accent)',
         }} 
       />
       
@@ -255,7 +261,7 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
             ) : isSubstitution && lesson.original_subject ? (
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-bold text-text-primary">
-                  {lesson.subject.name}
+                  {lesson.subject?.name || lesson.original_subject.name}
                 </span>
                 <span className="text-xs text-text-muted font-medium">
                   ({lesson.original_subject.name})
@@ -266,7 +272,7 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
               </div>
             ) : (
               <span className="font-semibold text-text-primary">
-                {lesson.subject.name}
+                {lesson.subject?.name || lesson.original_subject?.name || (language === 'uk' ? 'Без назви' : 'Untitled')}
               </span>
             )}
 
@@ -500,18 +506,22 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
       </div>
 
       {/* Add link modal */}
-      <AddLinkModal
-        isOpen={isLinkModalOpen}
-        onClose={() => setIsLinkModalOpen(false)}
-        onAdd={(newAtt) => setAttachedItems((prev) => [...prev, newAtt])}
-      />
+      {isLinkModalOpen && (
+        <AddLinkModal
+          isOpen={isLinkModalOpen}
+          onClose={() => setIsLinkModalOpen(false)}
+          onAdd={(newAtt) => setAttachedItems((prev) => [...prev, newAtt])}
+        />
+      )}
 
       {/* Lesson override substitution modal */}
-      <LessonOverrideModal
-        isOpen={isOverrideModalOpen}
-        onClose={() => setIsOverrideModalOpen(false)}
-        lesson={lesson}
-      />
+      {isOverrideModalOpen && (
+        <LessonOverrideModal
+          isOpen={isOverrideModalOpen}
+          onClose={() => setIsOverrideModalOpen(false)}
+          lesson={lesson}
+        />
+      )}
     </div>
   );
 }

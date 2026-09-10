@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface LightboxGalleryProps {
@@ -99,7 +100,9 @@ export function LightboxGallery({ images, currentIndex, onClose, onNavigate }: L
     setZoom(z => z === 1 ? 2 : 1);
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       ref={containerRef}
       className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center backdrop-blur-sm"
@@ -187,6 +190,7 @@ export function LightboxGallery({ images, currentIndex, onClose, onNavigate }: L
           ))}
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

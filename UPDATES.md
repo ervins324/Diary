@@ -1,5 +1,24 @@
 # School Diary — Changelog
 
+## v1.8.5 — 2026-09-10
+
+### 🪟 Modal Portaling, Z-Index Stacking Context Fix & Air Alert Override Robustness
+- **Fixed Stacking Context Trap with React Portals (`LessonOverrideModal.tsx`, `AddLinkModal.tsx`, `LightboxGallery.tsx`)**:
+  - Re-anchored modal dialogues and image lightbox components to `document.body` via `createPortal`.
+  - Resolved the critical CSS issue where lesson cards with `opacity-75` (cancelled lessons) created isolated stacking contexts, trapping `position: fixed; z-index: 50` modals inside the parent card and causing subsequent sibling cards (Lessons 2, 3, 4, etc.) to paint over the modal dialog and block clicks to the action buttons.
+- **Null Safety & Resilience for Cancelled/Auto-Cancelled Lessons (`LessonCard.tsx`, `LessonOverrideModal.tsx`)**:
+  - Added safe optional chaining on `lesson.subject` properties across color strips, subject headers, and lesson locator triggers, preventing runtime TypeErrors on lessons with null or missing subject references.
+  - Sanitized `subject_id` in `handleSave` to avoid passing empty strings `""` to UUID backend validation endpoints.
+  - Added state synchronization (`useEffect`) so form controls and subject selectors reliably re-hydrate whenever opening or switching between lesson slots.
+- **Dismissal & Interaction Polish (`LessonOverrideModal.tsx`, `AddLinkModal.tsx`)**:
+  - Added backdrop click dismissal (`onClick` outside card bounds) and global `Escape` keyboard dismissal.
+  - Handled mutation failure alerts with descriptive feedback instead of silently swallowing errors.
+  - Conditionally unmounted modals in `LessonCard.tsx` when closed to avoid holding stale form state.
+- **Docker Compose Image & Container Naming (`docker-compose.yml`, `docker/db/Dockerfile`)**:
+  - Configured custom image naming (`diary-db:16-alpine`, `diary-api:latest`, `diary-web:latest`) and container names (`diary-db`, `diary-api`, `diary-web`) for instant identification in Docker Desktop.
+  - Backed by an atomic Dockerfile (`docker/db/Dockerfile`) referencing `postgres:16-alpine`.
+  - Fully preserved existing persistent database volume (`pgdata:/var/lib/postgresql/data`) and internal DNS routing (`db`), ensuring zero impact on existing database records, files, or configurations during `docker compose up -d`.
+
 ## v1.8.4 — 2026-09-09
 
 ### 🛡️ Neptun Air Alerts Stream Stability & Visual De-Flickering

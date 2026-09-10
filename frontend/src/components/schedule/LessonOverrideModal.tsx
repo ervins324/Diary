@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { X, Check, ArrowLeftRight, RotateCcw, Loader2, Search } from 'lucide-react';
 import { fetchSubjects } from '../../api/client';
@@ -24,14 +25,43 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
   const setOverrideMutation = useSetScheduleOverride();
   const deleteOverrideMutation = useDeleteScheduleOverride();
 
+  // Determine what the original lesson was safely
+  const originalSubject = lesson.original_subject || lesson.subject;
+
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(
-    lesson.is_override && lesson.subject ? lesson.subject.id : lesson.subject.id
+    lesson.subject?.id || lesson.original_subject?.id || ''
   );
   const [cabinet, setCabinet] = useState<string>(lesson.cabinet || '');
   const [isCancelled, setIsCancelled] = useState<boolean>(lesson.is_cancelled || false);
   const [note, setNote] = useState<string>(lesson.override_note || '');
   const [eventType, setEventType] = useState<LessonEventType>(lesson.event_type || null);
   const [subjectSearch, setSubjectSearch] = useState<string>('');
+
+  // Keep state synchronized whenever the modal opens or the target lesson changes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedSubjectId(
+        lesson.subject?.id || lesson.original_subject?.id || subjects[0]?.id || ''
+      );
+      setCabinet(lesson.cabinet || '');
+      setIsCancelled(lesson.is_cancelled || false);
+      setNote(lesson.override_note || '');
+      setEventType(lesson.event_type || null);
+      setSubjectSearch('');
+    }
+  }, [isOpen, lesson, subjects]);
+
+  // Handle ESC key to dismiss modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Alphabetically sorted & filtered subjects
   const filteredSortedSubjects = useMemo(() => {
@@ -42,9 +72,7 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
   }, [subjects, subjectSearch, language]);
 
   if (!isOpen) return null;
-
-  // Determine what the original lesson was
-  const originalSubject = lesson.original_subject || lesson.subject;
+  if (typeof document === 'undefined') return null;
 
   const handleSubjectChange = (subjectId: string) => {
     setSelectedSubjectId(subjectId);
@@ -55,11 +83,16 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
   };
 
   const handleSave = () => {
+    // Determine clean subject id to prevent passing empty strings to UUID fields
+    const cleanSubjectId = !isCancelled && selectedSubjectId
+      ? selectedSubjectId
+      : (originalSubject?.id || null);
+
     setOverrideMutation.mutate(
       {
         date: lesson.date,
         lesson_order: lesson.lesson_order,
-        subject_id: isCancelled ? null : selectedSubjectId,
+        subject_id: isCancelled ? null : cleanSubjectId,
         original_subject_id: originalSubject?.id || null,
         original_subject_name: originalSubject?.name || null,
         cabinet: isCancelled ? null : cabinet.trim() || null,
@@ -70,6 +103,13 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
       {
         onSuccess: () => {
           onClose();
+        },
+        onError: (err: any) => {
+          alert(
+            language === 'uk'
+              ? `Помилка збереження заміни: ${err?.message || 'Невідома помилка'}`
+              : `Failed to save override: ${err?.message || 'Unknown error'}`
+          );
         },
       }
     );
@@ -89,6 +129,13 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
           onSuccess: () => {
             onClose();
           },
+          onError: (err: any) => {
+            alert(
+              language === 'uk'
+                ? `Помилка скасування заміни: ${err?.message || 'Невідома помилка'}`
+                : `Failed to reset override: ${err?.message || 'Unknown error'}`
+            );
+          },
         }
       );
     }
@@ -96,8 +143,15 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
 
   const isPending = setOverrideMutation.isPending || deleteOverrideMutation.isPending;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-bg-primary border border-border rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-bg-secondary">
@@ -318,11 +372,13 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
             <div className="font-bold text-text-primary text-sm flex items-center gap-2 flex-wrap">
               {isCancelled ? (
                 <span className="text-danger line-through">
-                  {language === 'uk' ? 'Скасовано' : 'Cancelled'} ({originalSubject?.name})
+                  {language === 'uk' ? 'Скасовано' : 'Cancelled'}
+                  {originalSubject?.name && ` (${originalSubject.name})`}
                 </span>
               ) : (
                 <span>
-                  {subjects.find((s) => s.id === selectedSubjectId)?.name || '...'} ({originalSubject?.name})
+                  {subjects.find((s) => s.id === selectedSubjectId)?.name || originalSubject?.name || '...'}
+                  {originalSubject?.name && originalSubject.name !== subjects.find((s) => s.id === selectedSubjectId)?.name && ` (${originalSubject.name})`}
                 </span>
               )}
 
@@ -384,6 +440,7 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

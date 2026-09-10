@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Link as LinkIcon, Presentation, FileText } from 'lucide-react';
 import { useLanguage } from '../../i18n/LanguageContext';
 import type { Attachment } from '../../types';
@@ -66,8 +67,18 @@ export function AddLinkModal({ isOpen, onClose, onAdd }: AddLinkModalProps) {
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-2xs flex items-center justify-center p-4">
+  if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-2xs flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-bg-primary border border-border rounded-xl shadow-2xl max-w-md w-full overflow-hidden p-5 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border pb-3">
@@ -175,6 +186,7 @@ export function AddLinkModal({ isOpen, onClose, onAdd }: AddLinkModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
