@@ -110,6 +110,8 @@ class BackupLessonNoteItem(BaseModel):
     date: str
     lesson_order: int
     text: str
+    images: list[str] = Field(default_factory=list)
+    attachments: list[dict] = Field(default_factory=list)
 
 
 class FullBackupData(BaseModel):
@@ -245,6 +247,8 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
                 "date": n.date.isoformat() if isinstance(n.date, (date, datetime)) else str(n.date),
                 "lesson_order": n.lesson_order,
                 "text": n.text,
+                "images": n.images or [],
+                "attachments": n.attachments or [],
             }
             for n in notes
         ]
@@ -492,6 +496,8 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
                 date=parsed_date,
                 lesson_order=n_item.lesson_order,
                 text=n_item.text,
+                images=getattr(n_item, "images", []) or [],
+                attachments=getattr(n_item, "attachments", []) or [],
             )
             db.add(note)
             imported_notes_count += 1
@@ -605,10 +611,17 @@ async def clean_data(
 
     # 3. Clean Orphaned Stored Files
     if req.clean_orphaned_files:
-        # Query all active homework attachments to find referenced file IDs
+        # Query all active homework and lesson note attachments to find referenced file IDs
         hw_all = await db.execute(select(HomeworkEntry.attachments))
         active_file_ids: set[str] = set()
         for attachments_list in hw_all.scalars().all():
+            if attachments_list:
+                for att in attachments_list:
+                    if isinstance(att, dict) and att.get("id"):
+                        active_file_ids.add(str(att["id"]))
+
+        notes_all = await db.execute(select(LessonNote.attachments))
+        for attachments_list in notes_all.scalars().all():
             if attachments_list:
                 for att in attachments_list:
                     if isinstance(att, dict) and att.get("id"):

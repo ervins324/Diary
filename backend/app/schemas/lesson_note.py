@@ -7,9 +7,13 @@ class LessonNoteCreate(BaseModel):
     date: date
     lesson_order: int
     text: str
+    images: list[str] | None = None
+    attachments: list[dict] | None = None
 
 class LessonNoteUpdate(BaseModel):
-    text: str
+    text: str | None = None
+    images: list[str] | None = None
+    attachments: list[dict] | None = None
 
 class LessonNoteRead(BaseModel):
     id: uuid.UUID
@@ -17,6 +21,8 @@ class LessonNoteRead(BaseModel):
     date: date
     lesson_order: int
     text: str
+    images: list[str] | None = None
+    attachments: list[dict] | None = None
     created_at: datetime
     updated_at: datetime
 

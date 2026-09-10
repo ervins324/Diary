@@ -39,10 +39,18 @@ async def lifespan(app: FastAPI):
                     lesson_order SMALLINT NOT NULL,
                     subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
                     text TEXT NOT NULL,
+                    images JSON DEFAULT '[]',
+                    attachments JSON DEFAULT '[]',
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 );
                 """)
+            )
+            await conn.execute(
+                text("ALTER TABLE lesson_notes ADD COLUMN IF NOT EXISTS images JSON DEFAULT '[]';")
+            )
+            await conn.execute(
+                text("ALTER TABLE lesson_notes ADD COLUMN IF NOT EXISTS attachments JSON DEFAULT '[]';")
             )
             await conn.execute(
                 text("CREATE INDEX IF NOT EXISTS ix_lesson_notes_date_order ON lesson_notes (date, lesson_order);")

@@ -36,6 +36,8 @@ export interface LessonNote {
   date: string;
   lesson_order: number;
   text: string;
+  images?: string[];
+  attachments?: Attachment[];
   created_at: string;
   updated_at: string;
 }

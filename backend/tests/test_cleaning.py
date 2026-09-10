@@ -54,11 +54,14 @@ class TestSystemCleaning(unittest.IsolatedAsyncioTestCase):
             created_at=datetime(2026, 8, 1, tzinfo=timezone.utc),
         )
 
+        mock_notes_att_res = MagicMock()
+        mock_notes_att_res.scalars.return_value.all.return_value = []
+
         mock_files_res = MagicMock()
         mock_files_res.scalars.return_value.all.return_value = [active_file, orphan_file]
 
         mock_db.execute = AsyncMock(
-            side_effect=[mock_hw_res, mock_ov_res, mock_hw_att_res, mock_files_res]
+            side_effect=[mock_hw_res, mock_ov_res, mock_hw_att_res, mock_notes_att_res, mock_files_res]
         )
         mock_db.delete = AsyncMock()
         mock_db.commit = AsyncMock()

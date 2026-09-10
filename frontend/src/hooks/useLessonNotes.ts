@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Attachment } from '../types';
 import {
   fetchLessonNotes,
   createLessonNote,
@@ -28,7 +29,17 @@ export const useCreateLessonNote = () => {
 export const useUpdateLessonNote = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, text }: { id: string; text: string }) => updateLessonNote(id, text),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        text?: string;
+        images?: string[];
+        attachments?: Attachment[];
+      };
+    }) => updateLessonNote(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lesson-notes'] });
       queryClient.invalidateQueries({ queryKey: ['schedule'] });

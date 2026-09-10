@@ -9,6 +9,7 @@ import type {
   AiParsedBellSlot,
   ScheduleRuleItem,
   LessonNote,
+  Attachment,
 } from '../types';
 
 // Axios instance configured with extended timeout for AI image processing
@@ -298,13 +299,22 @@ export const createLessonNote = async (noteData: {
   date: string;
   lesson_order: number;
   text: string;
+  images?: string[];
+  attachments?: Attachment[];
 }): Promise<LessonNote> => {
   const { data } = await api.post('/lesson-notes', noteData);
   return data;
 };
 
-export const updateLessonNote = async (id: string, text: string): Promise<LessonNote> => {
-  const { data } = await api.patch(`/lesson-notes/${id}`, { text });
+export const updateLessonNote = async (
+  id: string,
+  updateData: {
+    text?: string;
+    images?: string[];
+    attachments?: Attachment[];
+  }
+): Promise<LessonNote> => {
+  const { data } = await api.patch(`/lesson-notes/${id}`, updateData);
   return data;
 };
 

@@ -1,5 +1,22 @@
 # School Diary — Changelog
 
+## v1.8.9 — 2026-09-10
+
+### 📎 Rich Media Lesson Notes (Images, PDFs, Presentations & Links)
+- **Database & Storage Schema Expansion (`LessonNote` Model & Migration 010)**:
+  - Added `images` (`JSON DEFAULT '[]'`) and `attachments` (`JSON DEFAULT '[]'`) columns to the `lesson_notes` table in PostgreSQL.
+  - Created Alembic migration `010_lesson_notes_attachments.py` and added idempotent safety migrations in `backend/app/main.py`.
+  - Updated `LessonNoteCreate`, `LessonNoteUpdate`, and `LessonNoteRead` Pydantic schemas to validate and serialize rich media attachments.
+- **System Backup & Pruning Protection (`system.py`)**:
+  - Full backup serialization and restore snapshots now preserve `images` and `attachments` on all `lesson_notes`.
+  - Updated `clean-data` and `clean_orphaned_files` to cross-reference `lesson_notes.attachments` so attached presentation and PDF files are never accidentally pruned as orphans.
+- **Interactive Multi-Media Notepad Drawer (`LessonNotesModal.tsx`)**:
+  - **Image & File Attachments**: Added direct file picker supporting photos, PDF documents, and PPT/PPTX slide decks.
+  - **Clipboard Image Pasting (`Ctrl+V`)**: Users can capture screenshots or paste copied images directly into both new notes and inline edit fields, automatically compressed on the client via `compressImageFile`.
+  - **Web & Presentation Links (`AddLinkModal.tsx`)**: Easily attach links to Google Slides, Canva, Prezi, or web resources.
+  - **Thumbnail Previews & Chip Displays**: Render responsive image previews and `AttachmentChip` widgets with download and removal support.
+  - **Full-Screen Lightbox Gallery (`LightboxGallery.tsx`)**: Clicking any note image opens a full-screen lightbox viewer with keyboard navigation (`ArrowLeft`/`ArrowRight`), zoom, and touch swipe.
+
 ## v1.8.8 — 2026-09-10
 
 ### 📝 Lesson Notes (Замітки до уроку) & Dedicated Notepad Drawer
