@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { cn } from '../../lib/utils';
+import { getCachedLocalStorage, setCachedLocalStorage } from '../../lib/storage';
 import { ArrowUp, List } from 'lucide-react';
 
 export interface TocSection {
@@ -27,13 +28,13 @@ interface SettingsContentsProps {
 
 export function SettingsContents({ className, isSidebar = false }: SettingsContentsProps) {
   const { t } = useLanguage();
-  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('settings_toc_hidden') === 'true');
+  const [isCollapsed, setIsCollapsed] = useState(() => getCachedLocalStorage('settings_toc_hidden') === 'true');
   const [activeId, setActiveId] = useState<string>('top');
 
   const toggleCollapse = () => {
     setIsCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem('settings_toc_hidden', next ? 'true' : 'false');
+      setCachedLocalStorage('settings_toc_hidden', next ? 'true' : 'false');
       return next;
     });
   };
@@ -57,27 +58,38 @@ export function SettingsContents({ className, isSidebar = false }: SettingsConte
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollContainer = document.getElementById('settings-scroll-container');
-      const containerTop = scrollContainer ? scrollContainer.getBoundingClientRect().top : 0;
+    let rafId: number | null = null;
 
-      let currentActive = 'top';
-      for (const s of SECTIONS) {
-        const el = document.getElementById(s.id);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top - containerTop <= 160) {
-            currentActive = s.id;
+    const handleScroll = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        const scrollContainer = document.getElementById('settings-scroll-container');
+        const containerTop = scrollContainer ? scrollContainer.getBoundingClientRect().top : 0;
+
+        let currentActive = 'top';
+        for (const s of SECTIONS) {
+          const el = document.getElementById(s.id);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top - containerTop <= 160) {
+              currentActive = s.id;
+            }
           }
         }
-      }
-      setActiveId(currentActive);
+        setActiveId(currentActive);
+        rafId = null;
+      });
     };
 
     const container = document.getElementById('settings-scroll-container');
     const target = container || window;
     target.addEventListener('scroll', handleScroll, { passive: true });
-    return () => target.removeEventListener('scroll', handleScroll);
+    return () => {
+      target.removeEventListener('scroll', handleScroll);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
   }, []);
 
   return (

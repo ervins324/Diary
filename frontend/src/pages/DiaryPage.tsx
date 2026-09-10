@@ -8,6 +8,7 @@ import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { fetchNextLesson, fetchPreviousLesson } from '../hooks/useScheduleOverrides';
 import { getWeekDates, formatTime, cn, getDefaultScheduleDate, compressImageFile, isLessonNow } from '../lib/utils';
 import { getEventTypeInfo } from '../lib/customTypes';
+import { isShowCabinetsEnabled } from '../lib/storage';
 import { HomeworkInline } from '../components/homework/HomeworkInline';
 import { AttachmentChip } from '../components/homework/AttachmentChip';
 import { AddLinkModal } from '../components/homework/AddLinkModal';
@@ -290,6 +291,7 @@ export function DiaryPage() {
       <div 
         key={dayIndex} 
         id={`diary-day-${dayData?.date || dayIndex}`}
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '0 300px' }}
         className={cn(
           "bg-bg-secondary rounded-lg border flex flex-col min-h-[250px] snap-center w-full shrink-0 transition-shadow",
           isToday ? "border-accent shadow-xs" : "border-border"
@@ -312,7 +314,7 @@ export function DiaryPage() {
             </div>
           ) : (
             dayData.lessons.map((lesson: LessonSlot) => {
-              const isCurrent = isLessonNow(lesson.start_time, lesson.end_time, dayData.date);
+              const isCurrent = isToday && isLessonNow(lesson.start_time, lesson.end_time, dayData.date);
               const lessonElementId = `diary-lesson-${dayData.date}-${lesson.lesson_order}`;
 
               return (
@@ -406,7 +408,7 @@ export function DiaryPage() {
 
                       {/* Right actions: Cabinet & Quick Substitution / Locate icons */}
                       <div className="flex items-center gap-1 shrink-0">
-                        {lesson.cabinet && !lesson.is_cancelled && localStorage.getItem('show_cabinets') !== 'false' && (
+                        {lesson.cabinet && !lesson.is_cancelled && isShowCabinetsEnabled() && (
                           <span className="text-xs text-text-muted whitespace-nowrap">
                             {t('cabinet_short')} {lesson.cabinet}
                           </span>

@@ -459,14 +459,19 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start justify-center pt-[10vh] sm:pt-[15vh] px-3 pb-4 animate-in fade-in duration-150"
-      onClick={() => setIsOpen(false)}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] sm:pt-[15vh] px-3 pb-4 animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
       aria-label={t('command_palette_title')}
     >
+      {/* Decoupled backdrop overlay: prevents nested backdrop-filter repaints */}
       <div
-        className="w-full max-w-xl bg-bg-secondary rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col max-h-[75vh] animate-in zoom-in-95 duration-150"
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+        onClick={() => setIsOpen(false)}
+        aria-hidden="true"
+      />
+      <div
+        className="relative z-10 w-full max-w-xl bg-bg-secondary rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col max-h-[75vh] animate-in zoom-in-95 duration-150 transform-gpu"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Header */}

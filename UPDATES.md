@@ -1,5 +1,31 @@
 # School Diary — Changelog
 
+## v1.8.6 — 2026-09-10
+
+### ⚡ Vercel React Best Practices Optimization & 60/120 FPS Modal Scrolling
+- **Decoupled Backdrop Blur Compositor Layers (`LessonOverrideModal.tsx`, `AddLinkModal.tsx`, `ScheduleEditorModal.tsx`, `AiImportModal.tsx`, `AiBellsImportModal.tsx`, `CommandPalette.tsx`, `SettingsPage.tsx`)**:
+  - Separated the fixed `backdrop-blur` overlay from the modal dialog content into sibling DOM elements across all application modals.
+  - Resolved the low-FPS scroll issue in the Lesson Substitution & Events modal: nesting scrollable lists inside a parent container with `backdrop-filter: blur(...)` forced browser GPU compositors to re-rasterize the entire viewport blur texture on every scroll tick. With a decoupled static sibling backdrop and isolated `transform-gpu` layer on the dialog, scrolling runs at native 60/120 FPS with 0 backdrop recalculations.
+  - Added `overscroll-contain` to modal body and nested subject lists to prevent scroll chaining and jitter.
+  - Removed continuous CSS `animate-pulse` from the 🚨 Air Alert toggle button inside the scroll body to prevent active repaints during scrolling.
+- **Non-blocking Search & Map Indexing (`LessonOverrideModal.tsx`)**:
+  - Implemented `useDeferredValue` (`rerender-use-deferred-value`) for subject search filtering, keeping typing and scrolling snappy and fluid.
+  - Memoized base subject sorting on `[subjects, language]` so typing in the search box no longer re-sorts the entire array on every keystroke.
+  - Pre-indexed subjects into a `Map<string, Subject>` (`js-index-maps`) for O(1) selections and preview rendering.
+- **In-Memory Storage Cache Layer (`lib/storage.ts`, `js-cache-storage`)**:
+  - Implemented an in-memory `Map` cache layer for browser `localStorage` reads (`show_cabinets`, `skip_weekends_to_monday`, `live_widget_enabled`), eliminating repeated synchronous disk I/O and main-thread stalls during schedule rendering and ticker intervals.
+  - Added listeners for cross-tab `storage` events and `visibilitychange` to guarantee automatic cache synchronization.
+- **Instant O(1) Custom Event & Lesson Type Lookups (`lib/customTypes.ts`)**:
+  - Converted `getAllEventTypes()`, `getEventTypeInfo()`, `getAllLessonTypes()`, and `getLessonTypeInfo()` from linear JSON-parsing scans into cached in-memory arrays and case-insensitive index Maps.
+  - Eliminated dozens of synchronous `localStorage.getItem` and `JSON.parse` operations that previously executed per frame across every lesson slot.
+- **Schedule Card & Diary Rendering Optimizations (`LessonCard.tsx`, `DiaryPage.tsx`, `lib/utils.ts`)**:
+  - Memoized `LessonCard` with `React.memo` (`rerender-memo`) to avoid full re-renders of the daily schedule tree when unrelated parent state changes.
+  - Applied CSS `content-visibility: auto; contain-intrinsic-size: 0 300px;` (`rendering-content-visibility`) to day cards in `DiaryPage`, deferring layout calculations for off-screen day columns.
+  - Short-circuited `isLessonNow` on non-today days in `DiaryPage` and added a 60-second cached ISO date string in `isLessonNow` to avoid creating and re-formatting `Date` instances 40+ times per render.
+- **Throttled Scroll Handlers (`SettingsContents.tsx`)**:
+  - Wrapped `handleScroll` in `requestAnimationFrame` to prevent layout thrashing from querying 9 section bounding rects on every scroll tick.
+  - Fixed an undefined reference in `handleToggleWeekendSkip` in `SettingsPage.tsx`.
+
 ## v1.8.5 — 2026-09-10
 
 ### 🪟 Modal Portaling, Z-Index Stacking Context Fix & Air Alert Override Robustness

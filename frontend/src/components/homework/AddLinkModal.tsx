@@ -71,15 +71,14 @@ export function AddLinkModal({ isOpen, onClose, onAdd }: AddLinkModalProps) {
   if (typeof document === 'undefined') return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-2xs flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div className="bg-bg-primary border border-border rounded-xl shadow-2xl max-w-md w-full overflow-hidden p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Decoupled backdrop overlay: prevents nested backdrop-filter repaints */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-2xs transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="relative z-10 bg-bg-primary border border-border rounded-xl shadow-2xl max-w-md w-full overflow-hidden p-5 space-y-4 transform-gpu">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">

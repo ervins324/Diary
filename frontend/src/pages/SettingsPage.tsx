@@ -59,6 +59,14 @@ import { getAutoCleanConfig, saveAutoCleanConfig, type AutoCleanConfig } from '.
 import { cn } from '../lib/utils';
 import { SettingsContents } from '../components/settings/SettingsContents';
 import {
+  isShowCabinetsEnabled,
+  setShowCabinetsEnabled,
+  isSkipWeekendsEnabled,
+  setSkipWeekendsEnabled,
+  getCachedLocalStorage,
+  setCachedLocalStorage,
+} from '../lib/storage';
+import {
   getAllEventTypes,
   getCustomEventTypes,
   saveCustomEventTypes,
@@ -80,7 +88,7 @@ export function SettingsPage() {
   const [exportNotification, setExportNotification] = useState<string | null>(null);
 
   /* Cabinets toggle state (defaults to true) */
-  const [showCabinets, setShowCabinets] = useState(() => localStorage.getItem('show_cabinets') !== 'false');
+  const [showCabinets, setShowCabinets] = useState(isShowCabinetsEnabled);
 
   /* Air Alerts Hook */
   const {
@@ -97,21 +105,21 @@ export function SettingsPage() {
   const handleToggleCabinets = () => {
     const nextVal = !showCabinets;
     setShowCabinets(nextVal);
-    localStorage.setItem('show_cabinets', nextVal ? 'true' : 'false');
+    setShowCabinetsEnabled(nextVal);
   };
 
   /* Weekend auto-advance toggle state (defaults to true) */
-  const [skipWeekends, setSkipWeekends] = useState(() => localStorage.getItem('skip_weekends_to_monday') !== 'false');
+  const [skipWeekends, setSkipWeekends] = useState(isSkipWeekendsEnabled);
 
   /* Live Status Widget Settings */
-  const [liveWidgetEnabled, setLiveWidgetEnabled] = useState(() => localStorage.getItem('live_widget_enabled') !== 'false');
-  const [liveWidgetLesson, setLiveWidgetLesson] = useState(() => localStorage.getItem('live_widget_show_lesson') !== 'false');
-  const [liveWidgetHw, setLiveWidgetHw] = useState(() => localStorage.getItem('live_widget_show_homework') !== 'false');
-  const [liveWidgetEvents, setLiveWidgetEvents] = useState(() => localStorage.getItem('live_widget_show_events') !== 'false');
+  const [liveWidgetEnabled, setLiveWidgetEnabled] = useState(() => getCachedLocalStorage('live_widget_enabled') !== 'false');
+  const [liveWidgetLesson, setLiveWidgetLesson] = useState(() => getCachedLocalStorage('live_widget_show_lesson') !== 'false');
+  const [liveWidgetHw, setLiveWidgetHw] = useState(() => getCachedLocalStorage('live_widget_show_homework') !== 'false');
+  const [liveWidgetEvents, setLiveWidgetEvents] = useState(() => getCachedLocalStorage('live_widget_show_events') !== 'false');
 
   const updateLiveWidgetSetting = (key: string, val: boolean, setter: (v: boolean) => void) => {
     setter(val);
-    localStorage.setItem(key, val ? 'true' : 'false');
+    setCachedLocalStorage(key, val ? 'true' : 'false');
     window.dispatchEvent(new Event('live_widget_settings_changed'));
   };
 
@@ -275,7 +283,7 @@ export function SettingsPage() {
   const handleToggleWeekendSkip = () => {
     const nextVal = !skipWeekends;
     setSkipWeekends(nextVal);
-    localStorage.setItem('skip_weekends_to_monday', nextVal ? 'true' : 'false');
+    setSkipWeekendsEnabled(nextVal);
   };
 
   /* Export complete JSON snapshot of all subjects, bells, rules, and homework */
@@ -1880,8 +1888,16 @@ export function SettingsPage() {
 
       {/* Confirmation Modal for Complete Data Wipe */}
       {isClearingAll && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-bg-secondary border border-danger/50 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => {
+              setIsClearingAll(false);
+              setConfirmPromptText('');
+            }}
+            aria-hidden="true"
+          />
+          <div className="relative z-10 bg-bg-secondary border border-danger/50 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 transform-gpu">
             <div className="flex items-center gap-3 text-danger">
               <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center shrink-0">
                 <AlertTriangle size={24} />

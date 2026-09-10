@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Plus, Image as ImageIcon, X, Check, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, Loader2 } from 'lucide-react';
 import type { LessonSlot, Attachment } from '../../types';
 import { formatTime, compressImageFile, isLessonNow, cn } from '../../lib/utils';
 import { getEventTypeInfo } from '../../lib/customTypes';
+import { isShowCabinetsEnabled } from '../../lib/storage';
 import { HomeworkInline } from '../homework/HomeworkInline';
 import { AttachmentChip } from '../homework/AttachmentChip';
 import { AddLinkModal } from '../homework/AddLinkModal';
@@ -18,7 +19,7 @@ interface LessonCardProps {
   onFindPreviousLesson?: (subjectId: string, currentDate?: string, currentLessonOrder?: number) => void;
 }
 
-export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: LessonCardProps) {
+export const LessonCard = memo(function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: LessonCardProps) {
   const { t, language } = useLanguage();
   const [isAddingHomework, setIsAddingHomework] = useState(false);
   const [newHomework, setNewHomework] = useState('');
@@ -305,7 +306,7 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
 
           {/* Top-right actions: Cabinet badge, Substitution modal trigger, and Next lesson locator */}
           <div className="flex items-center gap-1.5">
-            {lesson.cabinet && !lesson.is_cancelled && localStorage.getItem('show_cabinets') !== 'false' && (
+            {lesson.cabinet && !lesson.is_cancelled && isShowCabinetsEnabled() && (
               <span className="text-xs px-2 py-0.5 rounded bg-bg-tertiary text-text-secondary font-medium">
                 {t('cabinet_short')} {lesson.cabinet}
               </span>
@@ -524,4 +525,4 @@ export function LessonCard({ lesson, onFindNextLesson, onFindPreviousLesson }: L
       )}
     </div>
   );
-}
+});

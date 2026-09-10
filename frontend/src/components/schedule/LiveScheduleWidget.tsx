@@ -6,6 +6,7 @@ import { useAirAlerts } from '../../hooks/useAirAlerts';
 import { getWeekDates, isLessonNow, cn } from '../../lib/utils';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { getEventTypeInfo } from '../../lib/customTypes';
+import { isShowCabinetsEnabled } from '../../lib/storage';
 import type { LessonSlot } from '../../types';
 
 interface LiveScheduleWidgetProps {
@@ -333,7 +334,7 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
                     {liveStatus.lesson.subject.name}
                   </span>
                 </div>
-                {liveStatus.lesson.cabinet && localStorage.getItem('show_cabinets') !== 'false' && (
+                {liveStatus.lesson.cabinet && isShowCabinetsEnabled() && (
                   <span className="text-[10px] px-1.5 py-0.2 rounded bg-bg-tertiary text-text-muted font-medium shrink-0">
                     {t('cabinet_short')} {liveStatus.lesson.cabinet}
                   </span>

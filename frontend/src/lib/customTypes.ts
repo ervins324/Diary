@@ -105,22 +105,79 @@ export const BUILTIN_LESSON_TYPES: CustomLessonType[] = [
 const CUSTOM_EVENTS_KEY = 'custom_event_types';
 const CUSTOM_LESSONS_KEY = 'custom_lesson_types';
 
-/* Retrieve user-created custom event types */
-export function getCustomEventTypes(): CustomEventType[] {
+// In-memory caches to eliminate synchronous localStorage reads and JSON.parse on every frame/render
+let cachedCustomEvents: CustomEventType[] | null = null;
+let cachedAllEvents: CustomEventType[] | null = null;
+let cachedEventMap: Map<string, CustomEventType> | null = null;
+
+let cachedCustomLessons: CustomLessonType[] | null = null;
+let cachedAllLessons: CustomLessonType[] | null = null;
+let cachedLessonMap: Map<string, CustomLessonType> | null = null;
+
+function initEventCache(): void {
   try {
-    const raw = localStorage.getItem(CUSTOM_EVENTS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(CUSTOM_EVENTS_KEY) : null;
+    cachedCustomEvents = raw ? JSON.parse(raw) : [];
   } catch (e) {
     console.error('Failed to load custom event types from localStorage', e);
-    return [];
+    cachedCustomEvents = [];
   }
+  cachedAllEvents = [...BUILTIN_EVENT_TYPES, ...(cachedCustomEvents || [])];
+  cachedEventMap = new Map();
+  for (const item of cachedAllEvents) {
+    cachedEventMap.set(item.id.toLowerCase(), item);
+  }
+}
+
+function initLessonCache(): void {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(CUSTOM_LESSONS_KEY) : null;
+    cachedCustomLessons = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error('Failed to load custom lesson types from localStorage', e);
+    cachedCustomLessons = [];
+  }
+  cachedAllLessons = [...BUILTIN_LESSON_TYPES, ...(cachedCustomLessons || [])];
+  cachedLessonMap = new Map();
+  for (const item of cachedAllLessons) {
+    cachedLessonMap.set(item.id.toLowerCase(), item);
+  }
+}
+
+// Invalidate on cross-tab storage changes or custom event signals
+if (typeof window !== 'undefined') {
+  window.addEventListener('custom_types_changed', () => {
+    initEventCache();
+    initLessonCache();
+  });
+  window.addEventListener('storage', (e) => {
+    if (!e.key || e.key === CUSTOM_EVENTS_KEY) {
+      initEventCache();
+    }
+    if (!e.key || e.key === CUSTOM_LESSONS_KEY) {
+      initLessonCache();
+    }
+  });
+}
+
+/* Retrieve user-created custom event types */
+export function getCustomEventTypes(): CustomEventType[] {
+  if (!cachedCustomEvents) {
+    initEventCache();
+  }
+  return cachedCustomEvents || [];
 }
 
 /* Save user-created custom event types */
 export function saveCustomEventTypes(types: CustomEventType[]): void {
   try {
     localStorage.setItem(CUSTOM_EVENTS_KEY, JSON.stringify(types));
+    cachedCustomEvents = types;
+    cachedAllEvents = [...BUILTIN_EVENT_TYPES, ...types];
+    cachedEventMap = new Map();
+    for (const item of cachedAllEvents) {
+      cachedEventMap.set(item.id.toLowerCase(), item);
+    }
     window.dispatchEvent(new Event('custom_types_changed'));
   } catch (e) {
     console.error('Failed to save custom event types to localStorage', e);
@@ -129,8 +186,10 @@ export function saveCustomEventTypes(types: CustomEventType[]): void {
 
 /* Get combined list of built-in templates and user custom event types */
 export function getAllEventTypes(): CustomEventType[] {
-  const custom = getCustomEventTypes();
-  return [...BUILTIN_EVENT_TYPES, ...custom];
+  if (!cachedAllEvents) {
+    initEventCache();
+  }
+  return cachedAllEvents || BUILTIN_EVENT_TYPES;
 }
 
 /* Retrieve full metadata (label, icon, color) for an event type ID */
@@ -139,8 +198,10 @@ export function getEventTypeInfo(
   language: string = 'uk'
 ): { id: string; label: string; icon: string; color: string } | null {
   if (!typeId) return null;
-  const all = getAllEventTypes();
-  const match = all.find((item) => item.id.toLowerCase() === typeId.toLowerCase());
+  if (!cachedEventMap) {
+    initEventCache();
+  }
+  const match = cachedEventMap?.get(typeId.toLowerCase());
   if (match) {
     return {
       id: match.id,
@@ -161,20 +222,22 @@ export function getEventTypeInfo(
 
 /* Retrieve user-created custom lesson types */
 export function getCustomLessonTypes(): CustomLessonType[] {
-  try {
-    const raw = localStorage.getItem(CUSTOM_LESSONS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error('Failed to load custom lesson types from localStorage', e);
-    return [];
+  if (!cachedCustomLessons) {
+    initLessonCache();
   }
+  return cachedCustomLessons || [];
 }
 
 /* Save user-created custom lesson types */
 export function saveCustomLessonTypes(types: CustomLessonType[]): void {
   try {
     localStorage.setItem(CUSTOM_LESSONS_KEY, JSON.stringify(types));
+    cachedCustomLessons = types;
+    cachedAllLessons = [...BUILTIN_LESSON_TYPES, ...types];
+    cachedLessonMap = new Map();
+    for (const item of cachedAllLessons) {
+      cachedLessonMap.set(item.id.toLowerCase(), item);
+    }
     window.dispatchEvent(new Event('custom_types_changed'));
   } catch (e) {
     console.error('Failed to save custom lesson types to localStorage', e);
@@ -183,8 +246,10 @@ export function saveCustomLessonTypes(types: CustomLessonType[]): void {
 
 /* Get combined list of built-in and custom lesson types */
 export function getAllLessonTypes(): CustomLessonType[] {
-  const custom = getCustomLessonTypes();
-  return [...BUILTIN_LESSON_TYPES, ...custom];
+  if (!cachedAllLessons) {
+    initLessonCache();
+  }
+  return cachedAllLessons || BUILTIN_LESSON_TYPES;
 }
 
 /* Retrieve full metadata (label, icon, color) for a lesson type ID */
@@ -193,8 +258,10 @@ export function getLessonTypeInfo(
   language: string = 'uk'
 ): { id: string; label: string; icon: string; color: string } | null {
   if (!typeId) return null;
-  const all = getAllLessonTypes();
-  const match = all.find((item) => item.id.toLowerCase() === typeId.toLowerCase());
+  if (!cachedLessonMap) {
+    initLessonCache();
+  }
+  const match = cachedLessonMap?.get(typeId.toLowerCase());
   if (match) {
     return {
       id: match.id,

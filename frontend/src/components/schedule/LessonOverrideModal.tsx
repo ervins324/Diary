@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { X, Check, ArrowLeftRight, RotateCcw, Loader2, Search } from 'lucide-react';
@@ -63,20 +63,42 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Alphabetically sorted & filtered subjects
+  // Map subjects for O(1) indexed lookups (Vercel React Best Practices - js-index-maps)
+  const subjectsMap = useMemo(() => {
+    const map = new Map<string, Subject>();
+    for (const s of subjects) {
+      map.set(s.id, s);
+    }
+    return map;
+  }, [subjects]);
+
+  // Alphabetically sorted subjects - only re-sorts when subjects list or language changes
+  const sortedSubjects = useMemo(() => {
+    return [...subjects].sort((a, b) => a.name.localeCompare(b.name, language === 'uk' ? 'uk' : 'en'));
+  }, [subjects, language]);
+
+  // Defer search term to keep scroll and typing completely non-blocking (Vercel React Best Practices - rerender-use-deferred-value)
+  const deferredSearch = useDeferredValue(subjectSearch);
+
+  // Filtered subjects based on deferred search
   const filteredSortedSubjects = useMemo(() => {
-    const list = [...subjects].sort((a, b) => a.name.localeCompare(b.name, language === 'uk' ? 'uk' : 'en'));
-    if (!subjectSearch.trim()) return list;
-    const q = subjectSearch.toLowerCase().trim();
-    return list.filter((s) => s.name.toLowerCase().includes(q) || s.short_name?.toLowerCase().includes(q));
-  }, [subjects, subjectSearch, language]);
+    if (!deferredSearch.trim()) return sortedSubjects;
+    const q = deferredSearch.toLowerCase().trim();
+    return sortedSubjects.filter((s) => s.name.toLowerCase().includes(q) || s.short_name?.toLowerCase().includes(q));
+  }, [sortedSubjects, deferredSearch]);
+
+  // All available event types (cached O(1))
+  const allEventTypes = useMemo(() => getAllEventTypes(), []);
+
+  // Pre-calculate active event type info (O(1))
+  const activeEventTypeInfo = useMemo(() => getEventTypeInfo(eventType, language), [eventType, language]);
 
   if (!isOpen) return null;
   if (typeof document === 'undefined') return null;
 
   const handleSubjectChange = (subjectId: string) => {
     setSelectedSubjectId(subjectId);
-    const chosen = subjects.find((s) => s.id === subjectId);
+    const chosen = subjectsMap.get(subjectId);
     if (chosen?.default_cabinet) {
       setCabinet(chosen.default_cabinet);
     }
@@ -144,15 +166,14 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
   const isPending = setOverrideMutation.isPending || deleteOverrideMutation.isPending;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div className="bg-bg-primary border border-border rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Decoupled backdrop overlay: sits on its own static GPU layer so modal content scroll does not trigger backdrop-filter re-rasterization */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="relative z-10 bg-bg-primary border border-border rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh] transform-gpu">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-bg-secondary">
           <div className="flex items-center gap-2">
@@ -177,7 +198,7 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
         </div>
 
         {/* Body */}
-        <div className="p-5 overflow-y-auto space-y-4 text-sm">
+        <div className="p-5 overflow-y-auto space-y-4 text-sm overscroll-contain">
           {/* Lesson Event / Assessment Type Selector */}
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
@@ -198,7 +219,7 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
                 <span>{t('event_none')}</span>
               </button>
 
-              {getAllEventTypes().map((et) => {
+              {allEventTypes.map((et) => {
                 const isSelected = eventType === et.id;
                 return (
                   <button
@@ -246,7 +267,7 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
             )}
           >
             <div className="flex items-center gap-2.5">
-              <span className="text-base animate-pulse">🚨</span>
+              <span className="text-base shrink-0">🚨</span>
               <div>
                 <span className="font-semibold text-xs block">
                   {language === 'uk' ? 'Повітряна тривога (скасувати)' : 'Air Alert (Cancel Lesson)'}
@@ -316,7 +337,7 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
                   <span>{language === 'uk' ? 'Завантаження...' : 'Loading...'}</span>
                 </div>
               ) : (
-                <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-lg p-1 bg-bg-secondary">
+                <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-lg p-1 bg-bg-secondary overscroll-contain">
                   {filteredSortedSubjects.length === 0 ? (
                     <div className="p-3 text-xs text-center text-text-muted">
                       {language === 'uk' ? 'Предметів не знайдено' : 'No subjects found'}
@@ -373,32 +394,28 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
               {isCancelled ? (
                 <span className="text-danger line-through">
                   {language === 'uk' ? 'Скасовано' : 'Cancelled'}
-                  {originalSubject?.name && ` (${originalSubject.name})`}
+                  {originalSubject?.name ? ` (${originalSubject.name})` : ''}
                 </span>
               ) : (
                 <span>
-                  {subjects.find((s) => s.id === selectedSubjectId)?.name || originalSubject?.name || '...'}
-                  {originalSubject?.name && originalSubject.name !== subjects.find((s) => s.id === selectedSubjectId)?.name && ` (${originalSubject.name})`}
+                  {subjectsMap.get(selectedSubjectId)?.name || originalSubject?.name || '...'}
+                  {originalSubject?.name && originalSubject.name !== subjectsMap.get(selectedSubjectId)?.name ? ` (${originalSubject.name})` : ''}
                 </span>
               )}
 
-              {eventType && (() => {
-                const info = getEventTypeInfo(eventType, language);
-                if (!info) return null;
-                return (
-                  <span
-                    className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold border shadow-2xs"
-                    style={{
-                      backgroundColor: `${info.color}20`,
-                      color: info.color,
-                      borderColor: `${info.color}40`,
-                    }}
-                  >
-                    <span>{info.icon}</span>
-                    <span>{info.label}</span>
-                  </span>
-                );
-              })()}
+              {activeEventTypeInfo ? (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold border shadow-2xs"
+                  style={{
+                    backgroundColor: `${activeEventTypeInfo.color}20`,
+                    color: activeEventTypeInfo.color,
+                    borderColor: `${activeEventTypeInfo.color}40`,
+                  }}
+                >
+                  <span>{activeEventTypeInfo.icon}</span>
+                  <span>{activeEventTypeInfo.label}</span>
+                </span>
+              ) : null}
             </div>
           </div>
         </div>

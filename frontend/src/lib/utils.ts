@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { format, parseISO, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { isSkipWeekendsEnabled } from './storage';
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
@@ -18,7 +19,7 @@ export function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   try {
     return format(parseISO(dateStr), 'MMM d, yyyy');
-  } catch (e) {
+  } catch {
     return dateStr;
   }
 }
@@ -33,6 +34,7 @@ export function getDayName(dateStr: string): string {
 }
 
 export function getWeekDates(date: Date): { start: string; end: string } {
+  // Monday is 1, Sunday is 0. We want Monday as the start of the week.
   const start = startOfWeek(date, { weekStartsOn: 1 });
   const end = endOfWeek(date, { weekStartsOn: 1 });
   return {
@@ -46,8 +48,7 @@ export function getWeekDates(date: Date): { start: string; end: string } {
  * (when the 'skip_weekends_to_monday' setting is enabled in localStorage).
  */
 export function getDefaultScheduleDate(): Date {
-  const storedSetting = localStorage.getItem('skip_weekends_to_monday');
-  const skipWeekends = storedSetting !== 'false'; // Default to true
+  const skipWeekends = isSkipWeekendsEnabled();
   const now = new Date();
   const day = now.getDay(); // 0 is Sunday, 6 is Saturday
 
@@ -103,6 +104,20 @@ export function compressImageFile(file: File): Promise<string> {
   });
 }
 
+let cachedTodayDateStr = '';
+let cachedTodayTimestamp = 0;
+
+function getCachedTodayIso(now: Date): string {
+  const nowMs = now.getTime();
+  // Invalidate cache every 60 seconds
+  if (nowMs - cachedTodayTimestamp < 60000 && cachedTodayDateStr) {
+    return cachedTodayDateStr;
+  }
+  cachedTodayDateStr = format(now, 'yyyy-MM-dd');
+  cachedTodayTimestamp = nowMs;
+  return cachedTodayDateStr;
+}
+
 /**
  * Checks if the current time falls within [startTime, endTime].
  * If targetDate is provided, also checks that targetDate is today.
@@ -113,9 +128,9 @@ export function isLessonNow(startTime: string, endTime: string, targetDateStr?: 
 
   const now = new Date();
 
-  // If a specific date is supplied (e.g. '2026-09-07'), ensure it is today
+  // If a specific date is supplied (e.g. '2026-09-07'), ensure it is today using cached ISO string
   if (targetDateStr) {
-    const todayIso = format(now, 'yyyy-MM-dd');
+    const todayIso = getCachedTodayIso(now);
     if (targetDateStr !== todayIso) {
       return false;
     }

@@ -102,8 +102,13 @@ export function ScheduleEditorModal({ isOpen, onClose, initialWeekType = 'numera
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 md:p-6 overflow-hidden">
-      <div className="bg-bg-secondary w-full max-w-5xl rounded-xl shadow-2xl border border-border flex flex-col h-[92vh] max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 overflow-hidden">
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="relative z-10 bg-bg-secondary w-full max-w-5xl rounded-xl shadow-2xl border border-border flex flex-col h-[92vh] max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200 transform-gpu">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2.5">

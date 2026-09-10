@@ -24,3 +24,6 @@ Thumbs.db
 
 # ── Docker ──
 *.log
+
+.agents/
+skills-lock.json
