@@ -44,6 +44,12 @@ async def update_homework(id: uuid.UUID, hw_in: HomeworkUpdate, db: AsyncSession
         raise HTTPException(status_code=404, detail="Homework not found")
         
     update_data = hw_in.model_dump(exclude_unset=True)
+    # Ensure mutual exclusivity: marking as failed un-completes; marking as completed un-fails
+    if update_data.get("is_failed") is True:
+        update_data["is_completed"] = False
+    elif update_data.get("is_completed") is True:
+        update_data["is_failed"] = False
+
     for key, value in update_data.items():
         setattr(hw, key, value)
         

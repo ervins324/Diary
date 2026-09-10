@@ -1,5 +1,30 @@
 # School Diary — Changelog
 
+## v1.8.7 — 2026-09-10
+
+### ❌ Homework Failure Tracking ("Failed in Class") & Analytics
+- **Tri-State Homework Status (`is_failed`)**:
+  - Added support to mark homework assignments as failed (`is_failed: true`), representing situations where the student was unprepared or failed the assignment in class and received a poor mark.
+  - Implemented mutual exclusivity on backend and frontend: marking an assignment as failed automatically unmarks it as completed, and marking it completed clears the failed status. Clicking a failed assignment's checkbox resets it back to pending.
+- **Database Schema & Startup Safety Migrations**:
+  - Added `is_failed` (`BOOLEAN DEFAULT FALSE NOT NULL`) to `HomeworkEntry` model in `backend/app/models/homework.py`.
+  - Added Alembic migration `008_homework_is_failed.py`.
+  - Added idempotent startup safety migration check in `backend/app/main.py` lifespan (`ALTER TABLE homeworks ADD COLUMN IF NOT EXISTS is_failed BOOLEAN DEFAULT FALSE;`).
+  - Updated backup export and import serialization in `backend/app/routers/system.py` to preserve `is_failed` status across system snapshots.
+- **Visual Design & Mobile Interactions (`HomeworkInline.tsx`)**:
+  - Checkbox turns into a distinct rose-red indicator with a cross mark (`X`) when failed.
+  - Added a dedicated "Failed in class" pill badge (`hw_failed_badge`) next to the homework text.
+  - Failed assignments display muted text with subtle rose-tinted strikethrough styling.
+  - Added a quick "Mark as failed / Unmark failed" button (`XCircle`) in the inline action toolbar, accessible on both desktop hover and always visible on mobile touch viewports.
+- **Comprehensive Weekly Failure Analytics (`stats_service.py`, `StatsPage.tsx`)**:
+  - Updated `get_weekly_stats` in backend to aggregate `failed` counts, `failure_rate`, daily `homework_failed` metrics, and detailed `failed_items` with subject names and colors.
+  - **Multi-Segment Progress Bar**: Enhanced the weekly Homework Rate card in `StatsPage.tsx` to visualize Completed (emerald green) and Failed (rose red) percentages alongside Pending counts.
+  - **Failed Homework Detail Card**: When failed homework exists in the active week, renders an insightful summary card detailing the subjects, due dates, and assignment descriptions that resulted in bad marks.
+  - **Daily Breakdown Metrics**: Displayed failed homework counters alongside completion rates in day cards.
+  - Excluded failed homework from `LiveScheduleWidget.tsx` pending homework counts so only active to-do items remain in the countdown.
+- **Bilingual Localization (i18n)**:
+  - Added complete Ukrainian and English translations for failed homework statuses, action tooltips, badges, and statistical summary headers in `translations.ts`.
+
 ## v1.8.6 — 2026-09-10
 
 ### ⚡ Vercel React Best Practices Optimization & 60/120 FPS Modal Scrolling

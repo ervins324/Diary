@@ -18,6 +18,8 @@ class HomeworkEntry(Base):
     lesson_order: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Indicates whether the homework was failed/unprepared in class resulting in a bad mark
+    is_failed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     images: Mapped[list[str] | None] = mapped_column(JSON, default=list, nullable=True)
     attachments: Mapped[list[dict] | None] = mapped_column(JSON, default=list, nullable=True)
     # Total time spent on this homework in seconds (tracked via stopwatch)

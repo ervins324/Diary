@@ -28,6 +28,9 @@ async def lifespan(app: FastAPI):
             await conn.execute(
                 text("ALTER TABLE homeworks ADD COLUMN IF NOT EXISTS time_spent_seconds INTEGER DEFAULT 0;")
             )
+            await conn.execute(
+                text("ALTER TABLE homeworks ADD COLUMN IF NOT EXISTS is_failed BOOLEAN DEFAULT FALSE;")
+            )
             logger.info("Database safety column verification completed.")
     except Exception as e:
         logger.warning(f"Database safety migration check warning: {e}")

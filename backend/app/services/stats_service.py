@@ -32,16 +32,22 @@ async def get_weekly_stats(
     monday = target_date - timedelta(days=weekday)
     sunday = monday + timedelta(days=6)
 
-    # Pre-fetch weekly homework entries
-    hw_stmt = select(HomeworkEntry).where(
-        HomeworkEntry.due_date >= monday,
-        HomeworkEntry.due_date <= sunday,
+    # Pre-fetch weekly homework entries with subjects loaded
+    hw_stmt = (
+        select(HomeworkEntry)
+        .options(selectinload(HomeworkEntry.subject))
+        .where(
+            HomeworkEntry.due_date >= monday,
+            HomeworkEntry.due_date <= sunday,
+        )
     )
     hw_result = await db.execute(hw_stmt)
     hw_entries = hw_result.scalars().all()
     hw_total = len(hw_entries)
     hw_completed = sum(1 for h in hw_entries if h.is_completed)
+    hw_failed = sum(1 for h in hw_entries if getattr(h, "is_failed", False))
     hw_completion_rate = round((hw_completed / hw_total) * 100, 1) if hw_total > 0 else 100.0
+    hw_failure_rate = round((hw_failed / hw_total) * 100, 1) if hw_total > 0 else 0.0
     hw_total_time_spent = sum(getattr(h, "time_spent_seconds", 0) or 0 for h in hw_entries)
     hw_avg_time_spent = round(hw_total_time_spent / hw_total) if hw_total > 0 else 0
 
@@ -204,6 +210,7 @@ async def get_weekly_stats(
         # Homework due on this specific day
         hw_day = [h for h in hw_entries if h.due_date == current_date]
         hw_day_completed = sum(1 for h in hw_day if h.is_completed)
+        hw_day_failed = sum(1 for h in hw_day if getattr(h, "is_failed", False))
         hw_day_time_spent = sum(getattr(h, "time_spent_seconds", 0) or 0 for h in hw_day)
 
         days_list.append({
@@ -216,6 +223,7 @@ async def get_weekly_stats(
             "subjects": day_subjects,
             "homework_count": len(hw_day),
             "homework_completed": hw_day_completed,
+            "homework_failed": hw_day_failed,
             "homework_time_spent_seconds": hw_day_time_spent,
         })
             
@@ -249,8 +257,21 @@ async def get_weekly_stats(
         "homework_stats": {
             "total": hw_total,
             "completed": hw_completed,
+            "failed": hw_failed,
             "completion_rate": hw_completion_rate,
+            "failure_rate": hw_failure_rate,
             "total_time_spent_seconds": hw_total_time_spent,
             "avg_time_spent_seconds": hw_avg_time_spent,
+            "failed_items": [
+                {
+                    "id": str(h.id),
+                    "due_date": h.due_date.isoformat() if hasattr(h.due_date, "isoformat") else str(h.due_date),
+                    "subject_name": h.subject.name if getattr(h, "subject", None) else "Предмет",
+                    "subject_color": h.subject.color_hex if getattr(h, "subject", None) else "#6366f1",
+                    "text": h.text,
+                    "lesson_order": h.lesson_order,
+                }
+                for h in hw_entries if getattr(h, "is_failed", False)
+            ],
         },
     }

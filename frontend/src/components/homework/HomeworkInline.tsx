@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, RotateCcw, Link as LinkIcon, Loader2, Timer, Play, Pause, RotateCcw as ResetIcon } from 'lucide-react';
+import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, RotateCcw, Link as LinkIcon, Loader2, Timer, Play, Pause, RotateCcw as ResetIcon, XCircle } from 'lucide-react';
 import { useUpdateHomework, useDeleteHomework } from '../../hooks/useHomework';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { fetchNextLesson, fetchPreviousLesson } from '../../hooks/useScheduleOverrides';
@@ -137,6 +137,15 @@ export function HomeworkInline({
 
   /* Toggle the completion status */
   const handleToggle = () => {
+    if (homework.is_failed) {
+      // If currently marked as failed, unmark it back to pending
+      updateMutation.mutate({
+        id: homework.id,
+        data: { is_failed: false, is_completed: false },
+      });
+      return;
+    }
+
     const nextCompleted = !homework.is_completed;
     if (nextCompleted && timerRunning) {
       // If completed while stopwatch was running, stop and save final time
@@ -160,13 +169,58 @@ export function HomeworkInline({
         id: homework.id,
         data: {
           is_completed: nextCompleted,
+          is_failed: false,
           time_spent_seconds: finalSec,
         },
       });
       return;
     }
 
-    updateMutation.mutate({ id: homework.id, data: { is_completed: nextCompleted } });
+    updateMutation.mutate({
+      id: homework.id,
+      data: { is_completed: nextCompleted, is_failed: false },
+    });
+  };
+
+  /* Toggle failed status (not prepared / failed with bad mark in class) */
+  const handleToggleFailed = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextFailed = !homework.is_failed;
+    if (nextFailed && timerRunning) {
+      let finalSec = secondsSpent;
+      try {
+        const stored = localStorage.getItem(`hw_timer_${homework.id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.startTime) {
+            const elapsed = Math.floor((Date.now() - parsed.startTime) / 1000);
+            finalSec = Math.max(0, (parsed.baseSeconds || 0) + elapsed);
+          }
+        }
+        localStorage.removeItem(`hw_timer_${homework.id}`);
+      } catch {
+        // ignore
+      }
+      setTimerRunning(false);
+      setSecondsSpent(finalSec);
+      updateMutation.mutate({
+        id: homework.id,
+        data: {
+          is_failed: nextFailed,
+          is_completed: false,
+          time_spent_seconds: finalSec,
+        },
+      });
+      return;
+    }
+
+    updateMutation.mutate({
+      id: homework.id,
+      data: {
+        is_failed: nextFailed,
+        is_completed: false,
+      },
+    });
   };
 
   /* Format seconds to mm:ss or hh:mm:ss */
@@ -512,10 +566,22 @@ export function HomeworkInline({
             onClick={handleToggle}
             className={cn(
               "mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95",
-              homework.is_completed ? "bg-success border-success text-white shadow-2xs" : "border-border hover:border-accent"
+              homework.is_completed
+                ? "bg-success border-success text-white shadow-2xs"
+                : homework.is_failed
+                ? "bg-rose-500 border-rose-500 text-white shadow-2xs"
+                : "border-border hover:border-accent"
             )}
+            title={
+              homework.is_failed
+                ? t('hw_unmark_failed')
+                : homework.is_completed
+                ? t('stats_completed')
+                : t('hw_mark_failed')
+            }
           >
             {homework.is_completed && <Check size={13} />}
+            {homework.is_failed && <X size={13} />}
           </button>
 
           {/* Stopwatch badge right next to checkbox */}
@@ -541,12 +607,40 @@ export function HomeworkInline({
             </button>
           )}
 
-          {/* Homework text with strikethrough when completed */}
-          <span className={cn("text-sm flex-1 leading-snug break-words", homework.is_completed && "line-through text-text-muted")}>
+          {/* Failed in class badge */}
+          {homework.is_failed && (
+            <span className="mt-0.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shrink-0 select-none">
+              <XCircle size={10} />
+              <span>{t('hw_failed_badge')}</span>
+            </span>
+          )}
+
+          {/* Homework text with strikethrough when completed or failed */}
+          <span
+            className={cn(
+              "text-sm flex-1 leading-snug break-words",
+              homework.is_completed && "line-through text-text-muted",
+              homework.is_failed && "line-through text-rose-600/80 dark:text-rose-400/80 decoration-rose-500/50"
+            )}
+          >
             {homework.text}
           </span>
-          {/* Edit/delete actions, locate previous/next lesson, and stopwatch buttons — visible on hover and touch */}
+          {/* Edit/delete actions, locate previous/next lesson, stopwatch, and mark as failed buttons — visible on hover and touch */}
           <div className="flex items-center gap-0.5 md:gap-1 transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0">
+            {/* Mark as failed in class button */}
+            <button
+              type="button"
+              onClick={handleToggleFailed}
+              className={cn(
+                "p-1.5 md:p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]",
+                homework.is_failed
+                  ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 hover:bg-rose-500/25"
+                  : "text-text-muted hover:text-rose-500 hover:bg-rose-500/10"
+              )}
+              title={homework.is_failed ? t('hw_unmark_failed') : t('hw_mark_failed')}
+            >
+              <XCircle size={14} />
+            </button>
             {/* Stopwatch toggle button */}
             <button
               onClick={() => setIsTimerOpen((prev) => !prev)}

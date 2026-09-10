@@ -35,6 +35,20 @@ class TestStatsAndHomeworkTimer(unittest.IsolatedAsyncioTestCase):
         hw_update = HomeworkUpdate(time_spent_seconds=1850)
         self.assertEqual(hw_update.time_spent_seconds, 1850)
 
+    def test_homework_schema_with_is_failed(self):
+        """Verify Homework schemas accept and validate is_failed."""
+        subj_id = uuid.uuid4()
+        hw_create = HomeworkCreate(
+            subject_id=subj_id,
+            due_date=date(2026, 9, 10),
+            text="Unprepared Homework",
+            is_failed=True,
+        )
+        self.assertTrue(hw_create.is_failed)
+
+        hw_update = HomeworkUpdate(is_failed=True)
+        self.assertTrue(hw_update.is_failed)
+
     async def test_weekly_stats_cancellation_deduction(self):
         """Verify that cancelled lessons in actual mode are deducted from total lessons and minutes."""
         mock_db = AsyncMock()
@@ -241,6 +255,72 @@ class TestStatsAndHomeworkTimer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(hw_stats["total_time_spent_seconds"], 2400)  # 40 mins
         self.assertEqual(hw_stats["avg_time_spent_seconds"], 1200)   # 20 mins
         self.assertEqual(stats["days"][0]["homework_time_spent_seconds"], 2400)
+
+    async def test_weekly_stats_failed_homework(self):
+        """Verify failed homework is correctly counted and failure_rate / failed_items computed."""
+        mock_db = AsyncMock()
+        target_date = date(2026, 9, 7)  # Monday
+        subj_math = Subject(id=uuid.uuid4(), name="Math", short_name="M", color_hex="#3b82f6")
+
+        hw_done = HomeworkEntry(
+            id=uuid.uuid4(),
+            subject_id=subj_math.id,
+            subject=subj_math,
+            due_date=target_date,
+            lesson_order=1,
+            text="Exercises 1-5",
+            is_completed=True,
+            is_failed=False,
+            time_spent_seconds=600,
+        )
+        hw_failed = HomeworkEntry(
+            id=uuid.uuid4(),
+            subject_id=subj_math.id,
+            subject=subj_math,
+            due_date=target_date,
+            lesson_order=2,
+            text="Unprepared theorem presentation",
+            is_completed=False,
+            is_failed=True,
+            time_spent_seconds=0,
+        )
+
+        mock_hw_res = MagicMock()
+        mock_hw_res.scalars().all.return_value = [hw_done, hw_failed]
+        mock_ov_res = MagicMock()
+        mock_ov_res.scalars().all.return_value = []
+        mock_empty = MagicMock()
+        mock_empty.scalars().all.return_value = []
+
+        mock_db.execute.side_effect = [
+            mock_hw_res,
+            mock_ov_res,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+            mock_empty,
+        ]
+
+        stats = await get_weekly_stats(
+            db=mock_db,
+            target_date=target_date,
+            anchor_date=date(2026, 9, 1),
+            mode="actual",
+        )
+
+        hw_stats = stats["homework_stats"]
+        self.assertEqual(hw_stats["total"], 2)
+        self.assertEqual(hw_stats["completed"], 1)
+        self.assertEqual(hw_stats["failed"], 1)
+        self.assertEqual(hw_stats["completion_rate"], 50.0)
+        self.assertEqual(hw_stats["failure_rate"], 50.0)
+        self.assertEqual(len(hw_stats["failed_items"]), 1)
+        self.assertEqual(hw_stats["failed_items"][0]["text"], "Unprepared theorem presentation")
+        self.assertEqual(hw_stats["failed_items"][0]["subject_name"], "Math")
+        self.assertEqual(stats["days"][0]["homework_failed"], 1)
 
 
 if __name__ == "__main__":

@@ -174,7 +174,7 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
     for (const day of weekSchedule) {
       for (const lesson of day.lessons) {
         for (const hw of lesson.homework || []) {
-          if (!hw.is_completed) {
+          if (!hw.is_completed && !hw.is_failed) {
             count++;
           }
         }

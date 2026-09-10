@@ -73,6 +73,8 @@ class BackupHomeworkItem(BaseModel):
     lesson_order: int | None = None
     text: str
     is_completed: bool = False
+    is_failed: bool = False
+    time_spent_seconds: int = 0
     images: list[str] = Field(default_factory=list)
     attachments: list[dict] = Field(default_factory=list)
 
@@ -179,6 +181,8 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
                 "lesson_order": h.lesson_order,
                 "text": h.text,
                 "is_completed": h.is_completed,
+                "is_failed": getattr(h, "is_failed", False),
+                "time_spent_seconds": getattr(h, "time_spent_seconds", 0) or 0,
                 "images": h.images or [],
                 "attachments": h.attachments or [],
             }
@@ -424,6 +428,8 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
                 lesson_order=h_item.lesson_order,
                 text=h_item.text,
                 is_completed=h_item.is_completed,
+                is_failed=getattr(h_item, "is_failed", False),
+                time_spent_seconds=getattr(h_item, "time_spent_seconds", 0) or 0,
                 images=h_item.images or [],
                 attachments=h_item.attachments or [],
             )

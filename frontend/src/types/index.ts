@@ -22,6 +22,7 @@ export interface HomeworkEntry {
   lesson_order: number | null;
   text: string;
   is_completed: boolean;
+  is_failed?: boolean;
   subject?: Subject;
   images?: string[];
   attachments?: Attachment[];
@@ -113,6 +114,7 @@ export interface DayStat {
   subjects: DayStatSubject[];
   homework_count: number;
   homework_completed: number;
+  homework_failed?: number;
   homework_time_spent_seconds?: number;
 }
 
@@ -140,9 +142,19 @@ export interface WeeklyStatsResponse {
   homework_stats: {
     total: number;
     completed: number;
+    failed?: number;
     completion_rate: number;
+    failure_rate?: number;
     total_time_spent_seconds?: number;
     avg_time_spent_seconds?: number;
+    failed_items?: {
+      id: string;
+      due_date: string;
+      subject_name: string;
+      subject_color: string;
+      text: string;
+      lesson_order?: number | null;
+    }[];
   };
 }
 

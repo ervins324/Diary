@@ -15,6 +15,7 @@ class HomeworkCreate(BaseModel):
     due_date: date
     lesson_order: int | None = None
     text: str
+    is_failed: bool = False
     images: list[str] = []
     attachments: list[AttachmentItem] = []
     time_spent_seconds: int | None = 0
@@ -22,6 +23,7 @@ class HomeworkCreate(BaseModel):
 class HomeworkUpdate(BaseModel):
     text: str | None = None
     is_completed: bool | None = None
+    is_failed: bool | None = None
     lesson_order: int | None = None
     images: list[str] | None = None
     attachments: list[AttachmentItem] | None = None
@@ -34,6 +36,7 @@ class HomeworkRead(BaseModel):
     lesson_order: int | None
     text: str
     is_completed: bool
+    is_failed: bool = False
     images: list[str] | None = []
     attachments: list[AttachmentItem] | None = []
     time_spent_seconds: int | None = 0

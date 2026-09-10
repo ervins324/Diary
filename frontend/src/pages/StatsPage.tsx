@@ -16,6 +16,7 @@ import {
   Ban,
   GraduationCap,
   Timer,
+  XCircle,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -115,6 +116,10 @@ export function StatsPage() {
   const breakMinutes = statsResponse?.total_break_minutes ?? 0;
   const cancelledMinutes = statsResponse?.total_cancelled_minutes ?? 0;
   const hwStats = statsResponse?.homework_stats ?? { total: 0, completed: 0, completion_rate: 100 };
+  const hwFailed = hwStats.failed ?? 0;
+  const hwPending = Math.max(0, hwStats.total - hwStats.completed - hwFailed);
+  const hwFailureRate = hwStats.failure_rate ?? (hwStats.total > 0 ? Math.round((hwFailed / hwStats.total) * 1000) / 10 : 0);
+  const failedItems = hwStats.failed_items ?? [];
   const totalHwSeconds = statsResponse?.homework_stats?.total_time_spent_seconds ?? 0;
   const avgHwSeconds = statsResponse?.homework_stats?.avg_time_spent_seconds ?? 0;
   const hwHours = Math.floor(totalHwSeconds / 3600);
@@ -452,11 +457,17 @@ export function StatsPage() {
                                   </div>
                                 )}
                                 {day.homework_count > 0 && (
-                                  <div className="flex items-center gap-1.5 text-text-muted" title={t('stats_homework_rate')}>
+                                  <div className="flex items-center gap-1.5 text-text-muted flex-wrap" title={t('stats_homework_rate')}>
                                     <div className="flex items-center gap-1">
                                       <CheckCircle2 size={13} className={day.homework_completed === day.homework_count ? "text-success" : "text-amber-500"} />
                                       <span>{day.homework_completed}/{day.homework_count}</span>
                                     </div>
+                                    {(day.homework_failed ?? 0) > 0 && (
+                                      <div className="flex items-center gap-0.5 text-rose-500 font-semibold text-[11px]" title={t('stats_failed')}>
+                                        <XCircle size={11} />
+                                        <span>{day.homework_failed}</span>
+                                      </div>
+                                    )}
                                     {(day.homework_time_spent_seconds ?? 0) > 0 && (
                                       <div className="flex items-center gap-0.5 text-accent text-[11px]" title={t('stats_homework_time')}>
                                         <Timer size={11} />
@@ -545,24 +556,42 @@ export function StatsPage() {
                 </span>
               </div>
 
-              {/* Homework Completion Rate */}
+              {/* Homework Completion & Failure Rate */}
               <div className="bg-bg-secondary p-4 rounded-xl border border-border shadow-sm flex flex-col items-center text-center">
                 <div className="flex items-center gap-1.5 text-xs text-text-muted mb-1">
                   <CheckCircle2 size={14} className="text-green-500" />
                   <span>{t('stats_homework_rate')}</span>
                 </div>
-                <span className="text-xl md:text-2xl font-bold text-text-primary">
-                  {hwStats.completion_rate}%
-                </span>
-                <div className="w-full bg-bg-tertiary h-1.5 rounded-full mt-1.5 overflow-hidden">
-                  <div 
-                    className="bg-success h-full rounded-full transition-all duration-500" 
-                    style={{ width: `${Math.min(100, Math.max(0, hwStats.completion_rate))}%` }}
-                  />
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl md:text-2xl font-bold text-text-primary">
+                    {hwStats.completion_rate}%
+                  </span>
+                  {hwFailed > 0 && (
+                    <span className="text-xs font-bold text-rose-500" title={t('stats_failed')}>
+                      • {hwFailed} {t('stats_failed')}
+                    </span>
+                  )}
                 </div>
-                <span className="text-[11px] text-text-muted mt-1">
-                  {hwStats.completed} / {hwStats.total} {t('stats_completed')}
-                </span>
+                {/* Multi-segment progress bar: Completed (green) + Failed (red) */}
+                <div className="w-full bg-bg-tertiary h-2 rounded-full mt-1.5 overflow-hidden flex">
+                  <div 
+                    className="bg-success h-full transition-all duration-500 shrink-0" 
+                    style={{ width: `${Math.min(100, Math.max(0, hwStats.completion_rate))}%` }}
+                    title={`${hwStats.completed} ${t('stats_completed')}`}
+                  />
+                  {hwFailed > 0 && (
+                    <div 
+                      className="bg-rose-500 h-full transition-all duration-500 shrink-0" 
+                      style={{ width: `${Math.min(100 - hwStats.completion_rate, Math.max(0, hwFailureRate))}%` }}
+                      title={`${hwFailed} ${t('stats_failed')}`}
+                    />
+                  )}
+                </div>
+                <div className="flex items-center justify-between w-full text-[11px] text-text-muted mt-1 px-0.5">
+                  <span className="text-success font-medium">{hwStats.completed} {t('stats_completed')}</span>
+                  {hwFailed > 0 && <span className="text-rose-500 font-semibold">{hwFailed} {t('stats_failed')}</span>}
+                  <span>{hwPending} {t('stats_pending')}</span>
+                </div>
               </div>
 
               {/* Total Homework Study Time */}
@@ -586,6 +615,62 @@ export function StatsPage() {
                 )}
               </div>
             </div>
+
+            {/* Standalone Box: Failed Homework in Class */}
+            {hwFailed > 0 && failedItems.length > 0 && (
+              <div className="bg-bg-secondary p-4 md:p-5 rounded-xl border border-rose-500/30 shadow-xs flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-border-light pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                      <XCircle size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-text-primary">
+                          {t('stats_failed_title')}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                          {hwFailed} ({hwFailureRate}%)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-text-muted">
+                        {t('stats_failed_desc')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-1">
+                  {failedItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-4 p-2.5 rounded-lg bg-bg-tertiary/60 border border-rose-500/20 hover:border-rose-500/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
+                          style={{ backgroundColor: item.subject_color }}
+                        />
+                        <span className="font-semibold text-xs text-text-primary shrink-0">
+                          {item.subject_name}
+                        </span>
+                        <span className="text-xs text-text-secondary truncate">
+                          {item.text}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 text-[11px] text-text-muted self-end sm:self-auto">
+                        <span className="font-mono bg-bg-primary/80 px-2 py-0.5 rounded border border-border">
+                          {format(parseISO(item.due_date), 'dd.MM')}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-semibold text-[10px] border border-rose-500/30">
+                          {t('hw_failed_badge')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Standalone Box: Breaks & Schedule Interruptions */}
             <div className="bg-bg-secondary p-4 md:p-5 rounded-xl border border-border shadow-xs flex flex-col gap-3">
