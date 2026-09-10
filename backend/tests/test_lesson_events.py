@@ -112,7 +112,11 @@ class TestLessonEventsAndStability(unittest.IsolatedAsyncioTestCase):
         mock_hw_res = MagicMock()
         mock_hw_res.scalars.return_value.all.return_value = []
 
-        mock_db.execute.side_effect = [mock_hw_res, mock_ov_res, mock_rules_res]
+        # 4. Notes query
+        mock_notes_res = MagicMock()
+        mock_notes_res.scalars.return_value.all.return_value = []
+
+        mock_db.execute.side_effect = [mock_hw_res, mock_ov_res, mock_notes_res, mock_rules_res]
 
         days = await build_schedule_for_date_range(
             db=mock_db,

@@ -185,6 +185,18 @@ export const translations = {
     hw_unmark_failed: 'Unmark failed',
     hw_failed_badge: 'Failed in class',
 
+    // Lesson Notes
+    lesson_notes_title: 'Lesson Notes',
+    lesson_notes_desc: 'Personal notes, reminders, and class takeaways for this lesson',
+    lesson_notes_empty: 'No notes for this lesson yet. Write down reminders, formulas, or key topics!',
+    add_lesson_note: 'Add Note',
+    add_lesson_note_placeholder: 'Write a note for this lesson (Ctrl+Enter to save)...',
+    edit_lesson_note: 'Edit note',
+    delete_lesson_note_confirm: 'Delete this note?',
+    note_saved: 'Note saved',
+    note_singular: 'note',
+    notes_plural: 'notes',
+
     // Full Backup & Restore
     backup_restore: 'Backup & Restore',
     backup_restore_desc: 'Export a complete snapshot of all app data or restore from a JSON backup file',
@@ -550,6 +562,18 @@ export const translations = {
     hw_mark_failed: 'Позначити як провалене (погана оцінка на уроці)',
     hw_unmark_failed: 'Зняти статус проваленого',
     hw_failed_badge: 'Провалено на уроці',
+
+    // Lesson Notes
+    lesson_notes_title: 'Нотатки до уроку',
+    lesson_notes_desc: 'Особисті замітки, нагадування та важливі тези з цього уроку',
+    lesson_notes_empty: 'До цього уроку ще немає нотаток. Запишіть нагадування, формули чи важливі теми!',
+    add_lesson_note: 'Додати нотатку',
+    add_lesson_note_placeholder: 'Введіть нотатку до цього уроку (Ctrl+Enter для збереження)...',
+    edit_lesson_note: 'Редагувати нотатку',
+    delete_lesson_note_confirm: 'Видалити цю нотатку?',
+    note_saved: 'Нотатку збережено',
+    note_singular: 'нотатка',
+    notes_plural: 'нотаток',
 
     // Full Backup & Restore
     backup_restore: 'Резервне копіювання та відновлення',

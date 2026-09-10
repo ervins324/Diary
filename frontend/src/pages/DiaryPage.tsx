@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { format, addWeeks, subWeeks, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, StickyNote } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { useCreateHomework } from '../hooks/useHomework';
 import { useFileUpload } from '../hooks/useFileUpload';
@@ -13,6 +13,7 @@ import { HomeworkInline } from '../components/homework/HomeworkInline';
 import { AttachmentChip } from '../components/homework/AttachmentChip';
 import { AddLinkModal } from '../components/homework/AddLinkModal';
 import { LessonOverrideModal } from '../components/schedule/LessonOverrideModal';
+import { LessonNotesModal } from '../components/schedule/LessonNotesModal';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { DaySchedule, LessonSlot, Attachment } from '../types';
 
@@ -38,6 +39,8 @@ export function DiaryPage() {
 
   /* Active lesson for substitution modal */
   const [overrideLesson, setOverrideLesson] = useState<LessonSlot | null>(null);
+  /* Active lesson for notes modal */
+  const [notesLesson, setNotesLesson] = useState<LessonSlot | null>(null);
 
   /* Container ref for mobile horizontal swipe container */
   const mobileContainerRef = useRef<HTMLDivElement>(null);
@@ -442,6 +445,26 @@ export function DiaryPage() {
                           <Compass size={12} />
                         </button>
 
+                        {/* Lesson notes button */}
+                        <button
+                          type="button"
+                          onClick={() => setNotesLesson(lesson)}
+                          className={cn(
+                            "p-0.5 rounded transition-colors relative",
+                            (lesson.notes?.length ?? 0) > 0
+                              ? "text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
+                              : "text-text-muted hover:text-accent"
+                          )}
+                          title={t('lesson_notes_title')}
+                        >
+                          <StickyNote size={12} />
+                          {(lesson.notes?.length ?? 0) > 0 && (
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 text-white text-[7px] font-bold flex items-center justify-center leading-none">
+                              {lesson.notes?.length}
+                            </span>
+                          )}
+                        </button>
+
                         {/* Lesson override / event button */}
                         <button
                           type="button"
@@ -467,12 +490,25 @@ export function DiaryPage() {
                       </div>
                     </div>
 
-                    <div className={cn("text-[11px] text-text-muted", isCurrent && "text-accent font-medium")}>
-                      {formatTime(lesson.start_time)} - {formatTime(lesson.end_time)}
+                    <div className={cn("text-[11px] text-text-muted flex items-center gap-1.5 flex-wrap", isCurrent && "text-accent font-medium")}>
+                      <span>{formatTime(lesson.start_time)} - {formatTime(lesson.end_time)}</span>
                       {lesson.override_note && (
-                        <span className="ml-1 text-amber-600 dark:text-amber-400 italic">
+                        <span className="text-amber-600 dark:text-amber-400 italic">
                           • {lesson.override_note}
                         </span>
+                      )}
+                      {(lesson.notes?.length ?? 0) > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setNotesLesson(lesson)}
+                          className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 dark:text-amber-400 hover:underline font-medium cursor-pointer"
+                          title={t('lesson_notes_title')}
+                        >
+                          • <StickyNote size={10} />
+                          <span>
+                            {lesson.notes?.length} {lesson.notes?.length === 1 ? t('note_singular') : t('notes_plural')}
+                          </span>
+                        </button>
                       )}
                     </div>
 
@@ -690,6 +726,15 @@ export function DiaryPage() {
           isOpen={true}
           onClose={() => setOverrideLesson(null)}
           lesson={overrideLesson}
+        />
+      )}
+
+      {/* Lesson Notes Modal */}
+      {notesLesson && (
+        <LessonNotesModal
+          isOpen={true}
+          onClose={() => setNotesLesson(null)}
+          lesson={notesLesson}
         />
       )}
     </div>

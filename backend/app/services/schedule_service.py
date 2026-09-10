@@ -7,10 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.schedule_rule import ScheduleRule, WeekType
 from app.models.schedule_override import ScheduleOverride
 from app.models.homework import HomeworkEntry
+from app.models.lesson_note import LessonNote
 from app.schemas.schedule import DaySchedule, LessonSlot, NextLessonResponse, PreviousLessonResponse
 from app.utils.week_type import get_week_type
 from app.schemas.subject import SubjectRead
 from app.schemas.homework import HomeworkRead
+from app.schemas.lesson_note import LessonNoteRead
 
 async def get_schedule_for_range(
     db: AsyncSession, 
@@ -55,6 +57,21 @@ async def get_schedule_for_range(
     overrides_by_day_and_order: dict[tuple[date, int], ScheduleOverride] = {
         (ov.date, ov.lesson_order): ov for ov in all_overrides
     }
+
+    # Pre-fetch all lesson notes for the requested date range
+    note_stmt = (
+        select(LessonNote)
+        .where(
+            LessonNote.date >= start_date,
+            LessonNote.date <= end_date,
+        )
+        .order_by(LessonNote.created_at)
+    )
+    note_result = await db.execute(note_stmt)
+    all_notes = note_result.scalars().all()
+    notes_by_day_and_order: dict[tuple[date, int], list[LessonNote]] = defaultdict(list)
+    for note in all_notes:
+        notes_by_day_and_order[(note.date, note.lesson_order)].append(note)
 
     # Generate list of dates
     num_days = (end_date - start_date).days + 1
@@ -124,6 +141,10 @@ async def get_schedule_for_range(
                 if hw.lesson_order is None or hw.lesson_order == rule.lesson_order
             ]
             homework_reads = [HomeworkRead.model_validate(hw) for hw in matching_hw]
+
+            # Match notes for this date & lesson order
+            matching_notes = notes_by_day_and_order.get((current_date, rule.lesson_order), [])
+            note_reads = [LessonNoteRead.model_validate(n) for n in matching_notes]
             
             lesson = LessonSlot(
                 date=current_date,
@@ -133,6 +154,7 @@ async def get_schedule_for_range(
                 end_time=end_time,
                 cabinet=cabinet,
                 homework=homework_reads,
+                notes=note_reads,
                 original_subject=orig_subject_read,
                 is_override=is_override,
                 is_cancelled=is_cancelled,
@@ -150,6 +172,10 @@ async def get_schedule_for_range(
                         if hw.lesson_order is None or hw.lesson_order == ov_order
                     ]
                     homework_reads = [HomeworkRead.model_validate(hw) for hw in matching_hw]
+
+                    matching_notes = notes_by_day_and_order.get((current_date, ov_order), [])
+                    note_reads = [LessonNoteRead.model_validate(n) for n in matching_notes]
+
                     lesson = LessonSlot(
                         date=current_date,
                         lesson_order=ov_order,
@@ -158,6 +184,7 @@ async def get_schedule_for_range(
                         end_time=override.end_time or time(9, 15),
                         cabinet=override.cabinet,
                         homework=homework_reads,
+                        notes=note_reads,
                         original_subject=SubjectRead.model_validate(override.original_subject) if override.original_subject else None,
                         is_override=True,
                         is_cancelled=override.is_cancelled,

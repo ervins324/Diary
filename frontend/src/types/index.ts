@@ -29,6 +29,17 @@ export interface HomeworkEntry {
   time_spent_seconds?: number;
 }
 
+/* Lesson note entry */
+export interface LessonNote {
+  id: string;
+  subject_id: string;
+  date: string;
+  lesson_order: number;
+  text: string;
+  created_at: string;
+  updated_at: string;
+}
+
 /* Special event / assessment type: built-in templates or user-defined custom event type */
 export type LessonEventType = 'control_work' | 'test' | 'essay' | 'project' | (string & {}) | null;
 
@@ -40,6 +51,7 @@ export interface LessonSlot {
   end_time: string;
   cabinet: string | null;
   homework: HomeworkEntry[];
+  notes?: LessonNote[];
   original_subject?: Subject | null;
   is_override?: boolean;
   is_cancelled?: boolean;

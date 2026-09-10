@@ -14,6 +14,7 @@ from app.models.bell_schedule import BellSchedule
 from app.models.homework import HomeworkEntry
 from app.models.stored_file import StoredFile
 from app.models.schedule_override import ScheduleOverride
+from app.models.lesson_note import LessonNote
 
 logger = logging.getLogger("school_diary.system")
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
@@ -102,6 +103,15 @@ class BackupStoredFileItem(BaseModel):
     file_data_base64: str
 
 
+class BackupLessonNoteItem(BaseModel):
+    id: str | None = None
+    subject_id: str | None = None
+    subject_name: str | None = None
+    date: str
+    lesson_order: int
+    text: str
+
+
 class FullBackupData(BaseModel):
     version: str = "1.7.0"
     exported_at: str | None = None
@@ -111,6 +121,7 @@ class FullBackupData(BaseModel):
     homeworks: list[BackupHomeworkItem] = Field(default_factory=list)
     schedule_overrides: list[BackupScheduleOverrideItem] = Field(default_factory=list)
     stored_files: list[BackupStoredFileItem] = Field(default_factory=list)
+    lesson_notes: list[BackupLessonNoteItem] = Field(default_factory=list)
 
 
 @router.get("/backup/export")
@@ -224,8 +235,22 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             for f in files
         ]
 
+        # 7. Fetch all lesson notes
+        notes_res = await db.execute(select(LessonNote).order_by(LessonNote.date, LessonNote.lesson_order))
+        notes = notes_res.scalars().all()
+        notes_data = [
+            {
+                "id": str(n.id),
+                "subject_id": str(n.subject_id),
+                "date": n.date.isoformat() if isinstance(n.date, (date, datetime)) else str(n.date),
+                "lesson_order": n.lesson_order,
+                "text": n.text,
+            }
+            for n in notes
+        ]
+
         return {
-            "version": "1.7.3",
+            "version": "1.7.4",
             "exported_at": datetime.utcnow().isoformat() + "Z",
             "subjects": subjects_data,
             "bell_schedules": bells_data,
@@ -233,6 +258,7 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             "homeworks": hw_data,
             "schedule_overrides": overrides_data,
             "stored_files": files_data,
+            "lesson_notes": notes_data,
         }
     except Exception as e:
         logger.exception(f"Failed to export backup: {e}")
@@ -436,6 +462,40 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
             db.add(hw)
             imported_hw_count += 1
 
+        await db.flush()
+
+        # Step 8: Insert Lesson Notes
+        imported_notes_count = 0
+        for n_item in getattr(backup, "lesson_notes", []) or []:
+            target_subject_id: UUID | None = None
+            if n_item.subject_id and str(n_item.subject_id) in subject_id_map:
+                target_subject_id = subject_id_map[str(n_item.subject_id)]
+            elif n_item.subject_name and n_item.subject_name.strip().lower() in subject_name_map:
+                target_subject_id = subject_name_map[n_item.subject_name.strip().lower()]
+
+            if not target_subject_id:
+                continue
+
+            try:
+                n_uuid = UUID(n_item.id) if n_item.id else uuid4()
+            except (ValueError, TypeError):
+                n_uuid = uuid4()
+
+            try:
+                parsed_date = date.fromisoformat(n_item.date)
+            except ValueError:
+                parsed_date = date.today()
+
+            note = LessonNote(
+                id=n_uuid,
+                subject_id=target_subject_id,
+                date=parsed_date,
+                lesson_order=n_item.lesson_order,
+                text=n_item.text,
+            )
+            db.add(note)
+            imported_notes_count += 1
+
         await db.commit()
 
         return {
@@ -448,6 +508,7 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
                 "homeworks": imported_hw_count,
                 "schedule_overrides": imported_overrides_count,
                 "stored_files": len(backup.stored_files),
+                "lesson_notes": imported_notes_count,
             },
         }
 

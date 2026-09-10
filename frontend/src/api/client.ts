@@ -8,6 +8,7 @@ import type {
   BellSlot,
   AiParsedBellSlot,
   ScheduleRuleItem,
+  LessonNote,
 } from '../types';
 
 // Axios instance configured with extended timeout for AI image processing
@@ -273,5 +274,41 @@ export const deleteScheduleOverride = async (targetDate: string, lessonOrder: nu
   await api.delete('/schedule/override', {
     params: { target_date: targetDate, lesson_order: lessonOrder },
   });
+};
+
+// ── Lesson Notes API endpoints ─────────────────────────────────────────
+
+export const fetchLessonNotes = async (
+  targetDate?: string,
+  lessonOrder?: number,
+  subjectId?: string
+): Promise<LessonNote[]> => {
+  const { data } = await api.get('/lesson-notes', {
+    params: {
+      date: targetDate,
+      lesson_order: lessonOrder,
+      subject_id: subjectId,
+    },
+  });
+  return data;
+};
+
+export const createLessonNote = async (noteData: {
+  subject_id: string;
+  date: string;
+  lesson_order: number;
+  text: string;
+}): Promise<LessonNote> => {
+  const { data } = await api.post('/lesson-notes', noteData);
+  return data;
+};
+
+export const updateLessonNote = async (id: string, text: string): Promise<LessonNote> => {
+  const { data } = await api.patch(`/lesson-notes/${id}`, { text });
+  return data;
+};
+
+export const deleteLessonNote = async (id: string): Promise<void> => {
+  await api.delete(`/lesson-notes/${id}`);
 };
 

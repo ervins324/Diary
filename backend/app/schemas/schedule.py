@@ -3,6 +3,7 @@ from datetime import time, date
 from pydantic import BaseModel, ConfigDict
 from app.schemas.subject import SubjectRead
 from app.schemas.homework import HomeworkRead
+from app.schemas.lesson_note import LessonNoteRead
 
 class ScheduleRuleCreate(BaseModel):
     subject_id: uuid.UUID
@@ -34,6 +35,7 @@ class LessonSlot(BaseModel):
     end_time: time
     cabinet: str | None = None
     homework: list[HomeworkRead] | None = None
+    notes: list[LessonNoteRead] | None = None
     original_subject: SubjectRead | None = None
     is_override: bool = False
     is_cancelled: bool = False

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.config import settings
 from app.database import engine
-from app.routers import subjects, schedule, homework, stats, bells, system, files
+from app.routers import subjects, schedule, homework, stats, bells, system, files, lesson_notes
 
 # Configure centralized logging with timestamp, level, and logger name
 logging.basicConfig(
@@ -30,6 +30,25 @@ async def lifespan(app: FastAPI):
             )
             await conn.execute(
                 text("ALTER TABLE homeworks ADD COLUMN IF NOT EXISTS is_failed BOOLEAN DEFAULT FALSE;")
+            )
+            await conn.execute(
+                text("""
+                CREATE TABLE IF NOT EXISTS lesson_notes (
+                    id UUID PRIMARY KEY,
+                    date DATE NOT NULL,
+                    lesson_order SMALLINT NOT NULL,
+                    subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+                    text TEXT NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                );
+                """)
+            )
+            await conn.execute(
+                text("CREATE INDEX IF NOT EXISTS ix_lesson_notes_date_order ON lesson_notes (date, lesson_order);")
+            )
+            await conn.execute(
+                text("CREATE INDEX IF NOT EXISTS ix_lesson_notes_date ON lesson_notes (date);")
             )
             logger.info("Database safety column verification completed.")
     except Exception as e:
@@ -75,6 +94,7 @@ app.include_router(stats.router)
 app.include_router(bells.router)
 app.include_router(system.router)
 app.include_router(files.router)
+app.include_router(lesson_notes.router)
 
 @app.get("/")
 async def root():

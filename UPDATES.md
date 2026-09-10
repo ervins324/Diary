@@ -1,5 +1,30 @@
 # School Diary — Changelog
 
+## v1.8.8 — 2026-09-10
+
+### 📝 Lesson Notes (Замітки до уроку) & Dedicated Notepad Drawer
+- **Dedicated Lesson Notes System (`LessonNote` Model & Database Architecture)**:
+  - Created new `lesson_notes` table in PostgreSQL with `id`, `date`, `lesson_order`, `subject_id`, `text`, `created_at`, and `updated_at`.
+  - Added composite database index `ix_lesson_notes_date_order` on `(date, lesson_order)` for instant O(1) query lookups.
+  - Added Alembic migration `009_lesson_notes.py`.
+  - Added startup safety migration in `backend/app/main.py` lifespan to idempotently guarantee table and index existence.
+  - Added complete full backup serialization and restore support in `backend/app/routers/system.py` (`FullBackupData` includes `lesson_notes`).
+- **Schedule API Integration (`schedule_service.py`)**:
+  - Prefetches and associates all notes matching scheduled dates and lesson slots.
+  - Every `LessonSlot` in `/api/v1/schedule` now delivers an attached `notes: list[LessonNoteRead]` collection with zero N+1 database queries.
+- **RESTful CRUD Router (`/api/v1/lesson-notes`)**:
+  - Implemented `GET /api/v1/lesson-notes`, `POST /api/v1/lesson-notes`, `PATCH /api/v1/lesson-notes/{id}`, and `DELETE /api/v1/lesson-notes/{id}` with full status code conformance and validation.
+  - Added unit test suite `test_lesson_notes.py` covering creation, listing, updating, deletion, and schedule integration (23/23 tests passing).
+- **Dedicated Lesson Notepad Drawer (`LessonNotesModal.tsx`)**:
+  - Implemented a dedicated focused modal drawer with decoupled GPU-accelerated backdrop blur (`backdrop-blur-xs`) and `createPortal(..., document.body)` adhering to Vercel React Best Practices.
+  - Supports multiple notes per lesson slot, inline editing with keyboard shortcuts (`Ctrl+Enter` to save, `Escape` to cancel/dismiss), delete confirmation, and timestamp tracking (`(edited)` indicators).
+  - Quick note creation textarea with auto-focus and `Ctrl+Enter` shortcut.
+- **Schedule Card & Diary Page UI Integration (`LessonCard.tsx`, `DiaryPage.tsx`)**:
+  - Added amber sticky note action button (`StickyNote`) on every lesson card with note counter badges (`notesCount`).
+  - Added a clickable note summary pill in the lesson metadata row to open the notepad drawer directly.
+- **Bilingual Localization (i18n)**:
+  - Added full English and Ukrainian translations for lesson notes UI, empty states, creation placeholders, edit tools, and counters in `translations.ts`.
+
 ## v1.8.7 — 2026-09-10
 
 ### ❌ Homework Failure Tracking ("Failed in Class") & Analytics

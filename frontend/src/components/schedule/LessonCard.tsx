@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { Plus, Image as ImageIcon, X, Check, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { Plus, Image as ImageIcon, X, Check, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, Loader2, StickyNote } from 'lucide-react';
 import type { LessonSlot, Attachment } from '../../types';
 import { formatTime, compressImageFile, isLessonNow, cn } from '../../lib/utils';
 import { getEventTypeInfo } from '../../lib/customTypes';
@@ -8,6 +8,7 @@ import { HomeworkInline } from '../homework/HomeworkInline';
 import { AttachmentChip } from '../homework/AttachmentChip';
 import { AddLinkModal } from '../homework/AddLinkModal';
 import { LessonOverrideModal } from './LessonOverrideModal';
+import { LessonNotesModal } from './LessonNotesModal';
 import { useCreateHomework } from '../../hooks/useHomework';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { fetchNextLesson, fetchPreviousLesson } from '../../hooks/useScheduleOverrides';
@@ -27,8 +28,11 @@ export const LessonCard = memo(function LessonCard({ lesson, onFindNextLesson, o
   const [attachedItems, setAttachedItems] = useState<Attachment[]>([]);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isLocatingPrev, setIsLocatingPrev] = useState(false);
+
+  const notesCount = lesson.notes?.length ?? 0;
 
   const createMutation = useCreateHomework();
   const uploadMutation = useFileUpload();
@@ -340,6 +344,25 @@ export const LessonCard = memo(function LessonCard({ lesson, onFindNextLesson, o
               {isLocating ? <Loader2 size={16} className="animate-spin text-accent" /> : <Compass size={16} />}
             </button>
 
+            {/* Lesson notes modal trigger button */}
+            <button
+              onClick={() => setIsNotesModalOpen(true)}
+              className={cn(
+                "p-2 md:p-1.5 rounded-lg transition-all active:scale-95 min-w-[34px] min-h-[34px] md:min-w-[28px] md:min-h-[28px] flex items-center justify-center relative",
+                notesCount > 0
+                  ? "text-amber-500 bg-amber-500/10 hover:bg-amber-500/20"
+                  : "text-text-muted hover:text-accent hover:bg-bg-tertiary"
+              )}
+              title={t('lesson_notes_title')}
+            >
+              <StickyNote size={16} />
+              {notesCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-xs">
+                  {notesCount}
+                </span>
+              )}
+            </button>
+
             {/* Substitution & Event override trigger button */}
             <button
               onClick={() => setIsOverrideModalOpen(true)}
@@ -364,7 +387,7 @@ export const LessonCard = memo(function LessonCard({ lesson, onFindNextLesson, o
           </div>
         </div>
         
-        <div className="text-xs text-text-muted flex items-center gap-1.5">
+        <div className="text-xs text-text-muted flex items-center gap-1.5 flex-wrap">
           <span className={cn(isCurrentLesson && "font-semibold text-accent")}>
             {formatTime(lesson.start_time)} - {formatTime(lesson.end_time)}
           </span>
@@ -375,6 +398,19 @@ export const LessonCard = memo(function LessonCard({ lesson, onFindNextLesson, o
             <span className="text-[11px] text-amber-600 dark:text-amber-400 italic">
               • {lesson.override_note}
             </span>
+          )}
+          {notesCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsNotesModalOpen(true)}
+              className="inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-medium cursor-pointer"
+              title={t('lesson_notes_title')}
+            >
+              • <StickyNote size={11} />
+              <span>
+                {notesCount} {notesCount === 1 ? t('note_singular') : t('notes_plural')}
+              </span>
+            </button>
           )}
         </div>
 
@@ -520,6 +556,15 @@ export const LessonCard = memo(function LessonCard({ lesson, onFindNextLesson, o
         <LessonOverrideModal
           isOpen={isOverrideModalOpen}
           onClose={() => setIsOverrideModalOpen(false)}
+          lesson={lesson}
+        />
+      )}
+
+      {/* Lesson notes modal */}
+      {isNotesModalOpen && (
+        <LessonNotesModal
+          isOpen={isNotesModalOpen}
+          onClose={() => setIsNotesModalOpen(false)}
           lesson={lesson}
         />
       )}
