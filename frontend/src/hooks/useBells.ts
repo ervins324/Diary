@@ -5,7 +5,6 @@ import {
   updateBellSlot,
   deleteBellSlot,
   bulkCommitBells,
-  aiParseBells,
   parseBellsJson,
 } from '../api/client';
 import type { BellSlot } from '../types';
@@ -52,12 +51,6 @@ export const useBulkCommitBells = () => {
       queryClient.invalidateQueries({ queryKey: ['bells'] });
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
     },
-  });
-};
-
-export const useAiParseBells = () => {
-  return useMutation({
-    mutationFn: (file: File) => aiParseBells(file),
   });
 };
 

@@ -1,5 +1,21 @@
 # School Diary — Changelog
 
+## v1.8.10 — 2026-09-14
+
+### ✂️ Retired Gemini Vision SDK & Streamlined Prompt-Driven JSON Importing
+- **Backend AI Vision Decommissioning**:
+  - Removed `google-genai` Python SDK dependency from `backend/requirements.txt`.
+  - Deleted `backend/app/services/ai_parser.py` and retired `/api/v1/schedule/ai-parse` and `/api/v1/bells/ai-parse` image-parsing endpoints.
+  - Removed `GEMINI_API_KEY` requirement from `backend/app/config.py`, `docker-compose.yml`, and documentation.
+- **Dedicated Prompt-Driven JSON Importers (`AiImportModal.tsx`, `AiBellsImportModal.tsx`)**:
+  - Simplified schedule and bell import modals to focus entirely on copying structured Ukrainian AI prompts and importing the generated JSON.
+  - Removed photo upload tabs, image states, and file dropzones (`FileDropzone.tsx` removed).
+  - Users can copy the prompt with one click to use with any AI assistant (ChatGPT, Claude, Gemini Web, DeepSeek, etc.) and paste or upload `.json` files for instant parsing, bell-time fallback enrichment, and review.
+- **Frontend & Client Cleanup**:
+  - Removed `aiParseSchedule` and `aiParseBells` from `api/client.ts`.
+  - Removed `useAiParse` and `useAiParseBells` query hooks from `hooks/useSchedule.ts` and `hooks/useBells.ts`.
+  - Updated translations in English and Ukrainian in `translations.ts` and keywords in `CommandPalette.tsx`.
+
 ## v1.8.9 — 2026-09-10
 
 ### 📎 Rich Media Lesson Notes (Images, PDFs, Presentations & Links)

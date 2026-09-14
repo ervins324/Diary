@@ -34,7 +34,7 @@ export const translations = {
     // Bells Page
     bell_schedule: 'Bell Schedule',
     bell_schedule_desc: 'School lesson bells and break intervals (Розклад дзвінків)',
-    ai_image_parse: 'AI Image Parse',
+    ai_image_parse: 'AI Import',
     add_lesson: 'Add Lesson',
     add_lesson_interval: 'Add Lesson Bell Interval',
     lesson_order: 'Lesson Order (#)',
@@ -45,8 +45,8 @@ export const translations = {
     save_lesson: 'Save Lesson',
     loading_bells: 'Loading bell schedule...',
     no_bells_configured: 'No Bell Schedule Configured',
-    no_bells_desc: "Upload a photo of your school's bell timetable or add lessons manually to personalize lesson durations and breaks.",
-    import_from_photo: 'Import from Photo',
+    no_bells_desc: "Import your school's bell timetable via AI prompt or add lessons manually to personalize lesson durations and breaks.",
+    import_from_photo: 'Import via AI',
     add_manually: 'Add Manually',
     min_break: 'min break',
     break_now: 'Break Now',
@@ -57,12 +57,12 @@ export const translations = {
 
     // AI Bells Modal
     import_bells_ai: 'Import Bell Schedule via AI',
-    import_bells_desc: "Upload a photo of your school's bell timetable (розклад дзвінків)",
+    import_bells_desc: "Copy the prompt, generate JSON with an AI assistant, and import it here",
     extracted_bells: 'Extracted Bell Slots',
     save_bell_schedule: 'Save Bell Schedule',
-    analyzing_bells: 'Analyzing Image with Gemini 3.5 Flash...',
+    analyzing_bells: 'Parsing bell schedule...',
     extract_bells_btn: 'Extract Bell Schedule',
-    re_upload: 'Re-upload',
+    re_upload: 'Back',
 
     // AI Schedule Modal
     import_schedule_ai: 'Import Schedule via AI',
@@ -310,7 +310,7 @@ export const translations = {
     air_alerts_attribution: 'Data provided by Map of Air Alerts — NEPTUN (neptun.in.ua)',
     air_alert_lesson_note: 'Air Alert (Auto-cancelled)',
     ai_schedule_settings_title: 'AI Timetable Import',
-    ai_schedule_settings_desc: 'Upload a photo or enter timetable JSON to automatically generate your weekly schedule with AI',
+    ai_schedule_settings_desc: 'Copy an AI prompt and import JSON to automatically generate your weekly schedule',
     ai_schedule_open_import: 'Open AI Schedule Importer',
     search_subject_placeholder: 'Search subject...',
 
@@ -412,7 +412,7 @@ export const translations = {
     // Bells Page
     bell_schedule: 'Розклад дзвінків',
     bell_schedule_desc: 'Розклад уроків та перерв у вашій школі',
-    ai_image_parse: 'AI Розпізнавання',
+    ai_image_parse: 'AI Імпорт',
     add_lesson: 'Додати урок',
     add_lesson_interval: 'Додати інтервал уроку',
     lesson_order: 'Номер уроку (#)',
@@ -423,8 +423,8 @@ export const translations = {
     save_lesson: 'Зберегти урок',
     loading_bells: 'Завантаження розкладу дзвінків...',
     no_bells_configured: 'Розклад дзвінків не налаштовано',
-    no_bells_desc: 'Завантажте фото розкладу дзвінків вашої школи або додайте уроки вручну.',
-    import_from_photo: 'Імпорт з фото',
+    no_bells_desc: 'Імпортуйте розклад дзвінків вашої школи через AI-промпт або додайте уроки вручну.',
+    import_from_photo: 'Імпорт через AI',
     add_manually: 'Додати вручну',
     min_break: 'хв перерва',
     break_now: 'Зараз перерва',
@@ -435,12 +435,12 @@ export const translations = {
 
     // AI Bells Modal
     import_bells_ai: 'Імпорт розкладу дзвінків через AI',
-    import_bells_desc: 'Завантажте фото розкладу дзвінків (розклад дзвінків)',
+    import_bells_desc: 'Скопіюйте промпт, згенеруйте JSON у будь-якому AI та імпортуйте його сюди',
     extracted_bells: 'Розпізнані уроки',
     save_bell_schedule: 'Зберегти розклад дзвінків',
-    analyzing_bells: 'Аналіз зображення за допомогою Gemini 3.5 Flash...',
+    analyzing_bells: 'Обробка розкладу дзвінків...',
     extract_bells_btn: 'Розпізнати розклад дзвінків',
-    re_upload: 'Завантажити інше фото',
+    re_upload: 'Назад',
 
     // AI Schedule Modal
     import_schedule_ai: 'Імпорт розкладу через AI',
@@ -688,7 +688,7 @@ export const translations = {
     air_alerts_attribution: 'Дані: Карта повітряних тривог — NEPTUN (neptun.in.ua)',
     air_alert_lesson_note: 'Повітряна тривога (Автоскасовано)',
     ai_schedule_settings_title: 'Імпорт розкладу через AI',
-    ai_schedule_settings_desc: 'Завантажте фото або вставте JSON для швидкого створення розкладу за допомогою AI',
+    ai_schedule_settings_desc: 'Скопіюйте AI-промпт та вставте JSON для швидкого створення розкладу',
     ai_schedule_open_import: 'Відкрити імпортер розкладу',
     search_subject_placeholder: 'Пошук предмета...',
 

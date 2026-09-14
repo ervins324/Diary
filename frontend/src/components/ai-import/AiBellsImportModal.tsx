@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { X, Loader2, Sparkles, Plus, Trash2, Check, Image, FileText, Copy, UploadCloud } from 'lucide-react';
-import { FileDropzone } from './FileDropzone';
+import { X, Loader2, Sparkles, Plus, Trash2, Check, Copy, UploadCloud } from 'lucide-react';
 import { copyToClipboard } from '../../lib/clipboard';
-import { useAiParseBells, useParseBellsJson, useBulkCommitBells } from '../../hooks/useBells';
+import { useParseBellsJson, useBulkCommitBells } from '../../hooks/useBells';
 import { useLanguage } from '../../i18n/LanguageContext';
 import type { AiParsedBellSlot } from '../../types';
 
@@ -31,34 +30,15 @@ const AI_BELLS_PROMPT = `Витягни розклад шкільних дзві
 
 export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps) {
   const { t } = useLanguage();
-  /* Active tab mode: 'photo' (via Gemini API) or 'json' (from external AI, no API key required) */
-  const [importMode, setImportMode] = useState<'photo' | 'json'>('photo');
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState<string>('');
   const [rawJsonPreview, setRawJsonPreview] = useState<string>('');
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
   const [slots, setSlots] = useState<AiParsedBellSlot[]>([]);
 
-  const parseMutation = useAiParseBells();
   const jsonParseMutation = useParseBellsJson();
   const commitMutation = useBulkCommitBells();
 
   if (!isOpen) return null;
-
-  const handleParse = async () => {
-    if (!file) return;
-    setPreviewUrl(URL.createObjectURL(file));
-
-    try {
-      const result = await parseMutation.mutateAsync(file);
-      // Sort slots by ascending order
-      const sorted = [...(result.slots || [])].sort((a, b) => a.order - b.order);
-      setSlots(sorted);
-    } catch (err) {
-      console.error('Failed to parse bells image:', err);
-    }
-  };
 
   /* Parse raw JSON submitted from external AI */
   const handleParseJson = async () => {
@@ -136,12 +116,9 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
   };
 
   const handleClose = () => {
-    setFile(null);
-    setPreviewUrl(null);
     setJsonInput('');
     setRawJsonPreview('');
     setSlots([]);
-    parseMutation.reset();
     jsonParseMutation.reset();
     commitMutation.reset();
     onClose();
@@ -177,164 +154,86 @@ export function AiBellsImportModal({ isOpen, onClose }: AiBellsImportModalProps)
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-6">
           {slots.length === 0 ? (
-            /* Step 1: Upload Image or Paste JSON */
+            /* Step 1: Paste JSON or Upload File */
             <div className="flex-1 flex flex-col items-center justify-start max-w-xl mx-auto w-full py-2 md:py-4">
-              {/* Import Mode Tabs */}
-              <div className="flex p-1 bg-bg-tertiary rounded-lg border border-border mb-6 w-full max-w-md">
-                <button
-                  type="button"
-                  onClick={() => setImportMode('photo')}
-                  className={`flex-1 py-2 px-3 rounded-md text-xs md:text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                    importMode === 'photo'
-                      ? 'bg-bg-secondary text-text-primary shadow-xs'
-                      : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  <Image size={16} />
-                  <span>{t('tab_photo_ai')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImportMode('json')}
-                  className={`flex-1 py-2 px-3 rounded-md text-xs md:text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                    importMode === 'json'
-                      ? 'bg-bg-secondary text-text-primary shadow-xs'
-                      : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  <FileText size={16} />
-                  <span>{t('tab_json_ai')}</span>
-                </button>
-              </div>
-
-              {importMode === 'photo' ? (
-                /* Mode A: Photo upload */
-                <div className="w-full flex flex-col items-center">
-                  <FileDropzone onFileSelect={setFile} selectedFile={file} />
-
-                  {parseMutation.isError && (
-                    <div className="mt-4 p-3.5 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm w-full text-left">
-                      <p className="font-semibold flex items-center gap-1.5">
-                        <span>⚠️</span> {t('parsing_failed')}
-                      </p>
-                      <p className="text-xs mt-1 text-danger/90 break-words font-mono">
-                        {(parseMutation.error as any)?.response?.data?.detail || parseMutation.error.message || t('unknown_error')}
-                      </p>
-                    </div>
-                  )}
-
+              <div className="w-full flex flex-col gap-4">
+                {/* Prompt helper callout */}
+                <div className="p-3.5 bg-accent/10 border border-accent/20 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs md:text-sm">
+                  <p className="text-text-secondary leading-relaxed">
+                    {t('json_instructions_hint')}
+                  </p>
                   <button
-                    onClick={handleParse}
-                    disabled={!file || parseMutation.isPending}
-                    className="mt-6 w-full py-2.5 px-4 bg-accent hover:bg-accent/90 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-sm"
+                    type="button"
+                    onClick={handleCopyPrompt}
+                    className="shrink-0 px-3 py-1.5 bg-accent text-white hover:bg-accent/90 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors shadow-xs"
                   >
-                    {parseMutation.isPending ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        <span>{t('analyzing_bells')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={18} />
-                        <span>{t('extract_bells_btn')}</span>
-                      </>
-                    )}
+                    {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copiedPrompt ? t('prompt_copied') : t('copy_ai_prompt')}</span>
                   </button>
                 </div>
-              ) : (
-                /* Mode B: Direct JSON input */
-                <div className="w-full flex flex-col gap-4">
-                  {/* Prompt helper callout */}
-                  <div className="p-3.5 bg-accent/10 border border-accent/20 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs md:text-sm">
-                    <p className="text-text-secondary leading-relaxed">
-                      {t('json_instructions_hint')}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleCopyPrompt}
-                      className="shrink-0 px-3 py-1.5 bg-accent text-white hover:bg-accent/90 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors shadow-xs"
-                    >
-                      {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copiedPrompt ? t('prompt_copied') : t('copy_ai_prompt')}</span>
-                    </button>
-                  </div>
 
-                  {/* JSON Textarea */}
-                  <div className="flex flex-col gap-2">
-                    <textarea
-                      value={jsonInput}
-                      onChange={(e) => setJsonInput(e.target.value)}
-                      placeholder={t('paste_json_placeholder')}
-                      className="w-full h-44 md:h-56 p-3 bg-bg-primary border border-border rounded-lg text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none transition-colors"
-                    />
-                  </div>
-
-                  {/* File Upload Alternative & Action */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <label
-                      htmlFor="bells-json-file-input"
-                      className="cursor-pointer text-xs text-accent hover:underline flex items-center gap-1.5"
-                    >
-                      <UploadCloud size={14} />
-                      <span>{t('upload_json_file')}</span>
-                      <input
-                        id="bells-json-file-input"
-                        type="file"
-                        accept=".json,application/json,text/plain"
-                        onChange={handleJsonFileUpload}
-                        className="hidden"
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={handleParseJson}
-                      disabled={!jsonInput.trim() || jsonParseMutation.isPending}
-                      className="w-full sm:w-auto px-6 py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-xs"
-                    >
-                      {jsonParseMutation.isPending && <Loader2 size={16} className="animate-spin" />}
-                      {jsonParseMutation.isPending ? t('parsing_json') : t('parse_json_btn')}
-                    </button>
-                  </div>
-
-                  {jsonParseMutation.isError && (
-                    <div className="p-3.5 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm text-left">
-                      <p className="font-semibold flex items-center gap-1.5">
-                        <span>⚠️</span> {t('parsing_failed')}
-                      </p>
-                      <p className="text-xs mt-1 text-danger/90 break-words font-mono">
-                        {(jsonParseMutation.error as any)?.response?.data?.detail || jsonParseMutation.error.message || t('invalid_json_error')}
-                      </p>
-                    </div>
-                  )}
+                {/* JSON Textarea */}
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    value={jsonInput}
+                    onChange={(e) => setJsonInput(e.target.value)}
+                    placeholder={t('paste_json_placeholder')}
+                    className="w-full h-48 md:h-64 p-3 bg-bg-primary border border-border rounded-lg text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none transition-colors"
+                  />
                 </div>
-              )}
+
+                {/* File Upload Alternative & Action */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <label
+                    htmlFor="bells-json-file-input"
+                    className="cursor-pointer text-xs text-accent hover:underline flex items-center gap-1.5"
+                  >
+                    <UploadCloud size={14} />
+                    <span>{t('upload_json_file')}</span>
+                    <input
+                      id="bells-json-file-input"
+                      type="file"
+                      accept=".json,application/json,text/plain"
+                      onChange={handleJsonFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleParseJson}
+                    disabled={!jsonInput.trim() || jsonParseMutation.isPending}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-xs"
+                  >
+                    {jsonParseMutation.isPending && <Loader2 size={16} className="animate-spin" />}
+                    {jsonParseMutation.isPending ? t('parsing_json') : t('parse_json_btn')}
+                  </button>
+                </div>
+
+                {jsonParseMutation.isError && (
+                  <div className="p-3.5 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm text-left">
+                    <p className="font-semibold flex items-center gap-1.5">
+                      <span>⚠️</span> {t('parsing_failed')}
+                    </p>
+                    <p className="text-xs mt-1 text-danger/90 break-words font-mono">
+                      {(jsonParseMutation.error as any)?.response?.data?.detail || jsonParseMutation.error.message || t('invalid_json_error')}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             /* Step 2: Review and Edit Parsed Bells */
             <div className="flex flex-col md:flex-row gap-6">
-              {/* Source Preview: Image or JSON (Left side on desktop) */}
-              {previewUrl ? (
-                <div className="w-full md:w-5/12 flex flex-col gap-2 shrink-0">
-                  <h3 className="text-sm font-medium text-text-primary">{t('source_image')}</h3>
-                  <div className="bg-bg-tertiary rounded-lg border border-border overflow-hidden h-64 md:h-[450px] flex items-center justify-center p-2">
-                    <img
-                      src={previewUrl}
-                      alt="Bell schedule source"
-                      className="max-w-full max-h-full object-contain rounded"
-                    />
-                  </div>
+              {/* Source Preview: JSON (Left side on desktop) */}
+              <div className="w-full md:w-5/12 flex flex-col gap-2 shrink-0">
+                <h3 className="text-sm font-medium text-text-primary">{t('source_json')}</h3>
+                <div className="bg-bg-tertiary rounded-lg border border-border overflow-hidden h-64 md:h-[450px] p-3 flex flex-col">
+                  <pre className="text-xs font-mono text-text-secondary overflow-auto flex-1 whitespace-pre-wrap select-all">
+                    {rawJsonPreview || JSON.stringify({ slots }, null, 2)}
+                  </pre>
                 </div>
-              ) : (
-                <div className="w-full md:w-5/12 flex flex-col gap-2 shrink-0">
-                  <h3 className="text-sm font-medium text-text-primary">{t('source_json')}</h3>
-                  <div className="bg-bg-tertiary rounded-lg border border-border overflow-hidden h-64 md:h-[450px] p-3 flex flex-col">
-                    <pre className="text-xs font-mono text-text-secondary overflow-auto flex-1 whitespace-pre-wrap select-all">
-                      {rawJsonPreview || JSON.stringify({ slots }, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-              )}
+              </div>
 
               {/* Editable Table (Right side on desktop) */}
               <div className="flex-1 flex flex-col gap-3">

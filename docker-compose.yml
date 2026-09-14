@@ -46,8 +46,6 @@ services:
       ALEMBIC_DATABASE_URL: ${ALEMBIC_DATABASE_URL:-postgresql://diary:diary_secret@db:5432/diary}
       # Semester anchor date for numerator/denominator week calculation
       SEMESTER_ANCHOR_DATE: ${SEMESTER_ANCHOR_DATE:-2026-09-01}
-      # Gemini API key for AI schedule parsing (optional)
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       # CORS origins (frontend URL)
       CORS_ORIGINS: ${CORS_ORIGINS:-["*"]}
     networks:

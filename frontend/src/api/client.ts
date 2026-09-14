@@ -67,18 +67,6 @@ export const randomizeSubjectColors = async (): Promise<Subject[]> => {
   return data;
 };
 
-/* AI-powered schedule image parsing — returns structured data for review */
-export const aiParseSchedule = async (file: File): Promise<{ days: AiParsedDay[] }> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await api.post('/schedule/ai-parse', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-  return data;
-};
-
 /* Parse user-submitted schedule JSON directly (from external AI, no API key needed) */
 export const parseScheduleJson = async (rawJson: string): Promise<{ days: AiParsedDay[] }> => {
   const { data } = await api.post('/schedule/parse-json', { raw_json: rawJson });
@@ -140,18 +128,6 @@ export const deleteBellSlot = async (id: string): Promise<void> => {
 
 export const bulkCommitBells = async (slots: Partial<BellSlot>[]): Promise<BellSlot[]> => {
   const { data } = await api.put('/bells/bulk', { slots });
-  return data;
-};
-
-/* AI-powered bell schedule image parsing */
-export const aiParseBells = async (file: File): Promise<{ slots: AiParsedBellSlot[] }> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await api.post('/bells/ai-parse', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
   return data;
 };
 

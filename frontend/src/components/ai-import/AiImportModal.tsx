@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import { X, Loader2, Image, FileText, Copy, Check, UploadCloud } from 'lucide-react';
-import { FileDropzone } from './FileDropzone';
+import { useState } from 'react';
+import { X, Loader2, FileText, Copy, Check, UploadCloud } from 'lucide-react';
 import { EditablePreview } from './EditablePreview';
 import { copyToClipboard } from '../../lib/clipboard';
-import { useAiParse, useParseScheduleJson, useBulkCommitByName } from '../../hooks/useSchedule';
+import { useParseScheduleJson, useBulkCommitByName } from '../../hooks/useSchedule';
 import { useBells } from '../../hooks/useBells';
 import { useLanguage } from '../../i18n/LanguageContext';
 import type { AiParsedDay } from '../../types';
@@ -40,14 +39,10 @@ const AI_SCHEDULE_PROMPT = `Витягни шкільний розклад ур�
 
 /**
  * Full-screen modal for AI-powered schedule import.
- * Flow: Upload image or paste JSON → AI / JSON parses → User reviews/edits → Commit to database.
+ * Flow: Copy prompt for external AI → Paste resulting JSON or upload .json file → Review/edit → Commit to database.
  */
 export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
   const { t } = useLanguage();
-  /* Active tab mode: 'photo' (via Gemini API) or 'json' (from external AI, no API key required) */
-  const [importMode, setImportMode] = useState<'photo' | 'json'>('photo');
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState<string>('');
   const [rawJsonPreview, setRawJsonPreview] = useState<string>('');
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
@@ -66,22 +61,12 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
   const [activeWeekTab, setActiveWeekTab] = useState<'numerator' | 'denominator'>('numerator');
   /* Commit scope: 'both' | 'current' */
   const [commitTarget, setCommitTarget] = useState<'both' | 'current'>('both');
-  
-  const parseMutation = useAiParse();
+
   const jsonParseMutation = useParseScheduleJson();
   /* Use bulk-commit-by-name to auto-create subjects from AI-parsed names */
   const commitMutation = useBulkCommitByName();
   /* Fetch imported bell schedule for smart time fallbacks */
   const { data: bellSlots } = useBells();
-
-  /* Create object URL for image preview */
-  useEffect(() => {
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-  }, [file]);
 
   if (!isOpen) return null;
 
@@ -94,25 +79,14 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
     setActiveWeekTab('numerator');
   };
 
-  /* Send image to AI for parsing */
-  const handleParse = () => {
-    if (!file) return;
-    parseMutation.mutate(file, {
-      onSuccess: (response) => {
-        /* API returns { days: [...] } */
-        handleParseSuccess(response.days);
-      }
-    });
-  };
-
-  /* Parse raw JSON submitted from external AI */
+  /* Parse raw JSON submitted from external AI (ChatGPT, Claude, Gemini Web, etc.) */
   const handleParseJson = () => {
     if (!jsonInput.trim()) return;
     jsonParseMutation.mutate(jsonInput, {
       onSuccess: (response) => {
         handleParseSuccess(response.days);
         setRawJsonPreview(jsonInput.trim());
-      }
+      },
     });
   };
 
@@ -195,13 +169,10 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
 
   /* Reset all state and close modal */
   const handleClose = () => {
-    setFile(null);
-    setPreviewUrl(null);
     setJsonInput('');
     setRawJsonPreview('');
     setSchedulesByWeek({ numerator: [], denominator: [] });
     setCopyNotice(null);
-    parseMutation.reset();
     jsonParseMutation.reset();
     commitMutation.reset();
     onClose();
@@ -220,7 +191,12 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
       <div className="relative z-10 bg-bg-secondary w-full max-w-5xl rounded-xl shadow-2xl border border-border flex flex-col h-[92vh] max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200 transform-gpu">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-border shrink-0">
-          <h2 className="text-xl font-semibold text-text-primary">{t('import_schedule_ai')}</h2>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
+              <FileText size={18} />
+            </div>
+            <h2 className="text-xl font-semibold text-text-primary">{t('import_schedule_ai')}</h2>
+          </div>
           <button onClick={handleClose} className="p-2 rounded-lg text-text-muted hover:bg-bg-tertiary transition-colors">
             <X size={20} />
           </button>
@@ -229,151 +205,87 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto min-h-0 p-4 md:p-6 flex flex-col md:flex-row gap-6">
           {!hasParsedData ? (
-            /* Step 1: File upload or JSON input */
+            /* Step 1: JSON Input & Prompt Copying */
             <div className="flex-1 flex flex-col items-center justify-start max-w-2xl mx-auto w-full py-2 md:py-4">
-              {/* Import Mode Tabs */}
-              <div className="flex p-1 bg-bg-tertiary rounded-lg border border-border mb-6 w-full max-w-md">
-                <button
-                  type="button"
-                  onClick={() => setImportMode('photo')}
-                  className={`flex-1 py-2 px-3 rounded-md text-xs md:text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                    importMode === 'photo'
-                      ? 'bg-bg-secondary text-text-primary shadow-xs'
-                      : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  <Image size={16} />
-                  <span>{t('tab_photo_ai')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImportMode('json')}
-                  className={`flex-1 py-2 px-3 rounded-md text-xs md:text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                    importMode === 'json'
-                      ? 'bg-bg-secondary text-text-primary shadow-xs'
-                      : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  <FileText size={16} />
-                  <span>{t('tab_json_ai')}</span>
-                </button>
-              </div>
-
-              {importMode === 'photo' ? (
-                /* Mode A: Photo / Image upload */
-                <div className="w-full flex flex-col items-center">
-                  <FileDropzone onFileSelect={setFile} selectedFile={file} />
-                  {parseMutation.isError && (
-                    <div className="mt-4 p-3.5 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm w-full max-w-lg text-left">
-                      <p className="font-semibold flex items-center gap-1.5">
-                        <span>⚠️</span> {t('parsing_failed')}
-                      </p>
-                      <p className="text-xs mt-1 text-danger/90 break-words">
-                        {(parseMutation.error as any)?.response?.data?.detail || parseMutation.error.message || t('unknown_error')}
-                      </p>
-                    </div>
-                  )}
+              <div className="w-full flex flex-col gap-4">
+                {/* Prompt helper callout */}
+                <div className="p-3.5 bg-accent/10 border border-accent/20 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs md:text-sm">
+                  <p className="text-text-secondary leading-relaxed">
+                    {t('json_instructions_hint')}
+                  </p>
                   <button
-                    onClick={handleParse}
-                    disabled={!file || parseMutation.isPending}
-                    className="mt-6 w-full max-w-lg py-2.5 px-4 bg-accent hover:bg-accent/90 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                    type="button"
+                    onClick={handleCopyPrompt}
+                    className="shrink-0 px-3 py-1.5 bg-accent text-white hover:bg-accent/90 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors shadow-xs"
                   >
-                    {parseMutation.isPending && <Loader2 size={18} className="animate-spin" />}
-                    {parseMutation.isPending ? t('parsing_image') : t('parse_schedule_btn')}
+                    {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copiedPrompt ? t('prompt_copied') : t('copy_ai_prompt')}</span>
                   </button>
                 </div>
-              ) : (
-                /* Mode B: Direct JSON input from external AI */
-                <div className="w-full flex flex-col gap-4">
-                  {/* Prompt helper callout */}
-                  <div className="p-3.5 bg-accent/10 border border-accent/20 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs md:text-sm">
-                    <p className="text-text-secondary leading-relaxed">
-                      {t('json_instructions_hint')}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleCopyPrompt}
-                      className="shrink-0 px-3 py-1.5 bg-accent text-white hover:bg-accent/90 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors shadow-xs"
-                    >
-                      {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copiedPrompt ? t('prompt_copied') : t('copy_ai_prompt')}</span>
-                    </button>
-                  </div>
 
-                  {/* JSON Textarea */}
-                  <div className="flex flex-col gap-2">
-                    <textarea
-                      value={jsonInput}
-                      onChange={(e) => setJsonInput(e.target.value)}
-                      placeholder={t('paste_json_placeholder')}
-                      className="w-full h-44 md:h-56 p-3 bg-bg-primary border border-border rounded-lg text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none transition-colors"
-                    />
-                  </div>
-
-                  {/* File Upload Alternative & Action */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <label
-                      htmlFor="json-file-input"
-                      className="cursor-pointer text-xs text-accent hover:underline flex items-center gap-1.5"
-                    >
-                      <UploadCloud size={14} />
-                      <span>{t('upload_json_file')}</span>
-                      <input
-                        id="json-file-input"
-                        type="file"
-                        accept=".json,application/json,text/plain"
-                        onChange={handleJsonFileUpload}
-                        className="hidden"
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={handleParseJson}
-                      disabled={!jsonInput.trim() || jsonParseMutation.isPending}
-                      className="w-full sm:w-auto px-6 py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-xs"
-                    >
-                      {jsonParseMutation.isPending && <Loader2 size={16} className="animate-spin" />}
-                      {jsonParseMutation.isPending ? t('parsing_json') : t('parse_json_btn')}
-                    </button>
-                  </div>
-
-                  {jsonParseMutation.isError && (
-                    <div className="p-3.5 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm text-left">
-                      <p className="font-semibold flex items-center gap-1.5">
-                        <span>⚠️</span> {t('parsing_failed')}
-                      </p>
-                      <p className="text-xs mt-1 text-danger/90 break-words">
-                        {(jsonParseMutation.error as any)?.response?.data?.detail || jsonParseMutation.error.message || t('invalid_json_error')}
-                      </p>
-                    </div>
-                  )}
+                {/* JSON Textarea */}
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    value={jsonInput}
+                    onChange={(e) => setJsonInput(e.target.value)}
+                    placeholder={t('paste_json_placeholder')}
+                    className="w-full h-56 md:h-72 p-3 bg-bg-primary border border-border rounded-lg text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none transition-colors"
+                  />
                 </div>
-              )}
+
+                {/* File Upload Alternative & Action */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <label
+                    htmlFor="json-file-input"
+                    className="cursor-pointer text-xs text-accent hover:underline flex items-center gap-1.5"
+                  >
+                    <UploadCloud size={14} />
+                    <span>{t('upload_json_file')}</span>
+                    <input
+                      id="json-file-input"
+                      type="file"
+                      accept=".json,application/json,text/plain"
+                      onChange={handleJsonFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleParseJson}
+                    disabled={!jsonInput.trim() || jsonParseMutation.isPending}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-accent hover:bg-accent/90 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-xs"
+                  >
+                    {jsonParseMutation.isPending && <Loader2 size={16} className="animate-spin" />}
+                    {jsonParseMutation.isPending ? t('parsing_json') : t('parse_json_btn')}
+                  </button>
+                </div>
+
+                {jsonParseMutation.isError && (
+                  <div className="p-3.5 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm text-left">
+                    <p className="font-semibold flex items-center gap-1.5">
+                      <span>⚠️</span> {t('parsing_failed')}
+                    </p>
+                    <p className="text-xs mt-1 text-danger/90 break-words">
+                      {(jsonParseMutation.error as any)?.response?.data?.detail || jsonParseMutation.error.message || t('invalid_json_error')}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <>
               {/* Step 2: Side-by-side review */}
-              {previewUrl ? (
-                /* Left side: Image Preview */
-                <div className="w-full md:w-1/3 flex flex-col gap-3 shrink-0">
-                  <h3 className="font-medium text-text-primary text-sm">{t('source_image')}</h3>
-                  <div className="bg-bg-tertiary rounded-lg border border-border overflow-hidden h-48 md:h-[480px] flex items-center justify-center p-2">
-                    <img src={previewUrl} alt="Schedule source" className="max-w-full max-h-full object-contain rounded" />
-                  </div>
+              {/* Left side: Source JSON Preview */}
+              <div className="w-full md:w-1/3 flex flex-col gap-3 shrink-0">
+                <h3 className="font-medium text-text-primary text-sm">{t('source_json')}</h3>
+                <div className="bg-bg-tertiary rounded-lg border border-border overflow-hidden h-48 md:h-[480px] p-3 flex flex-col">
+                  <pre className="text-xs font-mono text-text-secondary overflow-auto flex-1 whitespace-pre-wrap select-all">
+                    {rawJsonPreview || JSON.stringify(currentDaysData, null, 2)}
+                  </pre>
                 </div>
-              ) : (
-                /* Left side: Source JSON Preview */
-                <div className="w-full md:w-1/3 flex flex-col gap-3 shrink-0">
-                  <h3 className="font-medium text-text-primary text-sm">{t('source_json')}</h3>
-                  <div className="bg-bg-tertiary rounded-lg border border-border overflow-hidden h-48 md:h-[480px] p-3 flex flex-col">
-                    <pre className="text-xs font-mono text-text-secondary overflow-auto flex-1 whitespace-pre-wrap select-all">
-                      {rawJsonPreview || JSON.stringify(currentDaysData, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-              )}
-              
+              </div>
+
               {/* Right side: Editable Data with Week Switcher */}
               <div className="w-full md:w-2/3 flex flex-col gap-3 min-h-0 flex-1">
                 <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
@@ -424,7 +336,7 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
                     </button>
 
                     {/* Commit target scope selector */}
-                    <select 
+                    <select
                       value={commitTarget}
                       onChange={(e) => setCommitTarget(e.target.value as any)}
                       className="bg-bg-primary border border-border rounded-md px-2 py-1 text-xs focus:outline-none focus:border-accent"
@@ -434,7 +346,7 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 border border-border rounded-lg overflow-hidden bg-bg-primary min-h-0 flex flex-col">
                   <EditablePreview data={currentDaysData} onChange={handleScheduleChange} bellSlots={bellSlots} />
                 </div>
@@ -446,7 +358,7 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
         {/* Footer — only shown after parsing */}
         {hasParsedData && (
           <div className="p-4 border-t border-border flex justify-end gap-3 bg-bg-tertiary/50 shrink-0">
-            <button 
+            <button
               onClick={() => setSchedulesByWeek({ numerator: [], denominator: [] })}
               className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
             >
@@ -466,4 +378,3 @@ export function AiImportModal({ isOpen, onClose }: AiImportModalProps) {
     </div>
   );
 }
-
