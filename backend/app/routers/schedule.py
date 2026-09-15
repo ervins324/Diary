@@ -1,6 +1,6 @@
 import uuid
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from app.database import get_db
@@ -18,7 +18,6 @@ from app.schemas.schedule import (
 )
 import logging
 from app.services.schedule_service import get_schedule_for_range, find_closest_next_lesson, find_closest_previous_lesson
-from app.services.ai_parser import parse_schedule_image
 from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
@@ -187,36 +186,6 @@ async def delete_schedule_override(
     return {"status": "ok", "message": "Override removed, schedule restored"}
 
 
-@router.post("/ai-parse", response_model=AiParseResponse)
-async def ai_parse(
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Parse a schedule image using Gemini 3.5 Flash AI.
-    Returns structured JSON for client-side review — does NOT write to DB.
-    Missing lesson times are populated from the bell_schedules table (if available),
-    falling back to hardcoded defaults when no bells exist in the database.
-    """
-    logger.info(f"POST /api/v1/schedule/ai-parse received file: '{file.filename}' (content_type={file.content_type})")
-    image_bytes = await file.read()
-    if not image_bytes:
-        logger.warning("Empty file uploaded to /ai-parse")
-        raise HTTPException(status_code=400, detail="Uploaded file is empty (0 bytes)")
-
-    logger.info(f"Read {len(image_bytes)} bytes for schedule image. Calling AI parser...")
-    result = await parse_schedule_image(
-        image_bytes=image_bytes,
-        filename=file.filename or "upload.jpg",
-        api_key=settings.GEMINI_API_KEY,
-        content_type=file.content_type,
-    )
-    logger.info(f"Successfully parsed schedule image: extracted {len(result.days)} day(s)")
-
-    # Enrich missing lesson times using DB bells or hardcoded fallback
-    return await apply_bell_times_fallback(result, db)
-
-
 async def apply_bell_times_fallback(result: AiParseResponse, db: AsyncSession) -> AiParseResponse:
     """
     Helper function to fill in missing lesson start_time and end_time
@@ -264,7 +233,7 @@ async def parse_schedule_json(
     Parse a JSON string representing schedule days and lessons,
     typically obtained from an external AI (ChatGPT, Claude, Gemini Web, etc.).
     Validates structure, enriches missing bell times from database, and returns
-    for client review without requiring a backend GEMINI_API_KEY.
+    for client review without requiring a backend API key.
     """
     raw_text = request.raw_json.strip()
     if not raw_text:

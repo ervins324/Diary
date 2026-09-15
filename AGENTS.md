@@ -6,8 +6,7 @@
 3. **Log updates**: Log important new features to [UPDATES.md](file:///C:/Users/ervin/Documents/Projects/Diary/UPDATES.md) specifying the current date and application version (refer to recent version tags in `UPDATES.md`, e.g. v1.8.x).
 4. **Mobile-first UI**: When designing UI, adapt it for mobile immediately (`hidden md:flex` for desktop sidebar, [BottomNav](file:///C:/Users/ervin/Documents/Projects/Diary/frontend/src/components/layout/BottomNav.tsx) on mobile, `pb-16 md:pb-0` on `<main>`, responsive modal drawers).
 5. **Language**: Always reply to the user in English.
-6. **AI model**: Gemini Flash 2.5 is outdated; use Gemini 3.5 Flash or newer (`gemini-3.5-flash` / `gemini-3.8-flash`) with the `google-genai` SDK.
-7. Don't forget to update version in fronted
+6. Don't forget to update version in fronted
 ---
 
 ## Developer Commands & Verification
@@ -86,7 +85,7 @@
   - Integrates with `wss://neptun.in.ua/api/v1/stream` (fallback: `GET https://neptun.in.ua/api/v1/alerts`).
   - Polling automatically pauses when the browser tab is hidden (`document.hidden`).
   - Required attribution: *"Дані: Карта повітряних тривог — NEPTUN (neptun.in.ua)"*.
-- **AI Timetable & Bell Schedule Parser**:
-  - Uses `google-genai` SDK with `automatic_function_calling` disabled.
-  - Prompts are strictly in Ukrainian and require 24-hour time format (`HH:MM`).
-  - Supports image upload as well as direct JSON pasting for users without a backend API key.
+- **AI Timetable & Bell Schedule Import (Prompt + JSON)**:
+  - Copyable prompts in Ukrainian requesting 24-hour time format (`HH:MM`).
+  - Validates and enriches user-submitted JSON with bell times without requiring a backend API key.
+  - Supports pasting raw JSON or uploading `.json` files.

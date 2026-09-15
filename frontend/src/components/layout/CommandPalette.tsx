@@ -326,13 +326,13 @@ export function CommandPalette() {
         id: 'action-ai-import',
         category: 'actions',
         title: t('action_ai_import'),
-        subtitle: language === 'uk' ? 'Імпорт розкладу з фото чи JSON' : 'AI schedule photo and JSON importer',
+        subtitle: language === 'uk' ? 'Імпорт розкладу з JSON через AI' : 'AI schedule JSON importer',
         icon: <Sparkles className="w-5 h-5 text-accent" />,
         onSelect: () => {
           navigate('/settings');
           setIsOpen(false);
         },
-        keywords: ['штучний інтелект', 'імпорт', 'ai', 'import', 'gemini', 'розклад'],
+        keywords: ['штучний інтелект', 'імпорт', 'ai', 'import', 'json', 'розклад'],
       },
       {
         id: 'action-subjects',

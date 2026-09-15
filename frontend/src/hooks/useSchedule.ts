@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchSchedule,
-  aiParseSchedule,
   parseScheduleJson,
   bulkCommitSchedule,
   bulkCommitByName,
@@ -15,13 +14,6 @@ export const useSchedule = (startDate: string, endDate: string) => {
   return useQuery({
     queryKey: ['schedule', startDate, endDate],
     queryFn: () => fetchSchedule(startDate, endDate),
-  });
-};
-
-/* Hook for AI-powered schedule image parsing */
-export const useAiParse = () => {
-  return useMutation({
-    mutationFn: aiParseSchedule,
   });
 };
 

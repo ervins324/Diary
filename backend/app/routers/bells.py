@@ -1,11 +1,10 @@
 import uuid
 import json
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from app.database import get_db
-from app.config import settings
 from app.models.bell_schedule import BellSchedule
 from app.schemas.bell_schedule import (
     BellSlotRead,
@@ -15,7 +14,6 @@ from app.schemas.bell_schedule import (
     AiParseBellsResponse,
     JsonBellsParseRequest,
 )
-from app.services.ai_parser import parse_bells_image
 
 logger = logging.getLogger(__name__)
 
@@ -120,29 +118,6 @@ async def delete_bell(id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await db.delete(slot)
     await db.commit()
     return None
-
-
-@router.post("/ai-parse", response_model=AiParseBellsResponse)
-async def ai_parse_bells_endpoint(file: UploadFile = File(...)):
-    """
-    Parse an image of a bell schedule (розклад дзвінків) using Gemini 3.5 Flash.
-    Returns structured slots for client review.
-    """
-    logger.info(f"POST /api/v1/bells/ai-parse received file: '{file.filename}' ({file.content_type})")
-    image_bytes = await file.read()
-    if not image_bytes:
-        logger.warning("Empty image uploaded for bells parsing")
-        raise HTTPException(status_code=400, detail="Uploaded file is empty (0 bytes)")
-
-    logger.info(f"Read {len(image_bytes)} bytes. Calling parse_bells_image...")
-    result = await parse_bells_image(
-        image_bytes=image_bytes,
-        filename=file.filename or "bells.jpg",
-        api_key=settings.GEMINI_API_KEY,
-        content_type=file.content_type,
-    )
-    logger.info(f"Successfully parsed bells schedule: extracted {len(result.slots)} slots")
-    return result
 
 
 @router.post("/parse-json", response_model=AiParseBellsResponse)

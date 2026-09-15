@@ -11,12 +11,12 @@ A modern, production-ready, self-hosted personal school diary web application wi
   - **Weekly Diary Spread**: Traditional Ukrainian 5-day school week (Monday to Friday) with two-column desktop layout and swipeable mobile view.
 - **🔔 Bell Schedule (Розклад Дзвінків)**:
   - Dedicated tab for managing school bell intervals, custom lesson labels, and automated break calculations.
-- **🤖 AI Timetable & Bell Schedule Parser (Gemini 3.5 Flash)**:
-  - Import schedule or bell timetable from photos and screenshots.
-  - **Clipboard Paste (Ctrl+V)**: Simply paste an image directly from your clipboard into the dropzone.
+- **🤖 AI Timetable & Bell Schedule Import (Prompt & JSON)**:
+  - Import schedule or bell timetable using ready-made prompts and structured JSON.
+  - Compatible with any LLM (ChatGPT, Claude, Gemini Web, DeepSeek) without requiring a backend API key.
   - Interactive side-by-side review and editing before saving to the database.
   - Automatic creation of missing subjects with smart Ukrainian abbreviations (e.g., *Українська мова* -> *Укр мова*, *Фізична культура* -> *Фізра*) and distinct palette colors.
-  - Ukrainian system instructions with 24-hour time format (HH:MM).
+  - Ukrainian system prompts with 24-hour time format (HH:MM).
 - **🌐 Full Ukrainian & English Localization**:
   - Instant language switching between Українська and English in Settings with automatic persistence.
 - **⚙️ Standalone Schedule Editor & Data Management**:
@@ -39,8 +39,8 @@ A modern, production-ready, self-hosted personal school diary web application wi
 | **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, TanStack Query 5, Recharts, Lucide Icons |
 | **Backend** | FastAPI (Python 3.12), SQLAlchemy 2.0 (Async), Alembic, Pydantic v2 |
 | **Database** | PostgreSQL 16+ (Alpine) |
-| **Reverse Proxy** | Nginx Alpine (serves SPA and proxies /api with long-running AI timeouts) |
-| **AI Vision** | Google Gemini 3.5 Flash (google-genai SDK) |
+| **Reverse Proxy** | Nginx Alpine (serves SPA and proxies /api) |
+| **AI Import** | Prompt-driven JSON import (ChatGPT / Claude / Gemini Web) |
 | **Containerization** | Docker & Docker Compose |
 
 ---
@@ -49,7 +49,6 @@ A modern, production-ready, self-hosted personal school diary web application wi
 
 ### Prerequisites
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
-- A Google Gemini API Key ([Google AI Studio](https://aistudio.google.com/))
 
 ### 1. Configuration
 Create a .env file in the project root:
@@ -61,7 +60,6 @@ POSTGRES_DB=diary_db
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
 
-GEMINI_API_KEY=your_actual_gemini_api_key_here
 SEMESTER_START_DATE=2026-09-01
 ```
 
@@ -96,10 +94,9 @@ docker compose down
 │   │   ├── routers/
 │   │   │   ├── bells.py        # Bell schedule endpoints
 │   │   │   ├── homework.py     # Homework CRUD
-│   │   │   ├── schedule.py     # Timetable rules & AI parse
+│   │   │   ├── schedule.py     # Timetable rules & JSON import
 │   │   │   └── subjects.py     # Subjects management
-│   │   └── services/
-│   │       └── ai_parser.py    # Gemini 3.5 Flash vision parser
+│   │   └── services/           # Schedule services
 │   ├── alembic/                # Database migrations
 │   ├── Dockerfile
 │   └── requirements.txt
@@ -107,7 +104,7 @@ docker compose down
 │   ├── src/
 │   │   ├── api/                # API client & queries
 │   │   ├── components/         # Reusable UI components
-│   │   │   ├── ai-import/      # AI modal, dropzone & preview
+│   │   │   ├── ai-import/      # AI JSON modal & preview
 │   │   │   ├── homework/       # Homework inline editing
 │   │   │   ├── layout/         # Sidebar, BottomNav, ThemeToggle
 │   │   │   └── schedule/       # Lesson cards & week columns
