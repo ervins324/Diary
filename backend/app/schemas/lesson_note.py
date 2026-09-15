@@ -1,6 +1,7 @@
 import uuid
 from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict
+from app.schemas.subject import SubjectRead
 
 class LessonNoteCreate(BaseModel):
     subject_id: uuid.UUID
@@ -25,5 +26,6 @@ class LessonNoteRead(BaseModel):
     attachments: list[dict] | None = None
     created_at: datetime
     updated_at: datetime
+    subject: SubjectRead | None = None
 
     model_config = ConfigDict(from_attributes=True)

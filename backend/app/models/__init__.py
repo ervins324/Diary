@@ -6,5 +6,7 @@ from app.models.homework import HomeworkEntry
 from app.models.bell_schedule import BellSchedule
 from app.models.stored_file import StoredFile
 from app.models.schedule_override import ScheduleOverride
+from app.models.lesson_note import LessonNote
+from app.models.holiday import Holiday
 
-__all__ = ["Base", "Subject", "ScheduleRule", "WeekType", "HomeworkEntry", "BellSchedule", "StoredFile", "ScheduleOverride"]
+__all__ = ["Base", "Subject", "ScheduleRule", "WeekType", "HomeworkEntry", "BellSchedule", "StoredFile", "ScheduleOverride", "LessonNote", "Holiday"]

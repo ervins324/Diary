@@ -7,7 +7,7 @@
 4. **Mobile-first UI**: When designing UI, adapt it for mobile immediately (`hidden md:flex` for desktop sidebar, [BottomNav](file:///C:/Users/ervin/Documents/Projects/Diary/frontend/src/components/layout/BottomNav.tsx) on mobile, `pb-16 md:pb-0` on `<main>`, responsive modal drawers).
 5. **Language**: Always reply to the user in English.
 6. **AI model**: Gemini Flash 2.5 is outdated; use Gemini 3.5 Flash or newer (`gemini-3.5-flash` / `gemini-3.8-flash`) with the `google-genai` SDK.
-
+7. Don't forget to update version in fronted
 ---
 
 ## Developer Commands & Verification

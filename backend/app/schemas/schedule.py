@@ -90,6 +90,8 @@ class DaySchedule(BaseModel):
     day_name: str
     week_type: str
     lessons: list[LessonSlot]
+    is_holiday: bool = False
+    holiday_name: str | None = None
 
 class BulkCommitRequest(BaseModel):
     week_type: str

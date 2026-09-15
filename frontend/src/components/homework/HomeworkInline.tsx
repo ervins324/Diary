@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, RotateCcw, Link as LinkIcon, Loader2, Timer, Play, Pause, RotateCcw as ResetIcon, XCircle } from 'lucide-react';
+import { Check, X, Edit2, Trash2, Image as ImageIcon, Compass, RotateCcw, Link as LinkIcon, Loader2, Timer, Play, Pause, RotateCcw as ResetIcon, XCircle, Calendar } from 'lucide-react';
 import { useUpdateHomework, useDeleteHomework } from '../../hooks/useHomework';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { fetchNextLesson, fetchPreviousLesson } from '../../hooks/useScheduleOverrides';
 import type { HomeworkEntry, Attachment } from '../../types';
-import { cn, compressImageFile } from '../../lib/utils';
+import { cn, compressImageFile, formatDate } from '../../lib/utils';
 import { AttachmentChip } from './AttachmentChip';
 import { AddLinkModal } from './AddLinkModal';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -565,7 +565,7 @@ export function HomeworkInline({
           <button
             onClick={handleToggle}
             className={cn(
-              "mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95",
+              "mt-0.5 flex-shrink-0 w-7 h-7 md:w-5 md:h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95",
               homework.is_completed
                 ? "bg-success border-success text-white shadow-2xs"
                 : homework.is_failed
@@ -584,28 +584,7 @@ export function HomeworkInline({
             {homework.is_failed && <X size={13} />}
           </button>
 
-          {/* Stopwatch badge right next to checkbox */}
-          {(secondsSpent > 0 || timerRunning) && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleTimer();
-              }}
-              className={cn(
-                "mt-0.5 inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-md border transition-colors shrink-0 select-none cursor-pointer",
-                timerRunning
-                  ? "bg-accent/15 border-accent text-accent font-semibold animate-pulse shadow-2xs"
-                  : homework.is_completed
-                  ? "bg-bg-tertiary border-border/60 text-text-muted hover:text-accent hover:border-accent"
-                  : "bg-accent/10 border-accent/30 text-accent hover:bg-accent/20"
-              )}
-              title={timerRunning ? t('hw_timer_pause') : t('hw_timer_start')}
-            >
-              <Timer size={11} className={cn(timerRunning && "animate-spin text-accent")} />
-              <span>{formatTime(secondsSpent)}</span>
-            </button>
-          )}
+          {/* Timer badge removed — single timer display lives in the controls area below (lines ~700+) */}
 
           {/* Failed in class badge */}
           {homework.is_failed && (
@@ -632,7 +611,7 @@ export function HomeworkInline({
               type="button"
               onClick={handleToggleFailed}
               className={cn(
-                "p-1.5 md:p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]",
+                "p-1.5 md:p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]",
                 homework.is_failed
                   ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 hover:bg-rose-500/25"
                   : "text-text-muted hover:text-rose-500 hover:bg-rose-500/10"
@@ -645,7 +624,7 @@ export function HomeworkInline({
             <button
               onClick={() => setIsTimerOpen((prev) => !prev)}
               className={cn(
-                "p-1.5 md:p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]",
+                "p-1.5 md:p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]",
                 timerRunning ? "text-accent bg-accent/10 animate-pulse" : (secondsSpent > 0 ? "text-accent/80 hover:text-accent hover:bg-bg-tertiary" : "text-text-muted hover:text-accent hover:bg-bg-tertiary")
               )}
               title={t('hw_timer_label')}
@@ -656,7 +635,7 @@ export function HomeworkInline({
             <button
               onClick={handleLocatePrevious}
               disabled={isLocatingPrev}
-              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]"
+              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]"
               title={
                 language === 'uk'
                   ? 'Повернутися до попереднього уроку цього предмету'
@@ -669,7 +648,7 @@ export function HomeworkInline({
             <button
               onClick={handleLocateNext}
               disabled={isLocating}
-              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]"
+              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]"
               title={
                 language === 'uk'
                   ? 'Перейти та підсвітити наступний урок (найближчий до сьогодні)'
@@ -680,20 +659,28 @@ export function HomeworkInline({
             </button>
             <button
               onClick={() => setIsEditing(true)}
-              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]"
+              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]"
               title="Edit"
             >
               <Edit2 size={14} />
             </button>
             <button
               onClick={handleDelete}
-              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 active:scale-95 transition-all flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]"
+              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 active:scale-95 transition-all flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]"
               title="Delete"
             >
               <Trash2 size={14} />
             </button>
           </div>
         </div>
+
+        {/* Assigned Date Information */}
+        {homework.assigned_date && (
+          <div className="flex items-center gap-1 pl-7 text-[11px] text-text-muted">
+            <Calendar size={11} className="shrink-0 opacity-70" />
+            <span>{t('hw_assigned_on')} <strong className="font-medium text-text-secondary">{formatDate(homework.assigned_date)}</strong></span>
+          </div>
+        )}
 
         {/* Stopwatch Active Controls or Saved Time Chip */}
         {(isTimerOpen || timerRunning || secondsSpent > 0) && (

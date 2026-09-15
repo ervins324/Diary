@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict
 from app.schemas.subject import SubjectRead
 
@@ -19,6 +19,7 @@ class HomeworkCreate(BaseModel):
     images: list[str] = []
     attachments: list[AttachmentItem] = []
     time_spent_seconds: int | None = 0
+    assigned_date: date | None = None
 
 class HomeworkUpdate(BaseModel):
     text: str | None = None
@@ -28,6 +29,7 @@ class HomeworkUpdate(BaseModel):
     images: list[str] | None = None
     attachments: list[AttachmentItem] | None = None
     time_spent_seconds: int | None = None
+    assigned_date: date | None = None
 
 class HomeworkRead(BaseModel):
     id: uuid.UUID
@@ -40,6 +42,8 @@ class HomeworkRead(BaseModel):
     images: list[str] | None = []
     attachments: list[AttachmentItem] | None = []
     time_spent_seconds: int | None = 0
+    assigned_date: date | None = None
+    created_at: datetime | None = None
     subject: SubjectRead
 
     model_config = ConfigDict(from_attributes=True)

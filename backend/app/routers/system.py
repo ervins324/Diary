@@ -15,6 +15,7 @@ from app.models.homework import HomeworkEntry
 from app.models.stored_file import StoredFile
 from app.models.schedule_override import ScheduleOverride
 from app.models.lesson_note import LessonNote
+from app.models.holiday import Holiday
 
 logger = logging.getLogger("school_diary.system")
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
@@ -76,6 +77,8 @@ class BackupHomeworkItem(BaseModel):
     is_completed: bool = False
     is_failed: bool = False
     time_spent_seconds: int = 0
+    assigned_date: str | None = None
+    created_at: str | None = None
     images: list[str] = Field(default_factory=list)
     attachments: list[dict] = Field(default_factory=list)
 
@@ -114,6 +117,13 @@ class BackupLessonNoteItem(BaseModel):
     attachments: list[dict] = Field(default_factory=list)
 
 
+class BackupHolidayItem(BaseModel):
+    id: str | None = None
+    name: str
+    start_date: str
+    end_date: str
+
+
 class FullBackupData(BaseModel):
     version: str = "1.7.0"
     exported_at: str | None = None
@@ -124,6 +134,7 @@ class FullBackupData(BaseModel):
     schedule_overrides: list[BackupScheduleOverrideItem] = Field(default_factory=list)
     stored_files: list[BackupStoredFileItem] = Field(default_factory=list)
     lesson_notes: list[BackupLessonNoteItem] = Field(default_factory=list)
+    holidays: list[BackupHolidayItem] = Field(default_factory=list)
 
 
 @router.get("/backup/export")
@@ -196,6 +207,8 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
                 "is_completed": h.is_completed,
                 "is_failed": getattr(h, "is_failed", False),
                 "time_spent_seconds": getattr(h, "time_spent_seconds", 0) or 0,
+                "assigned_date": h.assigned_date.isoformat() if getattr(h, "assigned_date", None) else None,
+                "created_at": h.created_at.isoformat() if getattr(h, "created_at", None) else None,
                 "images": h.images or [],
                 "attachments": h.attachments or [],
             }
@@ -253,8 +266,21 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             for n in notes
         ]
 
+        # 8. Fetch all holidays
+        holidays_res = await db.execute(select(Holiday).order_by(Holiday.start_date))
+        holidays = holidays_res.scalars().all()
+        holidays_data = [
+            {
+                "id": str(hol.id),
+                "name": hol.name,
+                "start_date": hol.start_date.isoformat() if isinstance(hol.start_date, (date, datetime)) else str(hol.start_date),
+                "end_date": hol.end_date.isoformat() if isinstance(hol.end_date, (date, datetime)) else str(hol.end_date),
+            }
+            for hol in holidays
+        ]
+
         return {
-            "version": "1.7.4",
+            "version": "1.7.5",
             "exported_at": datetime.utcnow().isoformat() + "Z",
             "subjects": subjects_data,
             "bell_schedules": bells_data,
@@ -263,6 +289,7 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             "schedule_overrides": overrides_data,
             "stored_files": files_data,
             "lesson_notes": notes_data,
+            "holidays": holidays_data,
         }
     except Exception as e:
         logger.exception(f"Failed to export backup: {e}")
@@ -290,6 +317,8 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
         )
 
         # Step 1: Wipe existing records in safe foreign-key order
+        await db.execute(delete(LessonNote))
+        await db.execute(delete(Holiday))
         await db.execute(delete(HomeworkEntry))
         await db.execute(delete(ScheduleOverride))
         await db.execute(delete(ScheduleRule))
@@ -451,6 +480,13 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
             except ValueError:
                 parsed_due_date = date.today()
 
+            assigned_d = None
+            if getattr(h_item, "assigned_date", None):
+                try:
+                    assigned_d = date.fromisoformat(h_item.assigned_date)
+                except ValueError:
+                    assigned_d = None
+
             hw = HomeworkEntry(
                 id=h_uuid,
                 subject_id=target_subject_id,
@@ -460,6 +496,7 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
                 is_completed=h_item.is_completed,
                 is_failed=getattr(h_item, "is_failed", False),
                 time_spent_seconds=getattr(h_item, "time_spent_seconds", 0) or 0,
+                assigned_date=assigned_d,
                 images=h_item.images or [],
                 attachments=h_item.attachments or [],
             )
@@ -502,6 +539,29 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
             db.add(note)
             imported_notes_count += 1
 
+        # Step 9: Insert Holidays
+        imported_holidays_count = 0
+        for hol_item in getattr(backup, "holidays", []) or []:
+            try:
+                hol_uuid = UUID(hol_item.id) if hol_item.id else uuid4()
+            except (ValueError, TypeError):
+                hol_uuid = uuid4()
+
+            try:
+                s_date = date.fromisoformat(hol_item.start_date)
+                e_date = date.fromisoformat(hol_item.end_date)
+            except ValueError:
+                continue
+
+            holiday_entry = Holiday(
+                id=hol_uuid,
+                name=hol_item.name,
+                start_date=s_date,
+                end_date=e_date,
+            )
+            db.add(holiday_entry)
+            imported_holidays_count += 1
+
         await db.commit()
 
         return {
@@ -515,6 +575,7 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
                 "schedule_overrides": imported_overrides_count,
                 "stored_files": len(backup.stored_files),
                 "lesson_notes": imported_notes_count,
+                "holidays": imported_holidays_count,
             },
         }
 

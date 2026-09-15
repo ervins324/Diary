@@ -1,4 +1,5 @@
 import { useState, memo } from 'react';
+import { format } from 'date-fns';
 import { Plus, Image as ImageIcon, X, Check, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, Loader2, StickyNote } from 'lucide-react';
 import type { LessonSlot, Attachment } from '../../types';
 import { formatTime, compressImageFile, isLessonNow, cn } from '../../lib/utils';
@@ -53,6 +54,7 @@ export const LessonCard = memo(function LessonCard({ lesson, onFindNextLesson, o
           subject_id: lesson.subject.id,
           due_date: lesson.date,
           lesson_order: lesson.lesson_order,
+          assigned_date: format(new Date(), 'yyyy-MM-dd'),
           text:
             newHomework.trim() ||
             (language === 'uk' ? 'Прикріплені матеріали' : 'Attached materials'),

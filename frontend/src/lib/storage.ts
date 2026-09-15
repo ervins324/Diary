@@ -128,3 +128,23 @@ export function setSkipWeekendsEnabled(enabled: boolean): void {
 export function isLiveWidgetEnabled(): boolean {
   return getCachedLocalStorage(LIVE_WIDGET_KEY) !== 'false';
 }
+
+const DAY_SHIFT_AFTER_KEY = 'day_shift_after_hour';
+
+/**
+ * Gets the cutoff hour after which the schedule auto-advances to the next school day.
+ * Returns null if disabled, or a number 0-23 (e.g. 16 = 4 PM).
+ */
+export function getDayShiftAfterHour(): number | null {
+  const val = getCachedLocalStorage(DAY_SHIFT_AFTER_KEY);
+  if (val === null || val === 'off') return null;
+  const num = parseInt(val, 10);
+  return isNaN(num) ? null : num;
+}
+
+/**
+ * Sets the cutoff hour for day-shift, or null/'off' to disable.
+ */
+export function setDayShiftAfterHour(hour: number | null): void {
+  setCachedLocalStorage(DAY_SHIFT_AFTER_KEY, hour === null ? 'off' : String(hour));
+}

@@ -1,5 +1,65 @@
 # School Diary — Changelog
 
+## v1.9.1 — 2026-09-15
+
+### 🔧 TypeScript Build Fixes
+- **`translations.ts`**: Removed duplicate object literal keys (`upload_json_file`, `parse_data`, `back`) in the Holiday section for both `en` and `uk` locales; renamed to `holiday_upload_json_file` and `holiday_parse_data`. Added missing `delete`, `edit`, `add_note` translation keys used as button tooltips/titles.
+- **`AiHolidayImportModal.tsx`**: Updated to use renamed `holiday_upload_json_file` / `holiday_parse_data` keys; fixed `t()` 2-argument interpolation call for `parsed_holidays_count` to use inline `.replace('{count}', ...)`.
+- **`DailyPage.tsx`**: Fixed `t('weekend_hw_reminder_desc', ...)` 2-argument call to use `.replace('{count}', ...)` inline.
+- **`useHomework.ts`**: Added `fromDate` and `toDate` optional parameters to support date-range queries in `DailyPage` weekend homework reminder.
+- **`NotesPage.tsx`**: Removed unused `Check`, `Filter`, `BookOpen` icon imports; replaced unused destructured `sid` loop variable with `[, nList]`.
+- **`HolidayEditor.tsx`**: Removed unused `X` icon import.
+
+---
+
+## v1.9.0 — 2026-09-14
+
+### 🏖️ School Holidays System & Automated Lesson Cancellations
+- **Holiday Data Model & Migrations (`Holiday` Model & Migration 012)**:
+  - Created `holidays` table in PostgreSQL (`id`, `name`, `start_date`, `end_date`) with database indexes on date ranges.
+  - Added Alembic migration `012_holidays.py` and idempotent startup safety migrations in `main.py`.
+  - Added RESTful CRUD API at `/api/v1/holidays`, including `/bulk` and `/parse-json` endpoints.
+  - Added full backup export/restore in `system.py`.
+- **Automated Schedule Cancellation (`schedule_service.py`)**:
+  - Automatically queries active holidays overlapping scheduled dates: marks lessons as cancelled with holiday name in `override_note` and adds `is_holiday: true` flag.
+  - Visual holiday banners in `DailyPage.tsx`, `DiaryPage.tsx`, and `LiveScheduleWidget.tsx`.
+- **Holiday Management & AI Importer (`HolidayEditor.tsx`, `AiHolidayImportModal.tsx`)**:
+  - Full holidays management panel inside Settings > Schedule Tools.
+  - AI-assisted prompt template and JSON import modal with instant client validation and editable review table.
+
+### 📝 Subject Notes Page & Unified Notes Archive (`NotesPage.tsx`)
+- **Dual-View Notes Hub (`/notes`)**:
+  - **By Subject View**: Aggregates all lesson notes grouped under each subject, with subject theme colors, note count badges, and expandable cards.
+  - **Chronological Timeline View**: Displays all notes ordered by date and lesson order.
+  - Global text search across notes, subject names, and dates, with subject filter dropdown.
+  - Quick note creation modal directly from the Notes page with file attachments and image previews.
+  - Added `/notes` route to navigation in `Sidebar.tsx`, `BottomNav.tsx`, and `CommandPalette.tsx`.
+
+### 📅 Homework Assigned Date Tracking
+- Added `assigned_date` (`DATE`) and `created_at` (`TIMESTAMPTZ DEFAULT NOW()`) to `homeworks` table (`HomeworkEntry` model & migration `011_homework_assigned_date.py`).
+- Automatic assignment date stamping when creating homework from `LessonCard.tsx` or `DiaryPage.tsx`.
+- Displayed with a calendar badge in `HomeworkInline.tsx`.
+
+### ⏰ Configurable Day-Shift After School Hours
+- Added configurable setting under Settings > Preferences: automatically switch schedule view to the next school day after a cutoff hour (e.g. 16:00).
+- Handled gracefully in `getDefaultScheduleDate()` with automatic Friday/weekend skip to Monday.
+
+### 🔔 Weekend Homework Reminders
+- Prominent interactive weekend reminder banner on `DailyPage.tsx` listing pending homework for the upcoming week and a direct jump to next Monday.
+- Integrated reminder badges into `LiveScheduleWidget.tsx` for both mobile and desktop sidebar widgets.
+
+### 📱 Mobile UI/UX & Touch Targets
+- Increased touch targets on mobile for homework checkbox (`w-7 h-7`) and all 6 action buttons to `min-w-[40px] min-h-[40px]` (Apple HIG / Material guidelines).
+- Improved mobile bottom navigation spacing.
+
+### ⌨️ Ukrainian & Multi-Layout Keyboard Shortcuts
+- Switched shortcut listeners in `DailyPage.tsx`, `DiaryPage.tsx`, and `CommandPalette.tsx` to `e.code` (`KeyA`, `KeyD`, `KeyT`, `KeyK`, `KeyQ`) so day/week navigation and quick search trigger consistently regardless of active keyboard layout (Ukrainian, English, etc.).
+
+### ⏱️ Dual-Timer Display Fix
+- Eliminated redundant inline stopwatch badge next to the homework checkbox; timer is now cleanly presented in a single dedicated controls chip below the text.
+
+---
+
 ## v1.8.9 — 2026-09-10
 
 ### 📎 Rich Media Lesson Notes (Images, PDFs, Presentations & Links)

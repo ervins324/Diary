@@ -69,13 +69,13 @@ export function DiaryPage() {
         return;
       }
 
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      if (e.key === 'ArrowLeft' || e.code === 'KeyA') {
         e.preventDefault();
         handlePrevWeek();
-      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      } else if (e.key === 'ArrowRight' || e.code === 'KeyD') {
         e.preventDefault();
         handleNextWeek();
-      } else if (e.key === 't' || e.key === 'T') {
+      } else if (e.code === 'KeyT') {
         e.preventDefault();
         handleCurrentWeek();
       }
@@ -95,6 +95,7 @@ export function DiaryPage() {
           subject_id: lesson.subject.id,
           due_date: lesson.date,
           lesson_order: lesson.lesson_order,
+          assigned_date: format(new Date(), 'yyyy-MM-dd'),
           text:
             newHwText.trim() ||
             (language === 'uk' ? 'Прикріплені матеріали' : 'Attached materials'),
@@ -311,6 +312,12 @@ export function DiaryPage() {
         </div>
         
         <div className="p-2 flex-1 flex flex-col gap-1 overflow-y-auto">
+          {dayData?.is_holiday && (
+            <div className="mb-1 px-3 py-1.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <span>🏖️</span>
+              <span className="truncate">{dayData.holiday_name || t('holiday_title')}</span>
+            </div>
+          )}
           {!dayData || dayData.lessons.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-sm text-text-muted italic">
               {t('no_lessons')}

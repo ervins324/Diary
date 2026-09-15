@@ -27,6 +27,8 @@ export interface HomeworkEntry {
   images?: string[];
   attachments?: Attachment[];
   time_spent_seconds?: number;
+  assigned_date?: string | null;
+  created_at?: string;
 }
 
 /* Lesson note entry */
@@ -40,6 +42,7 @@ export interface LessonNote {
   attachments?: Attachment[];
   created_at: string;
   updated_at: string;
+  subject?: Subject;
 }
 
 /* Special event / assessment type: built-in templates or user-defined custom event type */
@@ -95,6 +98,8 @@ export interface DaySchedule {
   day_name: string;
   week_type: string;
   lessons: LessonSlot[];
+  is_holiday?: boolean;
+  holiday_name?: string | null;
 }
 
 export interface WeeklyStat {
@@ -216,4 +221,18 @@ export interface ScheduleRuleItem {
   cabinet: string | null;
   subject: Subject;
 }
+
+export interface Holiday {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+}
+
+export interface AiParsedHoliday {
+  name: string;
+  start_date: string;
+  end_date: string;
+}
+
 

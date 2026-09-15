@@ -15,6 +15,13 @@ export const useLessonNotes = (targetDate?: string, lessonOrder?: number, subjec
   });
 };
 
+export const useAllLessonNotes = () => {
+  return useQuery({
+    queryKey: ['lesson-notes', 'all'],
+    queryFn: () => fetchLessonNotes(),
+  });
+};
+
 export const useCreateLessonNote = () => {
   const queryClient = useQueryClient();
   return useMutation({

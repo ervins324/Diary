@@ -378,6 +378,64 @@ export const translations = {
     action_ai_import: 'AI Schedule Importer',
     action_calc_copy: 'Copy calculated result to clipboard',
     subject_action_view: 'View lessons and homework for this subject',
+
+    // Assigned Date
+    hw_assigned_on: 'Assigned on:',
+
+    // Weekend Reminders
+    weekend_hw_reminder_title: 'Weekend Reminder: Homework Due Next Week',
+    weekend_hw_reminder_desc: 'You have {count} pending homework assignments for next week!',
+    weekend_hw_all_done: 'All homework for next week is completed! Well done.',
+    view_next_week: 'View Next Week',
+
+    // Day Shift After Cutoff
+    day_shift_title: 'Auto-advance to next day after:',
+    day_shift_desc: 'After this time in the afternoon, automatically switch schedule view to the next school day',
+    day_shift_off: 'Off (Always today)',
+
+    // Holidays
+    holidays_manager_title: 'School Holidays & Vacations',
+    holidays_manager_desc: 'Manage vacation periods and holidays. Lessons falling on these dates will be automatically marked as cancelled.',
+    holiday_title: 'School Holiday',
+    holiday_no_lessons_desc: 'No lessons on this date due to holidays.',
+    holiday_ai_import_btn: 'AI Holiday Import',
+    holiday_ai_import_title: 'Import Holidays via AI',
+    holiday_prompt_instruction: 'Copy prompt for AI to parse holiday schedule:',
+    add_holiday: 'Add Holiday',
+    new_holiday_title: 'New Holiday Interval',
+    holiday_name_placeholder: 'e.g. Autumn Break, New Year',
+    no_holidays_configured: 'No holidays configured yet. Add them manually or via AI import.',
+    parsed_holidays_count: 'Extracted {count} holidays',
+    apply_holidays: 'Apply Holidays',
+    copy_prompt: 'Copy Prompt',
+    copied: 'Copied!',
+    paste_json_label: 'Paste JSON structure from AI:',
+    holiday_upload_json_file: 'Upload .json file',
+    holiday_parse_data: 'Parse & Review',
+
+    // Common actions (used as button titles/tooltips)
+    delete: 'Delete',
+    edit: 'Edit',
+    add_note: 'Add Note',
+
+    // Notes Page
+    nav_notes: 'Notes',
+    notes_page_title: 'Lesson & Subject Notes',
+    notes_page_desc: 'Review, search, and organize all your notes grouped by subject or chronologically by date.',
+    notes_tab_by_subject: 'By Subject',
+    notes_tab_chronological: 'Chronological',
+    search_notes_placeholder: 'Search notes, subjects, or dates...',
+    all_subjects: 'All Subjects',
+    no_notes_found: 'No notes found',
+    no_notes_tip: 'Create notes on lessons in the schedule or add one directly above.',
+    lesson_order_short: 'lesson',
+    note_text_label: 'Note content',
+    note_placeholder: 'Write key concepts, formula, homework notes...',
+    attach_files: 'Attach photos / PDF / presentation',
+    unknown_subject: 'Subject',
+    lesson_order_label: 'Lesson order (#)',
+    date: 'Date',
+    subject: 'Subject',
   },
   uk: {
     // Navigation
@@ -756,6 +814,64 @@ export const translations = {
     action_ai_import: 'ШІ-імпорт розкладу',
     action_calc_copy: 'Скопіювати обчислений результат у буфер',
     subject_action_view: 'Переглянути уроки та завдання з цього предмета',
+
+    // Assigned Date
+    hw_assigned_on: 'Задано:',
+
+    // Weekend Reminders
+    weekend_hw_reminder_title: 'Вихідні: час підготувати домашнє завдання!',
+    weekend_hw_reminder_desc: 'У вас {count} невиконаних завдань на наступний тиждень!',
+    weekend_hw_all_done: 'Усі завдання на наступний тиждень виконано! Відпочивайте.',
+    view_next_week: 'Переглянути наступний тиждень',
+
+    // Day Shift After Cutoff
+    day_shift_title: 'Перемикати на наступний день після:',
+    day_shift_desc: 'Після зазначеного часу розклад автоматично відображатиме наступний навчальний день',
+    day_shift_off: 'Вимкнено (завжди сьогодні)',
+
+    // Holidays
+    holidays_manager_title: 'Канікули та святкові дні',
+    holidays_manager_desc: 'Керуйте графіком канікул. Уроки в ці дні автоматично позначатимуться як скасовані.',
+    holiday_title: 'Шкільні канікули',
+    holiday_no_lessons_desc: 'У цей день уроки відсутні у звʼязку з канікулами.',
+    holiday_ai_import_btn: 'ШІ-імпорт канікул',
+    holiday_ai_import_title: 'Імпорт канікул через ШІ',
+    holiday_prompt_instruction: 'Скопіюйте промпт для ШІ, щоб розпізнати графік канікул:',
+    add_holiday: 'Додати канікули',
+    new_holiday_title: 'Новий період канікул',
+    holiday_name_placeholder: 'наприклад, Осінні канікули, Новий рік',
+    no_holidays_configured: 'Канікули ще не налаштовані. Додайте їх вручну або через ШІ.',
+    parsed_holidays_count: 'Розпізнано {count} періодів',
+    apply_holidays: 'Зберегти канікули',
+    copy_prompt: 'Скопіювати промпт',
+    copied: 'Скопійовано!',
+    paste_json_label: 'Вставте JSON-структуру від ШІ:',
+    holiday_upload_json_file: 'Завантажити .json файл',
+    holiday_parse_data: 'Обробити та переглянути',
+
+    // Common actions (used as button titles/tooltips)
+    delete: 'Видалити',
+    edit: 'Редагувати',
+    add_note: 'Додати нотатку',
+
+    // Notes Page
+    nav_notes: 'Нотатки',
+    notes_page_title: 'Нотатки з предметів та уроків',
+    notes_page_desc: 'Переглядайте, шукайте та систематизуйте всі свої нотатки за предметами або за датами.',
+    notes_tab_by_subject: 'По предметах',
+    notes_tab_chronological: 'Хронологічно',
+    search_notes_placeholder: 'Пошук серед нотаток, предметів чи дат...',
+    all_subjects: 'Усі предмети',
+    no_notes_found: 'Нотаток не знайдено',
+    no_notes_tip: 'Створюйте нотатки до уроків у розкладі або додайте нову прямо тут.',
+    lesson_order_short: 'урок',
+    note_text_label: 'Текст нотатки',
+    note_placeholder: 'Запишіть головні тези, формули, памʼятки...',
+    attach_files: 'Прикріпити фото / PDF / презентацію',
+    unknown_subject: 'Предмет',
+    lesson_order_label: 'Номер уроку (#)',
+    date: 'Дата',
+    subject: 'Предмет',
   },
 } as const;
 

@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchHomework, createHomework, updateHomework, deleteHomework } from '../api/client';
 
-export const useHomework = (date?: string, subjectId?: string) => {
+export const useHomework = (date?: string, subjectId?: string, fromDate?: string, toDate?: string) => {
   return useQuery({
-    queryKey: ['homework', date, subjectId],
-    queryFn: () => fetchHomework(date, subjectId),
+    queryKey: ['homework', date, subjectId, fromDate, toDate],
+    queryFn: () => fetchHomework(date, subjectId, fromDate, toDate),
   });
 };
 

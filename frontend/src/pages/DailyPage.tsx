@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format, addDays, subDays, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, BookOpen } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
+import { useHomework } from '../hooks/useHomework';
 import { fetchNextLesson, fetchPreviousLesson } from '../hooks/useScheduleOverrides';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { LessonCard } from '../components/schedule/LessonCard';
@@ -16,6 +17,20 @@ export function DailyPage() {
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const { data: schedule, isLoading } = useSchedule(dateStr, dateStr);
+
+  const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+  const nextMonday = currentDate.getDay() === 6 ? addDays(currentDate, 2) : addDays(currentDate, 1);
+  const nextFriday = addDays(nextMonday, 4);
+  const nextMondayStr = format(nextMonday, 'yyyy-MM-dd');
+  const nextFridayStr = format(nextFriday, 'yyyy-MM-dd');
+
+  const { data: upcomingHomework = [] } = useHomework(
+    undefined,
+    undefined,
+    isWeekend ? nextMondayStr : undefined,
+    isWeekend ? nextFridayStr : undefined
+  );
+  const pendingWeekendHw = upcomingHomework.filter((h) => !h.is_completed);
 
   const handlePrevDay = useCallback(() => setCurrentDate((prev) => subDays(prev, 1)), []);
   const handleNextDay = useCallback(() => setCurrentDate((prev) => addDays(prev, 1)), []);
@@ -41,13 +56,13 @@ export function DailyPage() {
         return;
       }
 
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      if (e.key === 'ArrowLeft' || e.code === 'KeyA') {
         e.preventDefault();
         handlePrevDay();
-      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      } else if (e.key === 'ArrowRight' || e.code === 'KeyD') {
         e.preventDefault();
         handleNextDay();
-      } else if (e.key === 't' || e.key === 'T') {
+      } else if (e.code === 'KeyT') {
         e.preventDefault();
         handleToday();
       }
@@ -199,6 +214,69 @@ export function DailyPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
+        {/* Holiday Banner if today is a school holiday */}
+        {currentDaySchedule?.is_holiday && (
+          <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-rose-500/15 border border-amber-500/30 flex items-center gap-3 shadow-xs">
+            <span className="text-2xl">🏖️</span>
+            <div>
+              <h3 className="font-bold text-text-primary text-base">
+                {currentDaySchedule.holiday_name || t('holiday_title')}
+              </h3>
+              <p className="text-xs text-text-muted">
+                {t('holiday_no_lessons_desc')}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Weekend Homework Reminder Card */}
+        {isWeekend && (
+          <div className="mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col gap-2.5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="text-amber-500 shrink-0" size={20} />
+                <div>
+                  <h3 className="font-bold text-text-primary text-sm">
+                    {t('weekend_hw_reminder_title')}
+                  </h3>
+                  <p className="text-xs text-text-muted">
+                    {pendingWeekendHw.length > 0
+                      ? t('weekend_hw_reminder_desc').replace('{count}', String(pendingWeekendHw.length))
+                      : t('weekend_hw_all_done')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentDate(nextMonday)}
+                className="text-xs px-2.5 py-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/30 rounded-lg font-medium transition-colors cursor-pointer"
+              >
+                {t('view_next_week')} →
+              </button>
+            </div>
+
+            {pendingWeekendHw.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                {pendingWeekendHw.slice(0, 4).map((hw) => (
+                  <div key={hw.id} className="p-2.5 bg-bg-primary rounded-lg border border-border/80 flex items-start gap-2 text-xs">
+                    <span
+                      className="w-2 h-2 rounded-full mt-1 shrink-0"
+                      style={{ backgroundColor: hw.subject?.color_hex || 'var(--color-accent)' }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-semibold text-text-primary truncate">{hw.subject?.name}</span>
+                        <span className="text-[10px] text-text-muted shrink-0">{formatDate(hw.due_date)}</span>
+                      </div>
+                      <p className="text-text-secondary truncate mt-0.5">{hw.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex justify-center items-center h-40">
             <Loader2 className="animate-spin text-accent" size={32} />

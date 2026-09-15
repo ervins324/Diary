@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Calendar, BookOpen, Bell, BarChart3, Settings, Search } from 'lucide-react';
+import { Calendar, BookOpen, Bell, BarChart3, Settings, Search, StickyNote } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { SettingsContents } from '../settings/SettingsContents';
 import { LiveScheduleWidget } from '../schedule/LiveScheduleWidget';
@@ -14,6 +14,7 @@ export function Sidebar() {
   const navItems = [
     { to: '/', icon: Calendar, label: t('nav_daily') },
     { to: '/diary', icon: BookOpen, label: t('nav_diary') },
+    { to: '/notes', icon: StickyNote, label: t('nav_notes') },
     { to: '/bells', icon: Bell, label: t('nav_bells') },
     { to: '/stats', icon: BarChart3, label: t('nav_stats') },
     { to: '/settings', icon: Settings, label: t('nav_settings') },

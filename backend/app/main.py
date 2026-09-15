@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.config import settings
 from app.database import engine
-from app.routers import subjects, schedule, homework, stats, bells, system, files, lesson_notes
+from app.routers import subjects, schedule, homework, stats, bells, system, files, lesson_notes, holidays
 
 # Configure centralized logging with timestamp, level, and logger name
 logging.basicConfig(
@@ -30,6 +30,12 @@ async def lifespan(app: FastAPI):
             )
             await conn.execute(
                 text("ALTER TABLE homeworks ADD COLUMN IF NOT EXISTS is_failed BOOLEAN DEFAULT FALSE;")
+            )
+            await conn.execute(
+                text("ALTER TABLE homeworks ADD COLUMN IF NOT EXISTS assigned_date DATE;")
+            )
+            await conn.execute(
+                text("ALTER TABLE homeworks ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();")
             )
             await conn.execute(
                 text("""
@@ -58,6 +64,16 @@ async def lifespan(app: FastAPI):
             await conn.execute(
                 text("CREATE INDEX IF NOT EXISTS ix_lesson_notes_date ON lesson_notes (date);")
             )
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS holidays (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    name VARCHAR(200) NOT NULL,
+                    start_date DATE NOT NULL,
+                    end_date DATE NOT NULL
+                );
+            """))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_holidays_start_date ON holidays (start_date);"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_holidays_end_date ON holidays (end_date);"))
             logger.info("Database safety column verification completed.")
     except Exception as e:
         logger.warning(f"Database safety migration check warning: {e}")
@@ -103,6 +119,7 @@ app.include_router(bells.router)
 app.include_router(system.router)
 app.include_router(files.router)
 app.include_router(lesson_notes.router)
+app.include_router(holidays.router)
 
 @app.get("/")
 async def root():

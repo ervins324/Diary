@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { format, parseISO, startOfWeek, endOfWeek, addDays } from 'date-fns';
-import { isSkipWeekendsEnabled } from './storage';
+import { isSkipWeekendsEnabled, getDayShiftAfterHour } from './storage';
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
@@ -44,24 +44,34 @@ export function getWeekDates(date: Date): { start: string; end: string } {
 }
 
 /**
- * Returns today's date, or advances to next week's Monday if today is Saturday or Sunday
- * (when the 'skip_weekends_to_monday' setting is enabled in localStorage).
+ * Returns today's date, or advances to next school day if:
+ * 1. Today is Saturday/Sunday and 'skip_weekends_to_monday' is enabled.
+ * 2. Current time is past the configurable 'day_shift_after_hour' cutoff (e.g. 16:00).
+ *    In that case, advances to tomorrow (or next Monday if it's Friday evening/weekend).
  */
 export function getDefaultScheduleDate(): Date {
   const skipWeekends = isSkipWeekendsEnabled();
+  const dayShiftHour = getDayShiftAfterHour();
   const now = new Date();
-  const day = now.getDay(); // 0 is Sunday, 6 is Saturday
+  let result = now;
 
+  // After cutoff time, advance to next day
+  if (dayShiftHour !== null && now.getHours() >= dayShiftHour) {
+    result = addDays(now, 1);
+  }
+
+  const day = result.getDay(); // 0 is Sunday, 6 is Saturday
   if (skipWeekends) {
     if (day === 6) {
       // Saturday -> advance 2 days to Monday
-      return addDays(now, 2);
+      return addDays(result, 2);
     } else if (day === 0) {
       // Sunday -> advance 1 day to Monday
-      return addDays(now, 1);
+      return addDays(result, 1);
     }
   }
-  return now;
+
+  return result;
 }
 
 /**

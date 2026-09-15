@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   CalendarClock,
+  Clock,
   Archive,
   ArrowDownAZ,
   ArrowUpZA,
@@ -54,6 +55,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { useDeleteAllSchedule, useClearAllAppData } from '../hooks/useSchedule';
 import { ScheduleEditorModal } from '../components/schedule/ScheduleEditorModal';
 import { AiImportModal } from '../components/ai-import/AiImportModal';
+import { HolidayEditor } from '../components/settings/HolidayEditor';
 import { useAirAlerts } from '../hooks/useAirAlerts';
 import { getAutoCleanConfig, saveAutoCleanConfig, type AutoCleanConfig } from '../hooks/useAutoClean';
 import { cn } from '../lib/utils';
@@ -63,6 +65,8 @@ import {
   setShowCabinetsEnabled,
   isSkipWeekendsEnabled,
   setSkipWeekendsEnabled,
+  getDayShiftAfterHour,
+  setDayShiftAfterHour,
   getCachedLocalStorage,
   setCachedLocalStorage,
 } from '../lib/storage';
@@ -110,6 +114,9 @@ export function SettingsPage() {
 
   /* Weekend auto-advance toggle state (defaults to true) */
   const [skipWeekends, setSkipWeekends] = useState(isSkipWeekendsEnabled);
+
+  /* Day-shift after cutoff hour state (defaults to null/off) */
+  const [dayShiftHour, setDayShiftHourState] = useState<number | null>(getDayShiftAfterHour);
 
   /* Live Status Widget Settings */
   const [liveWidgetEnabled, setLiveWidgetEnabled] = useState(() => getCachedLocalStorage('live_widget_enabled') !== 'false');
@@ -284,6 +291,13 @@ export function SettingsPage() {
     const nextVal = !skipWeekends;
     setSkipWeekends(nextVal);
     setSkipWeekendsEnabled(nextVal);
+  };
+
+  /* Change day-shift-after cutoff hour and persist to localStorage */
+  const handleDayShiftChange = (value: string) => {
+    const hour = value === 'off' ? null : parseInt(value, 10);
+    setDayShiftHourState(hour);
+    setDayShiftAfterHour(hour);
   };
 
   /* Export complete JSON snapshot of all subjects, bells, rules, and homework */
@@ -634,6 +648,31 @@ export function SettingsPage() {
                     )}
                   />
                 </button>
+              </div>
+
+              {/* Day-Shift After Cutoff Hour */}
+              <div className="pt-3 border-t border-border-light flex items-center justify-between">
+                <div className="pr-4">
+                  <p className="font-medium text-text-primary flex items-center gap-1.5">
+                    <Clock size={16} className="text-accent" />
+                    <span>{t('day_shift_title')}</span>
+                  </p>
+                  <p className="text-sm text-text-muted">{t('day_shift_desc')}</p>
+                </div>
+                <select
+                  value={dayShiftHour === null ? 'off' : String(dayShiftHour)}
+                  onChange={(e) => handleDayShiftChange(e.target.value)}
+                  className="bg-bg-tertiary border border-border rounded-lg px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:border-accent cursor-pointer min-w-[90px]"
+                >
+                  <option value="off">{t('day_shift_off')}</option>
+                  <option value="14">14:00</option>
+                  <option value="15">15:00</option>
+                  <option value="16">16:00</option>
+                  <option value="17">17:00</option>
+                  <option value="18">18:00</option>
+                  <option value="19">19:00</option>
+                  <option value="20">20:00</option>
+                </select>
               </div>
 
               {/* Classroom Cabinets Toggle */}
@@ -1177,6 +1216,11 @@ export function SettingsPage() {
               <Wand2 size={16} />
               <span>{t('ai_schedule_open_import')}</span>
             </button>
+          </div>
+
+          {/* School Holidays & Vacations Editor */}
+          <div className="pt-3 border-t border-border-light">
+            <HolidayEditor />
           </div>
 
           <div className="pt-3 border-t border-border-light flex flex-col sm:flex-row sm:items-center justify-between gap-4">

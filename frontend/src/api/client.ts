@@ -10,6 +10,8 @@ import type {
   ScheduleRuleItem,
   LessonNote,
   Attachment,
+  Holiday,
+  AiParsedHoliday,
 } from '../types';
 
 // Axios instance configured with extended timeout for AI image processing
@@ -23,8 +25,15 @@ export const fetchSchedule = async (startDate: string, endDate: string): Promise
   return data;
 };
 
-export const fetchHomework = async (date?: string, subjectId?: string): Promise<HomeworkEntry[]> => {
-  const { data } = await api.get('/homework', { params: { date, subject_id: subjectId } });
+export const fetchHomework = async (
+  date?: string,
+  subjectId?: string,
+  startDate?: string,
+  endDate?: string
+): Promise<HomeworkEntry[]> => {
+  const { data } = await api.get('/homework', {
+    params: { date, subject_id: subjectId, start_date: startDate, end_date: endDate },
+  });
   return data;
 };
 
@@ -321,4 +330,40 @@ export const updateLessonNote = async (
 export const deleteLessonNote = async (id: string): Promise<void> => {
   await api.delete(`/lesson-notes/${id}`);
 };
+
+// ── Holidays (Канікули та свята) API endpoints ──────────────────────────
+
+export const fetchHolidays = async (): Promise<Holiday[]> => {
+  const { data } = await api.get('/holidays');
+  return data;
+};
+
+export const createHoliday = async (holiday: { name: string; start_date: string; end_date: string }): Promise<Holiday> => {
+  const { data } = await api.post('/holidays', holiday);
+  return data;
+};
+
+export const updateHoliday = async (
+  id: string,
+  holiday: Partial<{ name: string; start_date: string; end_date: string }>
+): Promise<Holiday> => {
+  const { data } = await api.put(`/holidays/${id}`, holiday);
+  return data;
+};
+
+export const deleteHoliday = async (id: string): Promise<void> => {
+  await api.delete(`/holidays/${id}`);
+};
+
+export const bulkCommitHolidays = async (holidays: { name: string; start_date: string; end_date: string }[]): Promise<Holiday[]> => {
+  const { data } = await api.post('/holidays/bulk', { holidays });
+  return data;
+};
+
+export const parseHolidaysJson = async (rawJson: string): Promise<{ holidays: AiParsedHoliday[] }> => {
+  const { data } = await api.post('/holidays/parse-json', { raw_json: rawJson });
+  return data;
+};
+
+
 

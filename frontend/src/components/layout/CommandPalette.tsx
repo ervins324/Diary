@@ -22,6 +22,7 @@ import {
   ArrowRight,
   ArrowLeft,
   GraduationCap,
+  StickyNote,
 } from 'lucide-react';
 import { fetchSubjects } from '../../api/client';
 import type { Subject } from '../../types';
@@ -46,9 +47,10 @@ export interface CommandItem {
 const PAGE_DEFINITIONS = [
   { path: '/', translationKey: 'nav_daily', icon: Calendar, num: '1' },
   { path: '/diary', translationKey: 'nav_diary', icon: BookOpen, num: '2' },
-  { path: '/bells', translationKey: 'nav_bells', icon: Bell, num: '3' },
-  { path: '/stats', translationKey: 'nav_stats', icon: BarChart3, num: '4' },
-  { path: '/settings', translationKey: 'nav_settings', icon: Settings, num: '5' },
+  { path: '/notes', translationKey: 'nav_notes', icon: StickyNote, num: '3' },
+  { path: '/bells', translationKey: 'nav_bells', icon: Bell, num: '4' },
+  { path: '/stats', translationKey: 'nav_stats', icon: BarChart3, num: '5' },
+  { path: '/settings', translationKey: 'nav_settings', icon: Settings, num: '6' },
 ] as const;
 
 export function CommandPalette() {
@@ -87,7 +89,7 @@ export function CommandPalette() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // 1. Cmd+K / Ctrl+K
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyK') {
         e.preventDefault();
         setIsOpen((prev) => !prev);
         return;
@@ -101,7 +103,7 @@ export function CommandPalette() {
       }
 
       // 3. Alt+Q (Reliable Alt-Tab web equivalent)
-      if (e.altKey && e.key.toLowerCase() === 'q') {
+      if (e.altKey && e.code === 'KeyQ') {
         e.preventDefault();
         setIsOpen(true);
         // Pre-highlight next recent item

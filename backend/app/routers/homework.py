@@ -13,6 +13,8 @@ router = APIRouter(prefix="/api/v1/homework", tags=["homework"])
 @router.get("/", response_model=list[HomeworkRead], include_in_schema=False)
 async def list_homework(
     target_date: date | None = Query(None, alias="date"),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
     subject_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
@@ -20,6 +22,10 @@ async def list_homework(
     stmt = select(HomeworkEntry)
     if target_date:
         stmt = stmt.where(HomeworkEntry.due_date == target_date)
+    if start_date:
+        stmt = stmt.where(HomeworkEntry.due_date >= start_date)
+    if end_date:
+        stmt = stmt.where(HomeworkEntry.due_date <= end_date)
     if subject_id:
         stmt = stmt.where(HomeworkEntry.subject_id == subject_id)
         

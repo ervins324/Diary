@@ -8,6 +8,7 @@ from app.models.schedule_rule import ScheduleRule, WeekType
 from app.models.schedule_override import ScheduleOverride
 from app.models.homework import HomeworkEntry
 from app.models.lesson_note import LessonNote
+from app.models.holiday import Holiday
 from app.schemas.schedule import DaySchedule, LessonSlot, NextLessonResponse, PreviousLessonResponse
 from app.utils.week_type import get_week_type
 from app.schemas.subject import SubjectRead
@@ -72,6 +73,14 @@ async def get_schedule_for_range(
     notes_by_day_and_order: dict[tuple[date, int], list[LessonNote]] = defaultdict(list)
     for note in all_notes:
         notes_by_day_and_order[(note.date, note.lesson_order)].append(note)
+
+    # Pre-fetch all holidays overlapping with the requested date range
+    holiday_stmt = select(Holiday).where(
+        Holiday.start_date <= end_date,
+        Holiday.end_date >= start_date,
+    )
+    holiday_result = await db.execute(holiday_stmt)
+    all_holidays = holiday_result.scalars().all()
 
     # Generate list of dates
     num_days = (end_date - start_date).days + 1
@@ -193,6 +202,17 @@ async def get_schedule_for_range(
                     )
                     lessons.append(lesson)
 
+        # Check if this date falls within any holiday
+        active_holiday = next((h for h in all_holidays if h.start_date <= current_date <= h.end_date), None)
+        is_holiday = active_holiday is not None
+        holiday_name = active_holiday.name if active_holiday else None
+
+        if is_holiday:
+            for l in lessons:
+                l.is_cancelled = True
+                if not l.override_note:
+                    l.override_note = holiday_name
+
         # Keep lessons sorted by lesson order
         lessons.sort(key=lambda l: l.lesson_order)
 
@@ -202,7 +222,9 @@ async def get_schedule_for_range(
             date=current_date,
             day_name=day_name,
             week_type=current_week_type_str,
-            lessons=lessons
+            lessons=lessons,
+            is_holiday=is_holiday,
+            holiday_name=holiday_name,
         )
         schedules.append(day_schedule)
         

@@ -256,7 +256,11 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
             )}
             {liveStatus.type === 'no_lessons' && (
               <span className="text-text-muted">
-                {language === 'uk' ? 'Сьогодні вихідний' : 'No lessons today'}
+                {todayDay?.is_holiday
+                  ? `🏖️ ${todayDay.holiday_name || (language === 'uk' ? 'Канікули' : 'Holiday')}`
+                  : (now.getDay() === 0 || now.getDay() === 6)
+                  ? (language === 'uk' ? 'Вихідний • Не забудь про ДЗ!' : 'Weekend • Check HW!')
+                  : (language === 'uk' ? 'Сьогодні вихідний' : 'No lessons today')}
               </span>
             )}
           </div>
@@ -422,8 +426,21 @@ export function LiveScheduleWidget({ variant = 'sidebar', className }: LiveSched
           )}
 
           {liveStatus.type === 'no_lessons' && (
-            <div className="text-text-muted text-[11px] italic py-0.5">
-              {language === 'uk' ? 'Сьогодні без уроків' : 'No lessons scheduled'}
+            <div className="text-text-muted text-[11px] py-0.5 space-y-1">
+              {todayDay?.is_holiday ? (
+                <div className="flex items-center gap-1.5 font-semibold text-amber-500">
+                  <span>🏖️</span>
+                  <span className="truncate">{todayDay.holiday_name || (language === 'uk' ? 'Канікули' : 'Holiday')}</span>
+                </div>
+              ) : (
+                <div>{language === 'uk' ? 'Сьогодні без уроків' : 'No lessons scheduled'}</div>
+              )}
+              {(now.getDay() === 0 || now.getDay() === 6) && (
+                <div className="text-amber-500 text-[10px] font-medium flex items-center gap-1">
+                  <BookOpen size={11} />
+                  <span>{language === 'uk' ? 'Час зробити домашнє завдання!' : 'Time to do your homework!'}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
