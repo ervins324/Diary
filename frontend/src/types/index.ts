@@ -62,6 +62,7 @@ export interface LessonSlot {
   is_cancelled?: boolean;
   override_note?: string | null;
   event_type?: LessonEventType;
+  is_consultation?: boolean;
 }
 
 export interface ScheduleOverride {
@@ -184,6 +185,7 @@ export interface AiParsedLesson {
   start_time: string | null;
   end_time: string | null;
   cabinet: string | null;
+  is_consultation?: boolean;
 }
 
 export interface AiParsedDay {
@@ -219,6 +221,7 @@ export interface ScheduleRuleItem {
   start_time: string;
   end_time: string;
   cabinet: string | null;
+  is_consultation?: boolean;
   subject: Subject;
 }
 

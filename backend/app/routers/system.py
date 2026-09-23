@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, date, time
 from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func
 
@@ -65,6 +65,7 @@ class BackupScheduleRuleItem(BaseModel):
     start_time: str
     end_time: str
     cabinet: str | None = None
+    is_consultation: bool = False
 
 
 class BackupHomeworkItem(BaseModel):
@@ -81,6 +82,11 @@ class BackupHomeworkItem(BaseModel):
     created_at: str | None = None
     images: list[str] = Field(default_factory=list)
     attachments: list[dict] = Field(default_factory=list)
+
+    @field_validator("images", "attachments", mode="before")
+    @classmethod
+    def empty_list_if_none(cls, v):
+        return v if v is not None else []
 
 
 class BackupScheduleOverrideItem(BaseModel):
@@ -116,6 +122,11 @@ class BackupLessonNoteItem(BaseModel):
     images: list[str] = Field(default_factory=list)
     attachments: list[dict] = Field(default_factory=list)
 
+    @field_validator("images", "attachments", mode="before")
+    @classmethod
+    def empty_list_if_none(cls, v):
+        return v if v is not None else []
+
 
 class BackupHolidayItem(BaseModel):
     id: str | None = None
@@ -125,7 +136,7 @@ class BackupHolidayItem(BaseModel):
 
 
 class FullBackupData(BaseModel):
-    version: str = "1.7.0"
+    version: str = "1.9.2"
     exported_at: str | None = None
     subjects: list[BackupSubjectItem] = Field(default_factory=list)
     bell_schedules: list[BackupBellItem] = Field(default_factory=list)
@@ -135,6 +146,11 @@ class FullBackupData(BaseModel):
     stored_files: list[BackupStoredFileItem] = Field(default_factory=list)
     lesson_notes: list[BackupLessonNoteItem] = Field(default_factory=list)
     holidays: list[BackupHolidayItem] = Field(default_factory=list)
+
+    @field_validator("subjects", "bell_schedules", "schedule_rules", "homeworks", "schedule_overrides", "stored_files", "lesson_notes", "holidays", mode="before")
+    @classmethod
+    def empty_list_if_none(cls, v):
+        return v if v is not None else []
 
 
 @router.get("/backup/export")
@@ -168,8 +184,8 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             {
                 "id": str(b.id),
                 "lesson_order": b.lesson_order,
-                "start_time": b.start_time,
-                "end_time": b.end_time,
+                "start_time": b.start_time.strftime("%H:%M:%S") if hasattr(b.start_time, "strftime") else str(b.start_time),
+                "end_time": b.end_time.strftime("%H:%M:%S") if hasattr(b.end_time, "strftime") else str(b.end_time),
                 "name": b.name,
             }
             for b in bells
@@ -184,12 +200,14 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             {
                 "id": str(r.id),
                 "subject_id": str(r.subject_id),
+                "subject_name": r.subject.name if getattr(r, "subject", None) else None,
                 "day_of_week": r.day_of_week,
-                "week_type": r.week_type,
+                "week_type": r.week_type.value if hasattr(r.week_type, "value") else str(r.week_type),
                 "lesson_order": r.lesson_order,
-                "start_time": r.start_time,
-                "end_time": r.end_time,
+                "start_time": r.start_time.strftime("%H:%M:%S") if hasattr(r.start_time, "strftime") else str(r.start_time),
+                "end_time": r.end_time.strftime("%H:%M:%S") if hasattr(r.end_time, "strftime") else str(r.end_time),
                 "cabinet": r.cabinet,
+                "is_consultation": getattr(r, "is_consultation", False),
             }
             for r in rules
         ]
@@ -201,6 +219,7 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             {
                 "id": str(h.id),
                 "subject_id": str(h.subject_id),
+                "subject_name": h.subject.name if getattr(h, "subject", None) else None,
                 "due_date": h.due_date.isoformat() if isinstance(h.due_date, (date, datetime)) else str(h.due_date),
                 "lesson_order": h.lesson_order,
                 "text": h.text,
@@ -257,6 +276,7 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             {
                 "id": str(n.id),
                 "subject_id": str(n.subject_id),
+                "subject_name": n.subject.name if getattr(n, "subject", None) else None,
                 "date": n.date.isoformat() if isinstance(n.date, (date, datetime)) else str(n.date),
                 "lesson_order": n.lesson_order,
                 "text": n.text,
@@ -280,7 +300,7 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
         ]
 
         return {
-            "version": "1.7.5",
+            "version": "1.9.2",
             "exported_at": datetime.utcnow().isoformat() + "Z",
             "subjects": subjects_data,
             "bell_schedules": bells_data,
@@ -407,15 +427,17 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
             except (ValueError, TypeError):
                 r_uuid = uuid4()
 
+            wt = r_item.week_type.value if hasattr(r_item.week_type, "value") else str(r_item.week_type)
             rule = ScheduleRule(
                 id=r_uuid,
                 subject_id=target_subject_id,
                 day_of_week=r_item.day_of_week,
-                week_type=r_item.week_type,
+                week_type=wt,
                 lesson_order=r_item.lesson_order,
                 start_time=parse_time_str(r_item.start_time, default_hour=8, default_minute=30),
                 end_time=parse_time_str(r_item.end_time, default_hour=9, default_minute=15),
                 cabinet=r_item.cabinet,
+                is_consultation=bool(getattr(r_item, "is_consultation", False)),
             )
             db.add(rule)
             imported_rules_count += 1

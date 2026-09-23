@@ -302,6 +302,14 @@ export const LessonCard = memo(function LessonCard({ lesson, onFindNextLesson, o
               );
             })()}
 
+            {/* Consultation badge */}
+            {lesson.is_consultation && !lesson.is_cancelled && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 leading-none">
+                <span className="shrink-0">💬</span>
+                <span className="truncate">{t('consultation_badge')}</span>
+              </span>
+            )}
+
             {isCurrentLesson && (
               <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-accent text-white shadow-xs animate-pulse leading-none">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />

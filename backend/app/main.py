@@ -74,6 +74,9 @@ async def lifespan(app: FastAPI):
             """))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_holidays_start_date ON holidays (start_date);"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_holidays_end_date ON holidays (end_date);"))
+            await conn.execute(
+                text("ALTER TABLE schedule_rules ADD COLUMN IF NOT EXISTS is_consultation BOOLEAN DEFAULT FALSE;")
+            )
             logger.info("Database safety column verification completed.")
     except Exception as e:
         logger.warning(f"Database safety migration check warning: {e}")

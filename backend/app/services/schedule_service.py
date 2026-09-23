@@ -169,6 +169,7 @@ async def get_schedule_for_range(
                 is_cancelled=is_cancelled,
                 override_note=override_note,
                 event_type=event_type,
+                is_consultation=bool(getattr(rule, 'is_consultation', False) or False),
             )
             lessons.append(lesson)
 
@@ -199,6 +200,7 @@ async def get_schedule_for_range(
                         is_cancelled=override.is_cancelled,
                         override_note=override.note,
                         event_type=getattr(override, "event_type", None),
+                        is_consultation=False,
                     )
                     lessons.append(lesson)
 

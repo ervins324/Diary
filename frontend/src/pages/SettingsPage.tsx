@@ -69,6 +69,8 @@ import {
   setDayShiftAfterHour,
   getCachedLocalStorage,
   setCachedLocalStorage,
+  getHwIconSize,
+  setHwIconSize,
 } from '../lib/storage';
 import {
   getAllEventTypes,
@@ -130,7 +132,15 @@ export function SettingsPage() {
     window.dispatchEvent(new Event('live_widget_settings_changed'));
   };
 
+  /* Homework icon size setting */
+  const [hwIconSize, setHwIconSizeState] = useState<'small' | 'medium' | 'large'>(() => getHwIconSize());
+  const handleHwIconSizeChange = (size: 'small' | 'medium' | 'large') => {
+    setHwIconSizeState(size);
+    setHwIconSize(size);
+  };
+
   /* Custom Event & Lesson Types State */
+
   const [customEvents, setCustomEvents] = useState<CustomEventType[]>(getAllEventTypes);
   const [customLessons, setCustomLessons] = useState<CustomLessonType[]>(getAllLessonTypes);
 
@@ -314,9 +324,10 @@ export function SettingsPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to export full backup:', err);
-      alert('Failed to export backup.');
+      const detail = err.response?.data?.detail || err.message || '';
+      alert(`${t('export_backup_failed')}${detail ? `: ${detail}` : ''}`);
     } finally {
       setIsExportingBackup(false);
     }
@@ -341,7 +352,8 @@ export function SettingsPage() {
       queryClient.invalidateQueries();
     } catch (err: any) {
       console.error('Failed to import backup:', err);
-      alert(`${t('import_backup_failed')}${err.response?.data?.detail ? `: ${err.response.data.detail}` : ''}`);
+      const detail = err.response?.data?.detail || err.message || '';
+      alert(`${t('import_backup_failed')}${detail ? `: ${detail}` : ''}`);
     } finally {
       setIsImportingBackup(false);
     }
@@ -614,6 +626,32 @@ export function SettingsPage() {
                   >
                     English
                   </button>
+                </div>
+              </div>
+
+              {/* Homework Icon Size on Mobile */}
+              <div className="pt-3 border-t border-border-light flex items-center justify-between">
+                <div className="pr-4">
+                  <p className="font-medium text-text-primary flex items-center gap-1.5">
+                    <Brush size={16} className="text-accent" />
+                    <span>{t('hw_icon_size')}</span>
+                  </p>
+                  <p className="text-sm text-text-muted">{t('hw_icon_size_desc')}</p>
+                </div>
+                <div className="flex bg-bg-tertiary p-1 rounded-lg border border-border">
+                  {(['small', 'medium', 'large'] as const).map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => handleHwIconSizeChange(size)}
+                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                        hwIconSize === size
+                          ? 'bg-accent text-white shadow-xs'
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {t(`hw_icon_size_${size}` as any)}
+                    </button>
+                  ))}
                 </div>
               </div>
             </section>

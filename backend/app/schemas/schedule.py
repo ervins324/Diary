@@ -1,6 +1,6 @@
 import uuid
 from datetime import time, date
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from app.schemas.subject import SubjectRead
 from app.schemas.homework import HomeworkRead
 from app.schemas.lesson_note import LessonNoteRead
@@ -13,6 +13,12 @@ class ScheduleRuleCreate(BaseModel):
     start_time: time
     end_time: time
     cabinet: str | None = None
+    is_consultation: bool = False
+
+    @field_validator("is_consultation", mode="before")
+    @classmethod
+    def default_false_if_none(cls, v):
+        return bool(v) if v is not None else False
 
 class ScheduleRuleRead(BaseModel):
     id: uuid.UUID
@@ -23,7 +29,13 @@ class ScheduleRuleRead(BaseModel):
     start_time: time
     end_time: time
     cabinet: str | None
+    is_consultation: bool = False
     subject: SubjectRead
+
+    @field_validator("is_consultation", mode="before")
+    @classmethod
+    def default_false_if_none(cls, v):
+        return bool(v) if v is not None else False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -41,6 +53,12 @@ class LessonSlot(BaseModel):
     is_cancelled: bool = False
     override_note: str | None = None
     event_type: str | None = None  # control_work, test, essay, project, or None
+    is_consultation: bool = False
+
+    @field_validator("is_consultation", mode="before")
+    @classmethod
+    def default_false_if_none(cls, v):
+        return bool(v) if v is not None else False
 
 class ScheduleOverrideCreate(BaseModel):
     date: date
@@ -143,6 +161,7 @@ class BulkCommitByNameRule(BaseModel):
     start_time: time
     end_time: time
     cabinet: str | None = None
+    is_consultation: bool = False
 
 
 class BulkCommitByNameRequest(BaseModel):

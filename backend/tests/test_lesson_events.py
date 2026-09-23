@@ -116,7 +116,11 @@ class TestLessonEventsAndStability(unittest.IsolatedAsyncioTestCase):
         mock_notes_res = MagicMock()
         mock_notes_res.scalars.return_value.all.return_value = []
 
-        mock_db.execute.side_effect = [mock_hw_res, mock_ov_res, mock_notes_res, mock_rules_res]
+        # 5. Holidays query
+        mock_holiday_res = MagicMock()
+        mock_holiday_res.scalars.return_value.all.return_value = []
+
+        mock_db.execute.side_effect = [mock_hw_res, mock_ov_res, mock_notes_res, mock_holiday_res, mock_rules_res]
 
         days = await build_schedule_for_date_range(
             db=mock_db,
@@ -145,6 +149,34 @@ class TestLessonEventsAndStability(unittest.IsolatedAsyncioTestCase):
 
         restored = BackupScheduleOverrideItem.model_validate(data)
         self.assertEqual(restored.event_type, "project")
+
+    async def test_backup_consultation_roundtrip(self):
+        """Verify BackupScheduleRuleItem preserves is_consultation flag."""
+        from app.routers.system import BackupScheduleRuleItem
+        rule_item = BackupScheduleRuleItem(
+            day_of_week=1,
+            week_type="numerator",
+            lesson_order=7,
+            start_time="15:15:00",
+            end_time="16:00:00",
+            cabinet="204",
+            is_consultation=True,
+        )
+        dumped = rule_item.model_dump()
+        self.assertTrue(dumped["is_consultation"])
+
+        restored = BackupScheduleRuleItem.model_validate(dumped)
+        self.assertTrue(restored.is_consultation)
+
+        # Also verify default is False when omitted
+        rule_default = BackupScheduleRuleItem(
+            day_of_week=2,
+            week_type="all",
+            lesson_order=1,
+            start_time="08:30:00",
+            end_time="09:15:00",
+        )
+        self.assertFalse(rule_default.is_consultation)
 
 
 if __name__ == "__main__":

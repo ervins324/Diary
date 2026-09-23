@@ -246,6 +246,55 @@ export function LessonOverrideModal({ isOpen, onClose, lesson }: LessonOverrideM
             </div>
           </div>
 
+          {/* Quick Consultation Skip Button */}
+          {(lesson.is_consultation || eventType === 'consultation') && (
+            <button
+              type="button"
+              onClick={() => {
+                const isSkipNote = note.toLowerCase().includes('пропущ') || note.toLowerCase().includes('skip');
+                if (isCancelled && isSkipNote) {
+                  setIsCancelled(false);
+                  setNote('');
+                } else {
+                  setIsCancelled(true);
+                  setNote(language === 'uk' ? 'Пропущено консультацію' : 'Skipped consultation');
+                }
+              }}
+              className={cn(
+                "w-full flex items-center justify-between p-3 rounded-lg border text-left transition-colors cursor-pointer",
+                isCancelled && (note.toLowerCase().includes('пропущ') || note.toLowerCase().includes('skip'))
+                  ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                  : "bg-bg-secondary border-border text-text-primary hover:bg-indigo-500/10 hover:border-indigo-500/30"
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-base shrink-0">💬</span>
+                <div>
+                  <span className="font-semibold text-xs block">
+                    {language === 'uk' ? 'Консультація (пропустити)' : 'Consultation (Skip class)'}
+                  </span>
+                  <span className="text-[11px] text-text-muted">
+                    {language === 'uk'
+                      ? 'Консультація необовʼязкова. 1 клік — позначити пропущеною'
+                      : 'Consultations are optional. 1-click mark as skipped'}
+                  </span>
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "text-xs px-2.5 py-1 rounded-md font-bold transition-colors",
+                  isCancelled && (note.toLowerCase().includes('пропущ') || note.toLowerCase().includes('skip'))
+                    ? "bg-indigo-500 text-white"
+                    : "bg-bg-tertiary text-text-muted hover:text-text-primary"
+                )}
+              >
+                {isCancelled && (note.toLowerCase().includes('пропущ') || note.toLowerCase().includes('skip'))
+                  ? (language === 'uk' ? 'Пропущено' : 'Skipped')
+                  : (language === 'uk' ? 'Пропустити' : 'Skip')}
+              </span>
+            </button>
+          )}
+
           {/* Quick Air Alert 1-Click Cancellation Button */}
           <button
             type="button"

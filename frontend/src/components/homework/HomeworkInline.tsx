@@ -5,6 +5,7 @@ import { useFileUpload } from '../../hooks/useFileUpload';
 import { fetchNextLesson, fetchPreviousLesson } from '../../hooks/useScheduleOverrides';
 import type { HomeworkEntry, Attachment } from '../../types';
 import { cn, compressImageFile, formatDate } from '../../lib/utils';
+import { getHwIconSize } from '../../lib/storage';
 import { AttachmentChip } from './AttachmentChip';
 import { AddLinkModal } from './AddLinkModal';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -32,6 +33,16 @@ export function HomeworkInline({
   onFindPreviousLesson,
 }: HomeworkInlineProps) {
   const { language, t } = useLanguage();
+  /* Homework icon size from user settings */
+  const hwIconSize = getHwIconSize();
+  const iconSizeMap = { small: 12, medium: 14, large: 16 } as const;
+  const iconPx = iconSizeMap[hwIconSize];
+  const iconBtnClass = hwIconSize === 'small'
+    ? 'p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[28px] min-h-[28px] md:min-w-[24px] md:min-h-[24px]'
+    : hwIconSize === 'large'
+    ? 'p-2 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[44px] min-h-[44px] md:min-w-[24px] md:min-h-[24px]'
+    : 'p-1.5 md:p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[36px] min-h-[36px] md:min-w-[24px] md:min-h-[24px]';
+
   const [isEditing, setIsEditing] = useState(false);
   /* Use homework.text to match backend HomeworkRead schema */
   const [editText, setEditText] = useState(homework.text);
@@ -611,65 +622,65 @@ export function HomeworkInline({
               type="button"
               onClick={handleToggleFailed}
               className={cn(
-                "p-1.5 md:p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]",
+                iconBtnClass,
                 homework.is_failed
                   ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 hover:bg-rose-500/25"
                   : "text-text-muted hover:text-rose-500 hover:bg-rose-500/10"
               )}
               title={homework.is_failed ? t('hw_unmark_failed') : t('hw_mark_failed')}
             >
-              <XCircle size={14} />
+              <XCircle size={iconPx} />
             </button>
             {/* Stopwatch toggle button */}
             <button
               onClick={() => setIsTimerOpen((prev) => !prev)}
               className={cn(
-                "p-1.5 md:p-1 rounded-md transition-all active:scale-95 flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]",
+                iconBtnClass,
                 timerRunning ? "text-accent bg-accent/10 animate-pulse" : (secondsSpent > 0 ? "text-accent/80 hover:text-accent hover:bg-bg-tertiary" : "text-text-muted hover:text-accent hover:bg-bg-tertiary")
               )}
               title={t('hw_timer_label')}
             >
-              <Timer size={14} />
+              <Timer size={iconPx} />
             </button>
             {/* Locate previous lesson button */}
             <button
               onClick={handleLocatePrevious}
               disabled={isLocatingPrev}
-              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]"
+              className={cn(iconBtnClass, "text-text-muted hover:text-accent hover:bg-bg-tertiary")}
               title={
                 language === 'uk'
                   ? 'Повернутися до попереднього уроку цього предмету'
                   : 'Return to previous lesson of this subject'
               }
             >
-              {isLocatingPrev ? <Loader2 size={14} className="animate-spin text-accent" /> : <RotateCcw size={14} />}
+              {isLocatingPrev ? <Loader2 size={iconPx} className="animate-spin text-accent" /> : <RotateCcw size={iconPx} />}
             </button>
             {/* Locate next lesson button */}
             <button
               onClick={handleLocateNext}
               disabled={isLocating}
-              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]"
+              className={cn(iconBtnClass, "text-text-muted hover:text-accent hover:bg-bg-tertiary")}
               title={
                 language === 'uk'
                   ? 'Перейти та підсвітити наступний урок (найближчий до сьогодні)'
                   : 'Locate & highlight next lesson closest to today'
               }
             >
-              {isLocating ? <Loader2 size={14} className="animate-spin text-accent" /> : <Compass size={14} />}
+              {isLocating ? <Loader2 size={iconPx} className="animate-spin text-accent" /> : <Compass size={iconPx} />}
             </button>
             <button
               onClick={() => setIsEditing(true)}
-              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-accent hover:bg-bg-tertiary active:scale-95 transition-all flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]"
+              className={cn(iconBtnClass, "text-text-muted hover:text-accent hover:bg-bg-tertiary")}
               title="Edit"
             >
-              <Edit2 size={14} />
+              <Edit2 size={iconPx} />
             </button>
             <button
               onClick={handleDelete}
-              className="p-1.5 md:p-1 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 active:scale-95 transition-all flex items-center justify-center min-w-[40px] min-h-[40px] md:min-w-[24px] md:min-h-[24px]"
+              className={cn(iconBtnClass, "text-text-muted hover:text-danger hover:bg-danger/10")}
               title="Delete"
             >
-              <Trash2 size={14} />
+              <Trash2 size={iconPx} />
             </button>
           </div>
         </div>

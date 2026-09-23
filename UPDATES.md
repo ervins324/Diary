@@ -1,5 +1,43 @@
 # School Diary — Changelog
 
+## v1.9.2 — 2026-09-23
+
+### 📚 Consultation Lesson Type (Full-Stack)
+- **Backend**: Added `is_consultation` boolean column to `schedule_rules` table (`ScheduleRule` model, Alembic migration `013`). Includes idempotent startup safety migration in `main.py`.
+- **Schemas**: Updated `ScheduleRuleCreate`, `ScheduleRuleRead`, `LessonSlot`, and `BulkCommitByNameRule` to include `is_consultation: bool = False`.
+- **Router**: `bulk_commit_by_name` now passes `is_consultation` when creating `ScheduleRule` instances.
+- **Schedule Service**: `LessonSlot` objects carry `is_consultation` from recurring rules; standalone overrides default to `false`.
+- **Frontend Types**: Added `is_consultation?: boolean` to `LessonSlot`, `ScheduleRuleItem`, and `AiParsedLesson`.
+- **Schedule Editor UI**: Renamed column to full header `💬 Консультація` with explicit toggle badges and added a guidance banner in `ScheduleEditorModal.tsx`.
+- **Diary Quick Access**: Added quick `📅 Редактор розкладу` button directly into the top header of `DiaryPage.tsx` for easy access.
+- **Lesson Override Modal Quick Action**: Added 1-click `💬 Пропустити консультацію` / `Skip Consultation` button to `LessonOverrideModal.tsx` for fast skipping of optional consultations, plus added `consultation` to built-in event types for marking one-off consultations on any date.
+- **LessonCard Badge**: Shows 💬 "Консультація" badge when `is_consultation` is true. Cancelled consultations use the normal "Скасовано" cancelled state.
+
+### 📐 Homework Action Icon Size Setting
+- **Settings > Appearance**: New "Homework icon size" (`hw_icon_size`) setting with Small / Medium / Large three-way toggle, persisted in localStorage.
+- **HomeworkInline**: All 6 action icon buttons (failed, timer, locate-prev, locate-next, edit, delete) now respect the size setting:
+  - **Small**: 12px icons, `min-w-[28px]` touch target
+  - **Medium** (default): 14px icons, `min-w-[36px]` touch target
+  - **Large**: 16px icons, `min-w-[44px]` touch target
+- Desktop sizes remain unchanged (`md:min-w-[24px]`).
+
+### 🔍 Advanced Lightbox Zoom & 2D Pan
+- **Step Zoom Controller**: Replaced toggle with step-based zoom controls: `[−]` `100%` `[+]` cycling through **75% → 100% → 125% → 150% → 175% → 200%**.
+- **2D Drag to Pan**: When zoomed in (>100%), users can now smoothly drag/pan across the image in 2D with mouse (`cursor: grab` / `cursor: grabbing`) or touch.
+- **Zoom Reset & Navigation**: Click percentage label to reset to 100%, double-click to toggle 100%/150%, and horizontal touch swipe navigates between images at 75% and 100% zoom. Visual "Drag to pan" badge appears when zoomed in.
+
+### 💾 Settings Save Audit
+- Verified all settings handlers correctly use `setCachedLocalStorage` for persistent writes.
+- Added `getHwIconSize()` / `setHwIconSize()` to `lib/storage.ts` with proper cache integration.
+
+### 🔄 JSON Backup & Restore Fixes
+- **Alembic Migration Fix**: Fixed revision linking (`013_schedule_rule_consultation` -> `012_holidays`), resolving the container crash on startup that caused 502 upstream errors when hitting backup and settings endpoints.
+- **Backup Model Resiliency**: Added `@field_validator` across `FullBackupData`, `BackupHomeworkItem`, and `BackupLessonNoteItem` to gracefully handle `null` arrays from legacy or partial backups without 422 Unprocessable Entity errors.
+- **Consultation Backup Support**: `BackupScheduleRuleItem` now exports and restores `is_consultation` boolean flags cleanly.
+- **String Time Formats**: Formatted bell and rule timestamps to standardized `HH:MM:SS` strings on export.
+- **Error Reporting**: Improved frontend backup export and import error messaging in `SettingsPage.tsx` to surface detailed backend failure messages.
+
+---
 ## v1.9.1 — 2026-09-15
 
 ### 🔧 TypeScript Build Fixes

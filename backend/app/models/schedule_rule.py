@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import time
-from sqlalchemy import String, SmallInteger, ForeignKey, Enum, UniqueConstraint, Time
+from sqlalchemy import String, SmallInteger, ForeignKey, Enum, UniqueConstraint, Time, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
@@ -26,6 +26,7 @@ class ScheduleRule(Base):
     start_time: Mapped[time] = mapped_column(Time, nullable=False)
     end_time: Mapped[time] = mapped_column(Time, nullable=False)
     cabinet: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    is_consultation: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     subject: Mapped["Subject"] = relationship("Subject", lazy="selectin")
 

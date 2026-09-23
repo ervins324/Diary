@@ -148,3 +148,21 @@ export function getDayShiftAfterHour(): number | null {
 export function setDayShiftAfterHour(hour: number | null): void {
   setCachedLocalStorage(DAY_SHIFT_AFTER_KEY, hour === null ? 'off' : String(hour));
 }
+
+const HW_ICON_SIZE_KEY = 'hw_icon_size';
+
+/**
+ * Gets the homework icon size preference. Returns 'small', 'medium' (default), or 'large'.
+ */
+export function getHwIconSize(): 'small' | 'medium' | 'large' {
+  const val = getCachedLocalStorage(HW_ICON_SIZE_KEY);
+  if (val === 'small' || val === 'large') return val;
+  return 'medium';
+}
+
+/**
+ * Sets the homework icon size preference.
+ */
+export function setHwIconSize(size: 'small' | 'medium' | 'large'): void {
+  setCachedLocalStorage(HW_ICON_SIZE_KEY, size);
+}

@@ -49,6 +49,14 @@ export const BUILTIN_EVENT_TYPES: CustomEventType[] = [
     color: '#0ea5e9', // sky-500
     isCustom: false,
   },
+  {
+    id: 'consultation',
+    nameUk: 'Консультація',
+    nameEn: 'Consultation',
+    icon: '💬',
+    color: '#6366f1', // indigo-500
+    isCustom: false,
+  },
 ];
 
 export const BUILTIN_LESSON_TYPES: CustomLessonType[] = [

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { format, addWeeks, subWeeks, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, StickyNote } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Plus, Check, X, Image as ImageIcon, ArrowLeftRight, Compass, RotateCcw, Link as LinkIcon, StickyNote, Calendar } from 'lucide-react';
 import { useSchedule } from '../hooks/useSchedule';
 import { useCreateHomework } from '../hooks/useHomework';
 import { useFileUpload } from '../hooks/useFileUpload';
@@ -14,6 +14,7 @@ import { AttachmentChip } from '../components/homework/AttachmentChip';
 import { AddLinkModal } from '../components/homework/AddLinkModal';
 import { LessonOverrideModal } from '../components/schedule/LessonOverrideModal';
 import { LessonNotesModal } from '../components/schedule/LessonNotesModal';
+import { ScheduleEditorModal } from '../components/schedule/ScheduleEditorModal';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { DaySchedule, LessonSlot, Attachment } from '../types';
 
@@ -41,6 +42,8 @@ export function DiaryPage() {
   const [overrideLesson, setOverrideLesson] = useState<LessonSlot | null>(null);
   /* Active lesson for notes modal */
   const [notesLesson, setNotesLesson] = useState<LessonSlot | null>(null);
+  /* Main schedule editor modal */
+  const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
 
   /* Container ref for mobile horizontal swipe container */
   const mobileContainerRef = useRef<HTMLDivElement>(null);
@@ -659,32 +662,54 @@ export function DiaryPage() {
         {...headerSwipeHandlers}
         className="flex items-center justify-between mb-6 touch-pan-y"
       >
-        <button
-          onClick={handlePrevWeek}
-          className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
-          title="← / A (Previous week)"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        
-        <div
-          className="flex flex-col items-center text-center cursor-pointer select-none p-1 rounded-lg hover:bg-bg-tertiary/50 active:scale-98 transition-all"
-          onClick={handleCurrentWeek}
-          title="T (Jump to Current Week)"
-        >
-          <h1 className="text-xl font-bold text-text-primary">{t('week')}</h1>
-          <span className="text-sm text-text-muted">
-            {format(parseISO(start), 'MMM d')} - {format(parseISO(end), 'MMM d, yyyy')}
-          </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handlePrevWeek}
+            className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
+            title="← / A (Previous week)"
+          >
+            <ChevronLeft size={24} />
+          </button>
         </div>
         
-        <button
-          onClick={handleNextWeek}
-          className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
-          title="→ / D (Next week)"
-        >
-          <ChevronRight size={24} />
-        </button>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex flex-col items-center text-center cursor-pointer select-none p-1 rounded-lg hover:bg-bg-tertiary/50 active:scale-98 transition-all"
+            onClick={handleCurrentWeek}
+            title="T (Jump to Current Week)"
+          >
+            <h1 className="text-xl font-bold text-text-primary">{t('week')}</h1>
+            <span className="text-sm text-text-muted">
+              {format(parseISO(start), 'MMM d')} - {format(parseISO(end), 'MMM d, yyyy')}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setIsScheduleEditorOpen(true)}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-bg-secondary hover:bg-bg-tertiary text-xs font-medium text-text-secondary hover:text-text-primary transition-colors shadow-xs"
+            title={t('schedule_editor')}
+          >
+            <Calendar size={14} className="text-accent" />
+            <span>{t('schedule_editor')}</span>
+          </button>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setIsScheduleEditorOpen(true)}
+            className="sm:hidden p-2 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-accent"
+            title={t('schedule_editor')}
+          >
+            <Calendar size={18} />
+          </button>
+          <button
+            onClick={handleNextWeek}
+            className="p-2.5 rounded-full hover:bg-bg-tertiary active:scale-95 transition-all text-text-secondary hover:text-text-primary"
+            title="→ / D (Next week)"
+          >
+            <ChevronRight size={24} />
+          </button>
+        </div>
       </header>
 
       {/* Content */}
@@ -744,6 +769,12 @@ export function DiaryPage() {
           lesson={notesLesson}
         />
       )}
+
+      {/* Main Schedule Editor Modal */}
+      <ScheduleEditorModal
+        isOpen={isScheduleEditorOpen}
+        onClose={() => setIsScheduleEditorOpen(false)}
+      />
     </div>
   );
 }

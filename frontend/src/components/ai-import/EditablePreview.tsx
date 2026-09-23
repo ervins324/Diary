@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import type { AiParsedDay, AiParsedLesson, BellSlot } from '../../types';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { cn } from '../../lib/utils';
 
 interface EditablePreviewProps {
   data: AiParsedDay[];
@@ -37,7 +38,8 @@ export function EditablePreview({ data, onChange, bellSlots }: EditablePreviewPr
       subject_name: 'New Subject',
       start_time: defaultStart,
       end_time: defaultEnd,
-      cabinet: ''
+      cabinet: '',
+      is_consultation: false
     });
     onChange(newData);
   };
@@ -58,6 +60,9 @@ export function EditablePreview({ data, onChange, bellSlots }: EditablePreviewPr
             <th className="px-3 py-2 border-b border-border font-medium">{t('table_start')}</th>
             <th className="px-3 py-2 border-b border-border font-medium">{t('table_end')}</th>
             <th className="px-3 py-2 border-b border-border font-medium w-20">{t('table_cab')}</th>
+            <th className="px-3 py-2 border-b border-border font-medium text-center whitespace-nowrap min-w-[130px]" title={t('consultation_badge')}>
+              💬 {t('table_consultation')}
+            </th>
             <th className="px-3 py-2 border-b border-border font-medium w-10"></th>
           </tr>
         </thead>
@@ -65,7 +70,7 @@ export function EditablePreview({ data, onChange, bellSlots }: EditablePreviewPr
           {data.map((day, dayIndex) => (
             <div key={dayIndex} className="contents">
               <tr>
-                <td colSpan={6} className="px-3 py-2 bg-bg-secondary font-semibold text-text-primary border-b border-border">
+                <td colSpan={7} className="px-3 py-2 bg-bg-secondary font-semibold text-text-primary border-b border-border">
                   <div className="flex justify-between items-center">
                     <span>{day.day_name}</span>
                     <button 
@@ -120,6 +125,24 @@ export function EditablePreview({ data, onChange, bellSlots }: EditablePreviewPr
                     />
                   </td>
                   <td className="px-3 py-1.5 text-center">
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer justify-center select-none" title={t('consultation_badge')}>
+                      <input
+                        type="checkbox"
+                        checked={lesson.is_consultation || false}
+                        onChange={(e) => updateLesson(dayIndex, lessonIndex, 'is_consultation', e.target.checked)}
+                        className="rounded text-accent focus:ring-accent cursor-pointer w-4 h-4"
+                      />
+                      <span className={cn(
+                        "text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors hidden sm:inline",
+                        lesson.is_consultation
+                          ? "bg-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+                          : "text-text-muted hover:text-text-secondary"
+                      )}>
+                        {lesson.is_consultation ? t('consultation_badge') : ''}
+                      </span>
+                    </label>
+                  </td>
+                  <td className="px-3 py-1.5 text-center">
                     <button 
                       onClick={() => removeLesson(dayIndex, lessonIndex)}
                       className="text-text-muted hover:text-danger p-1 rounded"
@@ -131,7 +154,7 @@ export function EditablePreview({ data, onChange, bellSlots }: EditablePreviewPr
               ))}
               {day.lessons.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-4 text-center text-text-muted text-sm border-b border-border-light">
+                  <td colSpan={7} className="px-3 py-4 text-center text-text-muted text-sm border-b border-border-light">
                     {t('no_lessons_parsed_day')}
                   </td>
                 </tr>

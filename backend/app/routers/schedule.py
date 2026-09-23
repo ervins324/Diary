@@ -454,6 +454,7 @@ async def bulk_commit_by_name(
             start_time=rule_in.start_time,
             end_time=rule_in.end_time,
             cabinet=rule_in.cabinet,
+            is_consultation=rule_in.is_consultation,
         )
         db.add(rule)
 

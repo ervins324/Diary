@@ -64,6 +64,7 @@ export function ScheduleEditorModal({ isOpen, onClose, initialWeekType = 'numera
             start_time: (r.start_time || fallbackStart).substring(0, 5),
             end_time: (r.end_time || fallbackEnd).substring(0, 5),
             cabinet: r.cabinet || '',
+            is_consultation: (r as any).is_consultation || false,
           };
         }),
       };
@@ -89,6 +90,7 @@ export function ScheduleEditorModal({ isOpen, onClose, initialWeekType = 'numera
           start_time: (lesson.start_time || fallbackStart).substring(0, 5),
           end_time: (lesson.end_time || fallbackEnd).substring(0, 5),
           cabinet: lesson.cabinet || null,
+          is_consultation: lesson.is_consultation || false,
         };
       })
     );
@@ -150,8 +152,14 @@ export function ScheduleEditorModal({ isOpen, onClose, initialWeekType = 'numera
               <span>Loading schedule rules...</span>
             </div>
           ) : (
-            <div className="flex-1 border border-border rounded-lg overflow-hidden bg-bg-primary min-h-0 flex flex-col shadow-xs">
-              <EditablePreview data={scheduleData} onChange={setScheduleData} bellSlots={bellSlots} />
+            <div className="flex-1 flex flex-col min-h-0 gap-2">
+              <div className="px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-2 shrink-0">
+                <span className="text-base shrink-0">💬</span>
+                <span>{t('schedule_editor_consultation_hint')}</span>
+              </div>
+              <div className="flex-1 border border-border rounded-lg overflow-hidden bg-bg-primary min-h-0 flex flex-col shadow-xs">
+                <EditablePreview data={scheduleData} onChange={setScheduleData} bellSlots={bellSlots} />
+              </div>
             </div>
           )}
         </div>
