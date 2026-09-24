@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 // Code-split page components for instant initial bundle loading
 const DailyPage = lazy(() => import('./pages/DailyPage').then(m => ({ default: m.DailyPage })));
 const DiaryPage = lazy(() => import('./pages/DiaryPage').then(m => ({ default: m.DiaryPage })));
+const HomeworkPage = lazy(() => import('./pages/HomeworkPage').then(m => ({ default: m.HomeworkPage })));
 const BellsPage = lazy(() => import('./pages/BellsPage').then(m => ({ default: m.BellsPage })));
 const NotesPage = lazy(() => import('./pages/NotesPage').then(m => ({ default: m.NotesPage })));
 const StatsPage = lazy(() => import('./pages/StatsPage').then(m => ({ default: m.StatsPage })));
@@ -51,6 +52,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<DailyPage />} />
                 <Route path="/diary" element={<DiaryPage />} />
+                <Route path="/homework" element={<HomeworkPage />} />
                 <Route path="/bells" element={<BellsPage />} />
                 <Route path="/notes" element={<NotesPage />} />
                 <Route path="/stats" element={<StatsPage />} />

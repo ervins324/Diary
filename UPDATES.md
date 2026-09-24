@@ -1,5 +1,27 @@
 # School Diary — Changelog
 
+## v1.9.5 — 2026-09-24
+
+### 📝 Dedicated Homework Tab ("Д/З" / `/homework`)
+- **Full-Stack Parity with Mobile App**: Implemented dedicated Homework management page (`HomeworkPage.tsx`) directly accessible via navigation.
+- **Navigation & Mobile-First Integration**:
+  - Added "Д/З" (`nav_homework`) to desktop `Sidebar` and mobile `BottomNav` with `BookCheck` icon.
+  - Responsive layout with mobile floating action button and bottom padding to prevent overlap with `BottomNav`.
+- **Status Filters & Search Controls**:
+  - Filter tabs for `Pending`, `Completed`, `Failed`, and `All` with real-time count badges.
+  - Subject dropdown selector and live keyword search across homework text, subjects, and dates.
+  - Sort selector by Due date (soonest / latest) and Recently created.
+- **Aggregate Performance Banner**: Quick overview metrics for total assignments, pending tasks, completed tasks, failed tasks, completion percentage progress bar, and cumulative study time counter.
+- **Rich Homework Cards**:
+  - Relative due date badges (Overdue, Today, Tomorrow, Future).
+  - 1-click completion toggle with strikethrough transition.
+  - Failed/unprepared toggle marker.
+  - Attached images with fullscreen LightboxGallery zoom & 2D pan, plus PDF, presentation, and link attachment chips.
+  - Integrated study stopwatch timer with background localStorage persistence and auto-saving elapsed study duration.
+  - Direct navigation to date on Diary page.
+- **Homework Form Modal (`HomeworkFormModal.tsx`)**:
+  - Supports both creation and editing with subject selection, due date quick presets (Today, Tomorrow, Next Monday), lesson order, image compression, PDF/PPT document uploads, link adder, and direct `Ctrl+V` clipboard screenshot pasting.
+
 ## v1.9.4 — 2026-09-24
 
 ### 📱 Flutter Companion App Stability & Sync Diagnostics (v1.0.2)
