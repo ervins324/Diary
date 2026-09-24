@@ -43,6 +43,7 @@ async def create_homework(hw_in: HomeworkCreate, db: AsyncSession = Depends(get_
     return hw
 
 @router.patch("/{id}", response_model=HomeworkRead)
+@router.put("/{id}", response_model=HomeworkRead, include_in_schema=False)
 async def update_homework(id: uuid.UUID, hw_in: HomeworkUpdate, db: AsyncSession = Depends(get_db)):
     """Update a homework entry."""
     hw = await db.get(HomeworkEntry, id)

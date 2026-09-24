@@ -43,6 +43,7 @@ async def get_subject(id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     return subject
 
 @router.patch("/{id}", response_model=SubjectRead)
+@router.put("/{id}", response_model=SubjectRead, include_in_schema=False)
 async def update_subject(id: uuid.UUID, subject_in: SubjectUpdate, db: AsyncSession = Depends(get_db)):
     """Update subject."""
     subject = await db.get(Subject, id)

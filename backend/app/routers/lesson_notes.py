@@ -40,6 +40,7 @@ async def create_lesson_note(note_in: LessonNoteCreate, db: AsyncSession = Depen
     return note
 
 @router.patch("/{id}", response_model=LessonNoteRead)
+@router.put("/{id}", response_model=LessonNoteRead, include_in_schema=False)
 async def update_lesson_note(id: uuid.UUID, note_in: LessonNoteUpdate, db: AsyncSession = Depends(get_db)):
     """Update a lesson note's text."""
     note = await db.get(LessonNote, id)

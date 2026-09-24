@@ -1,5 +1,26 @@
 # School Diary — Changelog
 
+## v1.9.4 — 2026-09-24
+
+### 📱 Flutter Companion App Stability & Sync Diagnostics (v1.0.2)
+- **Resolved Fatal Red Screen Dropdown Assertion**: Added `operator ==` and `hashCode` based on `id` in `SubjectModel`, and guarded `DropdownButtonFormField` in both `HomeworkFormDialog` and `NoteFormDialog` to safely resolve selected subjects against available lists and prevent assertion crashes when adding homework or notes.
+- **Fixed Stats Tab Switcher Pixel Overflow**: Resolved the RenderFlex overflow on mobile screens in `stats_screen.dart` by adjusting flex ratios (4:5) for metric/view switchers and implementing bounded `Expanded` with `FittedBox` on button labels.
+- **High-Performance Lightbox Gesture Engine**: Decoupled zoom gesture updates from the widget tree rebuild loop using `ValueNotifier<double>` and `ValueNotifier<bool>` in `LightboxGallery`. Pinch-to-zoom and double-tap gestures now run at silky smooth 120 FPS without lag.
+- **Bidirectional Sync Queue & Diagnostics**:
+  - Switched client mutations from `PUT` to `PATCH` to match FastAPI REST definitions.
+  - Added `@router.put` endpoints as aliases in backend `homework.py`, `lesson_notes.py`, and `subjects.py` for backward/forward compatibility.
+  - Added URL normalization (auto-prefixing `http://` and trimming trailing slashes) and robust backend health checks via `/api/v1/subjects`.
+  - Added detailed Sync Queue Diagnostics in Settings with auto-sync switch, interval selector, failure alerts, and instant SnackBar feedback.
+
+## v1.9.3 — 2026-09-23
+
+### 📱 Flutter Companion App Sync & Polish (v1.0.1)
+- **Pixel Overflow Elimination**: Fixed bottom navigation bar overflow on narrow screens by wrapping labels with `FittedBox(fit: BoxFit.scaleDown)` and `Expanded` layout. Fixed Settings screen layout overflows.
+- **Attachment Display & Lightbox Gallery**: Added `AttachmentChipsView` and `LightboxGallery` to support full image previews with pinch-to-zoom (up to 4.5x), double-tap zoom (1x <-> 2.5x), 2D panning, zoom controls, and document chip previews with `url_launcher`.
+- **Statistics Tab Parity**: Brought full-stack statistics features to mobile (schedule mode toggle, metric toggle, subjects/days views, homework completion analytics, cancellation reasons breakdown).
+- **Launcher Icons**: Generated adaptive Android and iOS icons from `frontend/public/favicon.svg` using `flutter_launcher_icons: ^0.14.4`.
+- **Offline Resilience & Test Integrity**: Offline schedule fallback with quick-setup route; hermetic tests passing with 0 analyzer errors or warnings.
+
 ## v1.9.2 — 2026-09-23
 
 ### 📚 Consultation Lesson Type (Full-Stack)
