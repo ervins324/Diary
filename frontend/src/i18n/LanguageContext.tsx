@@ -1,5 +1,6 @@
-﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { translations, Language, TranslationKey } from './translations';
+import { updateAppSettings } from '../api/client';
 
 interface LanguageContextType {
   language: Language;
@@ -18,6 +19,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('diary_language', lang);
+    updateAppSettings({ language: lang }).catch(() => {});
   };
 
   useEffect(() => {

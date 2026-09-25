@@ -14,6 +14,7 @@ import { useBells, useSaveBellSlot, useDeleteBellSlot } from '../hooks/useBells'
 import { AiBellsImportModal } from '../components/ai-import/AiBellsImportModal';
 import { useLanguage } from '../i18n/LanguageContext';
 import { isLessonNow, cn } from '../lib/utils';
+import { getDefaultLessonDuration, getDefaultBreakDuration } from '../lib/storage';
 import type { BellSlot } from '../types';
 
 export function BellsPage() {
@@ -22,15 +23,31 @@ export function BellsPage() {
   const saveMutation = useSaveBellSlot();
   const deleteMutation = useDeleteBellSlot();
 
+  // Helper to add minutes to HH:MM time string
+  const addMinutesToTime = (timeStr: string, minutes: number): string => {
+    try {
+      const [h, m] = timeStr.substring(0, 5).split(':').map(Number);
+      const total = h * 60 + m + minutes;
+      const newH = Math.floor(total / 60) % 24;
+      const newM = total % 60;
+      return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+    } catch {
+      return timeStr;
+    }
+  };
+
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<BellSlot>>({});
   const [isAdding, setIsAdding] = useState(false);
-  const [addForm, setAddForm] = useState<Partial<BellSlot>>({
-    lesson_order: 1,
-    start_time: '08:30',
-    end_time: '09:15',
-    name: '1 урок',
+  const [addForm, setAddForm] = useState<Partial<BellSlot>>(() => {
+    const lessonDur = getDefaultLessonDuration();
+    return {
+      lesson_order: 1,
+      start_time: '08:30',
+      end_time: addMinutesToTime('08:30', lessonDur),
+      name: '1 урок',
+    };
   });
 
   // Calculate duration in minutes between two HH:MM strings
@@ -83,12 +100,17 @@ export function BellsPage() {
       name: addForm.name || `${addForm.lesson_order} урок`,
     });
     setIsAdding(false);
-    // Suggest next lesson order
+    // Suggest next lesson order and times based on configured defaults
     const nextOrder = (Number(addForm.lesson_order) || 1) + 1;
+    const currentEnd = (addForm.end_time || '09:15').substring(0, 5);
+    const breakDur = getDefaultBreakDuration();
+    const lessonDur = getDefaultLessonDuration();
+    const nextStart = addMinutesToTime(currentEnd, breakDur);
+    const nextEnd = addMinutesToTime(nextStart, lessonDur);
     setAddForm({
       lesson_order: nextOrder,
-      start_time: '09:25',
-      end_time: '10:10',
+      start_time: nextStart,
+      end_time: nextEnd,
       name: `${nextOrder} урок`,
     });
   };
@@ -127,11 +149,20 @@ export function BellsPage() {
           </button>
           <button
             onClick={() => {
-              const nextOrder = sortedBells.length > 0 ? Math.max(...sortedBells.map(b => b.lesson_order)) + 1 : 1;
+              const lessonDur = getDefaultLessonDuration();
+              const breakDur = getDefaultBreakDuration();
+              let nextOrder = 1;
+              let nextStart = '08:30';
+              if (sortedBells.length > 0) {
+                const lastBell = sortedBells[sortedBells.length - 1];
+                nextOrder = lastBell.lesson_order + 1;
+                nextStart = addMinutesToTime(lastBell.end_time.substring(0, 5), breakDur);
+              }
+              const nextEnd = addMinutesToTime(nextStart, lessonDur);
               setAddForm({
                 lesson_order: nextOrder,
-                start_time: '08:30',
-                end_time: '09:15',
+                start_time: nextStart,
+                end_time: nextEnd,
                 name: `${nextOrder} урок`,
               });
               setIsAdding(true);
@@ -174,7 +205,15 @@ export function BellsPage() {
               <input
                 type="time"
                 value={addForm.start_time}
-                onChange={e => setAddForm({ ...addForm, start_time: e.target.value })}
+                onChange={e => {
+                  const newStart = e.target.value;
+                  const lessonDur = getDefaultLessonDuration();
+                  setAddForm(prev => ({
+                    ...prev,
+                    start_time: newStart,
+                    end_time: newStart ? addMinutesToTime(newStart, lessonDur) : prev.end_time,
+                  }));
+                }}
                 className="w-full bg-bg-secondary border border-border rounded-lg px-3 py-1.5 text-sm focus:border-accent focus:outline-none font-mono"
               />
             </div>

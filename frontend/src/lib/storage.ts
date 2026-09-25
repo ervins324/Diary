@@ -166,3 +166,50 @@ export function getHwIconSize(): 'small' | 'medium' | 'large' {
 export function setHwIconSize(size: 'small' | 'medium' | 'large'): void {
   setCachedLocalStorage(HW_ICON_SIZE_KEY, size);
 }
+
+const FONT_FAMILY_KEY = 'diary_font_family';
+
+export type SupportedFontFamily = 'inter' | 'montserrat' | 'jetbrains-mono';
+
+/**
+ * Gets the configured font family ('inter' | 'montserrat' | 'jetbrains-mono').
+ * Defaults to 'inter'.
+ */
+export function getFontFamily(): SupportedFontFamily {
+  const val = getCachedLocalStorage(FONT_FAMILY_KEY);
+  if (val === 'montserrat' || val === 'jetbrains-mono') return val;
+  return 'inter';
+}
+
+/**
+ * Sets font family, updates cache, and sets document attribute for live style switching.
+ */
+export function setFontFamily(font: SupportedFontFamily): void {
+  setCachedLocalStorage(FONT_FAMILY_KEY, font);
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-font', font);
+  }
+}
+
+const DEFAULT_LESSON_DURATION_KEY = 'default_lesson_duration';
+const DEFAULT_BREAK_DURATION_KEY = 'default_break_duration';
+
+export function getDefaultLessonDuration(): number {
+  const val = getCachedLocalStorage(DEFAULT_LESSON_DURATION_KEY);
+  const num = val ? parseInt(val, 10) : 45;
+  return isNaN(num) || num <= 0 ? 45 : num;
+}
+
+export function setDefaultLessonDuration(min: number): void {
+  setCachedLocalStorage(DEFAULT_LESSON_DURATION_KEY, String(min));
+}
+
+export function getDefaultBreakDuration(): number {
+  const val = getCachedLocalStorage(DEFAULT_BREAK_DURATION_KEY);
+  const num = val ? parseInt(val, 10) : 10;
+  return isNaN(num) || num < 0 ? 10 : num;
+}
+
+export function setDefaultBreakDuration(min: number): void {
+  setCachedLocalStorage(DEFAULT_BREAK_DURATION_KEY, String(min));
+}

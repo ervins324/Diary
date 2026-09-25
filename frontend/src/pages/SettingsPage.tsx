@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -34,6 +34,7 @@ import {
   BellRing,
   Eye,
   EyeOff,
+  Type,
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import {
@@ -58,6 +59,7 @@ import { AiImportModal } from '../components/ai-import/AiImportModal';
 import { HolidayEditor } from '../components/settings/HolidayEditor';
 import { useAirAlerts } from '../hooks/useAirAlerts';
 import { getAutoCleanConfig, saveAutoCleanConfig, type AutoCleanConfig } from '../hooks/useAutoClean';
+import { useAppSettings, useUpdateAppSettings } from '../hooks/useAppSettings';
 import { cn } from '../lib/utils';
 import { SettingsContents } from '../components/settings/SettingsContents';
 import {
@@ -71,6 +73,12 @@ import {
   setCachedLocalStorage,
   getHwIconSize,
   setHwIconSize,
+  getFontFamily,
+  setFontFamily,
+  getDefaultLessonDuration,
+  setDefaultLessonDuration,
+  getDefaultBreakDuration,
+  setDefaultBreakDuration,
 } from '../lib/storage';
 import {
   getAllEventTypes,
@@ -82,16 +90,44 @@ import {
   type CustomEventType,
   type CustomLessonType,
 } from '../lib/customTypes';
-import type { Subject } from '../types';
+import type { Subject, FontFamily } from '../types';
 
 export function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
   const queryClient = useQueryClient();
+  const { data: backendSettings } = useAppSettings();
+  const updateSettingsMutation = useUpdateAppSettings();
+
   const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
   const [isAiImportModalOpen, setIsAiImportModalOpen] = useState(false);
   const [isClearingAll, setIsClearingAll] = useState(false);
   const [confirmPromptText, setConfirmPromptText] = useState('');
   const [exportNotification, setExportNotification] = useState<string | null>(null);
+
+  /* Font Family state (Montserrat, Inter, JetBrains Mono) */
+  const [currentFont, setCurrentFont] = useState<FontFamily>(() => getFontFamily());
+
+  /* Bell schedule defaults state */
+  const [lessonDuration, setLessonDuration] = useState<number>(() => getDefaultLessonDuration());
+  const [breakDuration, setBreakDuration] = useState<number>(() => getDefaultBreakDuration());
+
+  const handleFontChange = (font: FontFamily) => {
+    setCurrentFont(font);
+    setFontFamily(font);
+    updateSettingsMutation.mutate({ font_family: font });
+  };
+
+  const handleLessonDurationChange = (val: number) => {
+    setLessonDuration(val);
+    setDefaultLessonDuration(val);
+    updateSettingsMutation.mutate({ default_lesson_duration: val });
+  };
+
+  const handleBreakDurationChange = (val: number) => {
+    setBreakDuration(val);
+    setDefaultBreakDuration(val);
+    updateSettingsMutation.mutate({ default_break_duration: val });
+  };
 
   /* Cabinets toggle state (defaults to true) */
   const [showCabinets, setShowCabinets] = useState(isShowCabinetsEnabled);
@@ -112,6 +148,7 @@ export function SettingsPage() {
     const nextVal = !showCabinets;
     setShowCabinets(nextVal);
     setShowCabinetsEnabled(nextVal);
+    updateSettingsMutation.mutate({ show_cabinets: nextVal });
   };
 
   /* Weekend auto-advance toggle state (defaults to true) */
@@ -130,6 +167,7 @@ export function SettingsPage() {
     setter(val);
     setCachedLocalStorage(key, val ? 'true' : 'false');
     window.dispatchEvent(new Event('live_widget_settings_changed'));
+    updateSettingsMutation.mutate({ [key]: val });
   };
 
   /* Homework icon size setting */
@@ -137,7 +175,69 @@ export function SettingsPage() {
   const handleHwIconSizeChange = (size: 'small' | 'medium' | 'large') => {
     setHwIconSizeState(size);
     setHwIconSize(size);
+    updateSettingsMutation.mutate({ hw_icon_size: size });
   };
+
+  // Synchronize state when backend settings are fetched or updated
+  useEffect(() => {
+    if (backendSettings) {
+      if (backendSettings.font_family && backendSettings.font_family !== currentFont) {
+        setCurrentFont(backendSettings.font_family);
+      }
+      if (typeof backendSettings.skip_weekends_to_monday === 'boolean') {
+        setSkipWeekends(backendSettings.skip_weekends_to_monday);
+      }
+      if (backendSettings.day_shift_after_hour !== undefined) {
+        setDayShiftHourState(backendSettings.day_shift_after_hour);
+      }
+      if (typeof backendSettings.show_cabinets === 'boolean') {
+        setShowCabinets(backendSettings.show_cabinets);
+      }
+      if (backendSettings.hw_icon_size) {
+        setHwIconSizeState(backendSettings.hw_icon_size);
+      }
+      if (backendSettings.default_lesson_duration) {
+        setLessonDuration(backendSettings.default_lesson_duration);
+      }
+      if (backendSettings.default_break_duration) {
+        setBreakDuration(backendSettings.default_break_duration);
+      }
+      if (typeof backendSettings.live_widget_enabled === 'boolean') {
+        setLiveWidgetEnabled(backendSettings.live_widget_enabled);
+      }
+      if (typeof backendSettings.live_widget_show_lesson === 'boolean') {
+        setLiveWidgetLesson(backendSettings.live_widget_show_lesson);
+      }
+      if (typeof backendSettings.live_widget_show_homework === 'boolean') {
+        setLiveWidgetHw(backendSettings.live_widget_show_homework);
+      }
+      if (typeof backendSettings.live_widget_show_events === 'boolean') {
+        setLiveWidgetEvents(backendSettings.live_widget_show_events);
+      }
+      if (backendSettings.custom_event_types && Array.isArray(backendSettings.custom_event_types)) {
+        if (backendSettings.custom_event_types.length > 0) {
+          saveCustomEventTypes(backendSettings.custom_event_types);
+          setCustomEvents(getAllEventTypes());
+        } else if (getCustomEventTypes().length > 0) {
+          // Initialize backend with existing local custom events
+          updateSettingsMutation.mutate({ custom_event_types: getCustomEventTypes() });
+        }
+      }
+      if (backendSettings.custom_lesson_types && Array.isArray(backendSettings.custom_lesson_types)) {
+        if (backendSettings.custom_lesson_types.length > 0) {
+          saveCustomLessonTypes(backendSettings.custom_lesson_types);
+          setCustomLessons(getAllLessonTypes());
+        } else if (getCustomLessonTypes().length > 0) {
+          // Initialize backend with existing local custom lessons
+          updateSettingsMutation.mutate({ custom_lesson_types: getCustomLessonTypes() });
+        }
+      }
+      if (backendSettings.auto_clean_settings && typeof backendSettings.auto_clean_settings === 'object' && Object.keys(backendSettings.auto_clean_settings).length > 0) {
+        saveAutoCleanConfig(backendSettings.auto_clean_settings as AutoCleanConfig);
+        setAutoClean(backendSettings.auto_clean_settings as AutoCleanConfig);
+      }
+    }
+  }, [backendSettings]);
 
   /* Custom Event & Lesson Types State */
 
@@ -172,6 +272,7 @@ export function SettingsPage() {
     const updated = [...existing, newEntry];
     saveCustomEventTypes(updated);
     setCustomEvents(getAllEventTypes());
+    updateSettingsMutation.mutate({ custom_event_types: updated });
     setNewEventNameUk('');
     setNewEventNameEn('');
   };
@@ -181,6 +282,7 @@ export function SettingsPage() {
     const updated = existing.filter((e) => e.id !== id);
     saveCustomEventTypes(updated);
     setCustomEvents(getAllEventTypes());
+    updateSettingsMutation.mutate({ custom_event_types: updated });
   };
 
   const handleAddCustomLesson = (e: React.FormEvent) => {
@@ -199,6 +301,7 @@ export function SettingsPage() {
     const updated = [...existing, newEntry];
     saveCustomLessonTypes(updated);
     setCustomLessons(getAllLessonTypes());
+    updateSettingsMutation.mutate({ custom_lesson_types: updated });
     setNewLessonNameUk('');
     setNewLessonNameEn('');
   };
@@ -208,6 +311,7 @@ export function SettingsPage() {
     const updated = existing.filter((l) => l.id !== id);
     saveCustomLessonTypes(updated);
     setCustomLessons(getAllLessonTypes());
+    updateSettingsMutation.mutate({ custom_lesson_types: updated });
   };
 
   const [isExportingBackup, setIsExportingBackup] = useState(false);
@@ -239,6 +343,7 @@ export function SettingsPage() {
     const next = { ...autoClean, ...updates };
     setAutoClean(next);
     saveAutoCleanConfig(next);
+    updateSettingsMutation.mutate({ auto_clean_settings: next });
   };
 
   /* Storage stats query */
@@ -296,18 +401,20 @@ export function SettingsPage() {
     }
   };
 
-  /* Toggle weekend auto-advance behavior and persist to localStorage */
+  /* Toggle weekend auto-advance behavior and persist to localStorage & backend */
   const handleToggleWeekendSkip = () => {
     const nextVal = !skipWeekends;
     setSkipWeekends(nextVal);
     setSkipWeekendsEnabled(nextVal);
+    updateSettingsMutation.mutate({ skip_weekends_to_monday: nextVal });
   };
 
-  /* Change day-shift-after cutoff hour and persist to localStorage */
+  /* Change day-shift-after cutoff hour and persist to localStorage & backend */
   const handleDayShiftChange = (value: string) => {
     const hour = value === 'off' ? null : parseInt(value, 10);
     setDayShiftHourState(hour);
     setDayShiftAfterHour(hour);
+    updateSettingsMutation.mutate({ day_shift_after_hour: hour });
   };
 
   /* Export complete JSON snapshot of all subjects, bells, rules, and homework */
@@ -654,6 +761,42 @@ export function SettingsPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Font Family Selector (Inter, Montserrat, JetBrains Mono) */}
+              <div className="pt-3 border-t border-border-light flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="pr-4">
+                  <p className="font-medium text-text-primary flex items-center gap-1.5">
+                    <Type size={16} className="text-accent" />
+                    <span>{t('font_family')}</span>
+                  </p>
+                  <p className="text-sm text-text-muted">{t('font_family_desc')}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 bg-bg-tertiary p-1.5 rounded-xl border border-border sm:w-auto w-full">
+                  {(
+                    [
+                      { id: 'inter', label: t('font_inter'), desc: t('font_inter_desc'), fontClass: 'font-[Inter]' },
+                      { id: 'montserrat', label: t('font_montserrat'), desc: t('font_montserrat_desc'), fontClass: 'font-[Montserrat]' },
+                      { id: 'jetbrains-mono', label: t('font_jetbrains_mono'), desc: t('font_jetbrains_mono_desc'), fontClass: 'font-mono' },
+                    ] as const
+                  ).map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => handleFontChange(f.id)}
+                      title={f.desc}
+                      className={cn(
+                        "px-3 py-2 text-xs rounded-lg transition-all flex flex-col items-center gap-0.5 border cursor-pointer min-w-[85px]",
+                        currentFont === f.id
+                          ? "bg-accent text-white border-accent shadow-xs font-semibold"
+                          : "border-transparent text-text-secondary hover:text-text-primary hover:bg-bg-primary"
+                      )}
+                    >
+                      <span className={cn("text-base leading-none mb-0.5 font-bold", f.fontClass)}>Aa</span>
+                      <span className="text-[11px] truncate">{f.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </section>
 
             {/* Preferences & Automation */}
@@ -801,6 +944,50 @@ export function SettingsPage() {
                     </label>
                   </div>
                 )}
+
+                {/* Default Lesson & Break Durations (Bells Defaults) */}
+                <div className="pt-3 border-t border-border-light grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="pr-2">
+                      <p className="font-medium text-text-primary text-sm flex items-center gap-1.5">
+                        <Clock size={15} className="text-accent" />
+                        <span>{t('default_lesson_duration')}</span>
+                      </p>
+                      <p className="text-xs text-text-muted mt-0.5">{t('default_lesson_duration_desc')}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <input
+                        type="number"
+                        min="15"
+                        max="180"
+                        value={lessonDuration}
+                        onChange={(e) => handleLessonDurationChange(parseInt(e.target.value) || 45)}
+                        className="w-16 bg-bg-tertiary border border-border rounded-lg px-2.5 py-1 text-sm text-center text-text-primary font-mono focus:outline-none focus:border-accent"
+                      />
+                      <span className="text-xs text-text-muted">{t('duration_minutes')}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="pr-2">
+                      <p className="font-medium text-text-primary text-sm flex items-center gap-1.5">
+                        <Clock size={15} className="text-accent" />
+                        <span>{t('default_break_duration')}</span>
+                      </p>
+                      <p className="text-xs text-text-muted mt-0.5">{t('default_break_duration_desc')}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <input
+                        type="number"
+                        min="0"
+                        max="60"
+                        value={breakDuration}
+                        onChange={(e) => handleBreakDurationChange(parseInt(e.target.value) || 10)}
+                        className="w-16 bg-bg-tertiary border border-border rounded-lg px-2.5 py-1 text-sm text-center text-text-primary font-mono focus:outline-none focus:border-accent"
+                      />
+                      <span className="text-xs text-text-muted">{t('duration_minutes')}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
 

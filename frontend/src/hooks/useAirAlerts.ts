@@ -5,6 +5,7 @@ import { useSetScheduleOverride } from './useScheduleOverrides';
 import { format } from 'date-fns';
 import { isLessonNow } from '../lib/utils';
 import { useLanguage } from '../i18n/LanguageContext';
+import { updateAppSettings } from '../api/client';
 
 export function useAirAlerts() {
   const { t } = useLanguage();
@@ -95,16 +96,19 @@ export function useAirAlerts() {
   const updateAlertsEnabled = (val: boolean) => {
     setAlertsEnabled(val);
     localStorage.setItem('air_alerts_enabled', val ? 'true' : 'false');
+    updateAppSettings({ air_alerts_enabled: val }).catch(console.error);
   };
 
   const updateSelectedRegion = (regionId: string) => {
     setSelectedRegion(regionId);
     localStorage.setItem('air_alerts_region', regionId);
+    updateAppSettings({ air_alerts_region: regionId }).catch(console.error);
   };
 
   const updateAutoCancel = (val: boolean) => {
     setAutoCancelEnabled(val);
     localStorage.setItem('air_alerts_auto_cancel', val ? 'true' : 'false');
+    updateAppSettings({ air_alerts_auto_cancel: val }).catch(console.error);
   };
 
   return {

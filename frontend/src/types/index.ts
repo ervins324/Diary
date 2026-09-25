@@ -238,4 +238,38 @@ export interface AiParsedHoliday {
   end_date: string;
 }
 
+export type FontFamily = 'inter' | 'montserrat' | 'jetbrains-mono';
+
+/* Centralized application settings stored in PostgreSQL backend */
+export interface AppSettings {
+  id: string;
+  skip_weekends_to_monday: boolean;
+  day_shift_after_hour: number | null;
+  show_cabinets: boolean;
+  live_widget_enabled: boolean;
+  live_widget_show_lesson: boolean;
+  live_widget_show_homework: boolean;
+  live_widget_show_events: boolean;
+  hw_icon_size: 'small' | 'medium' | 'large';
+
+  air_alerts_enabled: boolean;
+  air_alerts_region: string;
+  air_alerts_auto_cancel: boolean;
+
+  default_lesson_duration: number;
+  default_break_duration: number;
+  auto_bell_notifications: boolean;
+  semester_anchor_date: string;
+
+  font_family: FontFamily;
+  theme: 'dark' | 'light';
+  language: 'uk' | 'en';
+
+  custom_event_types: any[];
+  custom_lesson_types: any[];
+  auto_clean_settings: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
+}
+
 

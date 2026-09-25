@@ -16,6 +16,7 @@ from app.models.stored_file import StoredFile
 from app.models.schedule_override import ScheduleOverride
 from app.models.lesson_note import LessonNote
 from app.models.holiday import Holiday
+from app.models.setting import AppSettings
 
 logger = logging.getLogger("school_diary.system")
 router = APIRouter(prefix="/api/v1/system", tags=["system"])
@@ -146,6 +147,7 @@ class FullBackupData(BaseModel):
     stored_files: list[BackupStoredFileItem] = Field(default_factory=list)
     lesson_notes: list[BackupLessonNoteItem] = Field(default_factory=list)
     holidays: list[BackupHolidayItem] = Field(default_factory=list)
+    settings: dict | None = None
 
     @field_validator("subjects", "bell_schedules", "schedule_rules", "homeworks", "schedule_overrides", "stored_files", "lesson_notes", "holidays", mode="before")
     @classmethod
@@ -299,8 +301,38 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             for hol in holidays
         ]
 
+        # Query AppSettings
+        settings_stmt = select(AppSettings).where(AppSettings.id == "default")
+        settings_res = await db.execute(settings_stmt)
+        settings_row = settings_res.scalar_one_or_none()
+        settings_data = None
+        if settings_row:
+            settings_data = {
+                "skip_weekends_to_monday": settings_row.skip_weekends_to_monday,
+                "day_shift_after_hour": settings_row.day_shift_after_hour,
+                "show_cabinets": settings_row.show_cabinets,
+                "live_widget_enabled": settings_row.live_widget_enabled,
+                "live_widget_show_lesson": settings_row.live_widget_show_lesson,
+                "live_widget_show_homework": settings_row.live_widget_show_homework,
+                "live_widget_show_events": settings_row.live_widget_show_events,
+                "hw_icon_size": settings_row.hw_icon_size,
+                "air_alerts_enabled": settings_row.air_alerts_enabled,
+                "air_alerts_region": settings_row.air_alerts_region,
+                "air_alerts_auto_cancel": settings_row.air_alerts_auto_cancel,
+                "default_lesson_duration": settings_row.default_lesson_duration,
+                "default_break_duration": settings_row.default_break_duration,
+                "auto_bell_notifications": settings_row.auto_bell_notifications,
+                "semester_anchor_date": settings_row.semester_anchor_date,
+                "font_family": settings_row.font_family,
+                "theme": settings_row.theme,
+                "language": settings_row.language,
+                "custom_event_types": settings_row.custom_event_types,
+                "custom_lesson_types": settings_row.custom_lesson_types,
+                "auto_clean_settings": settings_row.auto_clean_settings,
+            }
+
         return {
-            "version": "1.9.2",
+            "version": "1.9.6",
             "exported_at": datetime.utcnow().isoformat() + "Z",
             "subjects": subjects_data,
             "bell_schedules": bells_data,
@@ -310,6 +342,7 @@ async def export_full_backup(db: AsyncSession = Depends(get_db)):
             "stored_files": files_data,
             "lesson_notes": notes_data,
             "holidays": holidays_data,
+            "settings": settings_data,
         }
     except Exception as e:
         logger.exception(f"Failed to export backup: {e}")
@@ -583,6 +616,21 @@ async def import_full_backup(backup: FullBackupData, db: AsyncSession = Depends(
             )
             db.add(holiday_entry)
             imported_holidays_count += 1
+
+        # Step 10: Restore AppSettings if present
+        imported_settings = False
+        if backup.settings and isinstance(backup.settings, dict):
+            settings_stmt = select(AppSettings).where(AppSettings.id == "default")
+            settings_res = await db.execute(settings_stmt)
+            settings_obj = settings_res.scalar_one_or_none()
+            if not settings_obj:
+                settings_obj = AppSettings(id="default")
+                db.add(settings_obj)
+
+            for k, v in backup.settings.items():
+                if hasattr(settings_obj, k) and v is not None:
+                    setattr(settings_obj, k, v)
+            imported_settings = True
 
         await db.commit()
 

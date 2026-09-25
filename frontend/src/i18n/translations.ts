@@ -507,6 +507,22 @@ export const translations = {
     hw_timeframe_this_week: 'This Week',
     hw_timeframe_next_week: 'Next Week',
     hw_timeframe_overdue: 'Overdue',
+
+    // v1.9.6 — Fonts & Backend Settings
+    font_family: 'Font Family',
+    font_family_desc: 'Choose your preferred font style for the application interface',
+    font_inter: 'Inter',
+    font_inter_desc: 'Clean & modern sans-serif',
+    font_montserrat: 'Montserrat',
+    font_montserrat_desc: 'Geometric & stylish sans-serif',
+    font_jetbrains_mono: 'JetBrains Mono',
+    font_jetbrains_mono_desc: 'Monospace developer code style',
+    default_lesson_duration: 'Default lesson duration',
+    default_lesson_duration_desc: 'Standard lesson duration used when generating or adding bell intervals',
+    default_break_duration: 'Default break duration',
+    default_break_duration_desc: 'Standard interval between consecutive lessons',
+    duration_minutes: 'min',
+    settings_server_synced: 'All settings saved to backend',
   },
   uk: {
     // Navigation
@@ -1014,6 +1030,22 @@ export const translations = {
     hw_timeframe_this_week: 'Цього тижня',
     hw_timeframe_next_week: 'Наступного тижня',
     hw_timeframe_overdue: 'Прострочені',
+
+    // v1.9.6 — Шрифти та налаштування на бекенді
+    font_family: 'Шрифт інтерфейсу',
+    font_family_desc: 'Виберіть бажаний шрифт для оформлення інтерфейсу додатку',
+    font_inter: 'Inter',
+    font_inter_desc: 'Сучасний та чіткий гротеск',
+    font_montserrat: 'Montserrat',
+    font_montserrat_desc: 'Геометричний та виразний шрифт',
+    font_jetbrains_mono: 'JetBrains Mono',
+    font_jetbrains_mono_desc: 'Моноширинний стиль розробника',
+    default_lesson_duration: 'Тривалість уроку за замовчуванням',
+    default_lesson_duration_desc: 'Стандартна тривалість уроку при генерації або додаванні дзвінків',
+    default_break_duration: 'Тривалість перерви за замовчуванням',
+    default_break_duration_desc: 'Стандартна тривалість перерви між уроками',
+    duration_minutes: 'хв',
+    settings_server_synced: 'Усі налаштування збережено на сервері',
   },
 } as const;
 

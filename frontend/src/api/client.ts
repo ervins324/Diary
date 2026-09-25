@@ -12,6 +12,7 @@ import type {
   Attachment,
   Holiday,
   AiParsedHoliday,
+  AppSettings,
 } from '../types';
 
 // Axios instance configured with extended timeout for AI image processing
@@ -338,6 +339,43 @@ export const bulkCommitHolidays = async (holidays: { name: string; start_date: s
 
 export const parseHolidaysJson = async (rawJson: string): Promise<{ holidays: AiParsedHoliday[] }> => {
   const { data } = await api.post('/holidays/parse-json', { raw_json: rawJson });
+  return data;
+};
+
+// ── Application Settings (Centralized Backend Storage) ────────────────────
+
+export const fetchAppSettings = async (): Promise<AppSettings> => {
+  const { data } = await api.get('/settings');
+  return data;
+};
+
+export const updateAppSettings = async (settings: Partial<AppSettings>): Promise<AppSettings> => {
+  const { data } = await api.patch('/settings', settings);
+  return data;
+};
+
+export const resetAppSettings = async (): Promise<AppSettings> => {
+  const { data } = await api.post('/settings/reset');
+  return data;
+};
+
+export const fetchEffectiveDate = async (): Promise<{
+  date: string;
+  is_shifted: boolean;
+  is_weekend_skipped: boolean;
+  reason?: string;
+}> => {
+  const { data } = await api.get('/settings/effective-date');
+  return data;
+};
+
+export const triggerAirAlertsCheck = async (): Promise<any> => {
+  const { data } = await api.post('/settings/check-alerts');
+  return data;
+};
+
+export const triggerAutoClean = async (): Promise<any> => {
+  const { data } = await api.post('/settings/run-auto-clean');
   return data;
 };
 

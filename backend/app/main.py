@@ -1,13 +1,26 @@
 import logging
 import sys
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.config import settings
-from app.database import engine
-from app.routers import subjects, schedule, homework, stats, bells, system, files, lesson_notes, holidays
+from app.database import engine, AsyncSessionLocal
+from app.routers import (
+    subjects,
+    schedule,
+    homework,
+    stats,
+    bells,
+    system,
+    files,
+    lesson_notes,
+    holidays,
+    settings as settings_router,
+)
+from app.services.alert_service import check_air_alerts, run_backend_auto_clean
 
 # Configure centralized logging with timestamp, level, and logger name
 logging.basicConfig(
@@ -77,10 +90,62 @@ async def lifespan(app: FastAPI):
             await conn.execute(
                 text("ALTER TABLE schedule_rules ADD COLUMN IF NOT EXISTS is_consultation BOOLEAN DEFAULT FALSE;")
             )
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    id VARCHAR(50) PRIMARY KEY,
+                    skip_weekends_to_monday BOOLEAN DEFAULT TRUE,
+                    day_shift_after_hour INTEGER,
+                    show_cabinets BOOLEAN DEFAULT TRUE,
+                    live_widget_enabled BOOLEAN DEFAULT TRUE,
+                    live_widget_show_lesson BOOLEAN DEFAULT TRUE,
+                    live_widget_show_homework BOOLEAN DEFAULT TRUE,
+                    live_widget_show_events BOOLEAN DEFAULT TRUE,
+                    hw_icon_size VARCHAR(20) DEFAULT 'medium',
+                    air_alerts_enabled BOOLEAN DEFAULT FALSE,
+                    air_alerts_region VARCHAR(100) DEFAULT 'kyiv_city',
+                    air_alerts_auto_cancel BOOLEAN DEFAULT FALSE,
+                    default_lesson_duration INTEGER DEFAULT 45,
+                    default_break_duration INTEGER DEFAULT 10,
+                    auto_bell_notifications BOOLEAN DEFAULT FALSE,
+                    semester_anchor_date VARCHAR(20) DEFAULT '2026-09-01',
+                    font_family VARCHAR(50) DEFAULT 'inter',
+                    theme VARCHAR(20) DEFAULT 'dark',
+                    language VARCHAR(10) DEFAULT 'uk',
+                    custom_event_types JSON DEFAULT '[]',
+                    custom_lesson_types JSON DEFAULT '[]',
+                    auto_clean_settings JSON DEFAULT '{}',
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            """))
             logger.info("Database safety column verification completed.")
     except Exception as e:
         logger.warning(f"Database safety migration check warning: {e}")
-    yield
+
+    # Launch background automation task (air alerts and daily auto-clean)
+    async def background_automation_worker():
+        logger.info("Starting background automation worker (air alerts & auto-clean)...")
+        while True:
+            try:
+                await asyncio.sleep(30)
+                async with AsyncSessionLocal() as db:
+                    await check_air_alerts(db)
+                    await run_backend_auto_clean(db)
+            except asyncio.CancelledError:
+                logger.info("Background automation worker received cancellation signal.")
+                break
+            except Exception as loop_err:
+                logger.warning(f"Background automation loop error: {loop_err}")
+
+    automation_task = asyncio.create_task(background_automation_worker())
+    try:
+        yield
+    finally:
+        automation_task.cancel()
+        try:
+            await automation_task
+        except asyncio.CancelledError:
+            pass
 
 app = FastAPI(title="School Diary API", version="1.0.0", lifespan=lifespan)
 
@@ -123,6 +188,7 @@ app.include_router(system.router)
 app.include_router(files.router)
 app.include_router(lesson_notes.router)
 app.include_router(holidays.router)
+app.include_router(settings_router.router)
 
 @app.get("/")
 async def root():

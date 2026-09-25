@@ -8,5 +8,6 @@ from app.models.stored_file import StoredFile
 from app.models.schedule_override import ScheduleOverride
 from app.models.lesson_note import LessonNote
 from app.models.holiday import Holiday
+from app.models.setting import AppSettings
 
-__all__ = ["Base", "Subject", "ScheduleRule", "WeekType", "HomeworkEntry", "BellSchedule", "StoredFile", "ScheduleOverride", "LessonNote", "Holiday"]
+__all__ = ["Base", "Subject", "ScheduleRule", "WeekType", "HomeworkEntry", "BellSchedule", "StoredFile", "ScheduleOverride", "LessonNote", "Holiday", "AppSettings"]

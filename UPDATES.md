@@ -1,6 +1,33 @@
 # School Diary — Changelog
 
-## v1.9.5 — 2026-09-24
+## v1.9.6 — 2026-09-25
+
+### 🔤 Typography & Font Family Switching
+- **Font Customization**: Added font family switching between **Montserrat**, **Inter**, and **JetBrains Mono**.
+- **Instant Live Switching**: Applied via CSS custom properties and HTML root `data-font` attribute (`:root[data-font="..."]`).
+- **Zero-Flicker Initialization**: Integrated inline pre-paint script in `index.html` ensuring the selected font is applied immediately before DOM rendering.
+- **Visual Selector in Settings**: Added preview cards in Settings > Appearance with sample text and font badges.
+- **Full Bilingual Support**: Added Ukrainian and English localization keys for all fonts and descriptions.
+
+### ⚙️ Centralized Backend Settings & Tab-Closed Automations
+- **PostgreSQL `app_settings` Table**:
+  - Added dedicated `AppSettings` model and Alembic migration `014_app_settings.py` with idempotent startup DDL checks.
+  - Centralized storage for Diary preferences (`skip_weekends_to_monday`, `day_shift_after_hour`, `show_cabinets`, `live_widget_*`, `hw_icon_size`), Air Alert configuration, Bell schedule defaults, Custom event/lesson types, and Auto-clean settings.
+- **RESTful API (`/api/v1/settings`)**:
+  - `GET /api/v1/settings`: Fetches current application settings or initializes defaults.
+  - `PUT` & `PATCH /api/v1/settings`: Persists partial or full configuration updates.
+  - `POST /api/v1/settings/reset`: Factory reset back to defaults.
+  - `GET /api/v1/settings/effective-date`: Server-side school date calculation considering cutoff hours and weekend auto-advance.
+  - `POST /api/v1/settings/check-alerts` & `POST /api/v1/settings/run-auto-clean`: Direct manual triggers for background jobs.
+- **Server-Side Background Automation Worker**:
+  - Implemented continuous async loop in FastAPI lifespan running every 30 seconds.
+  - **Autonomous Air Alert Auto-Cancellation**: Periodically queries Neptun API (`neptun.in.ua/api/v1/alerts`) for regional alarms and cancels active lessons automatically even if browser tabs are completely closed.
+  - **Autonomous Daily Pruning**: Periodically checks and runs auto-clean policies for historical homework, overrides, and orphaned attachments on the backend.
+- **Bell Schedule Defaults**:
+  - Added default lesson and break duration settings in Settings.
+  - Wired into `BellsPage.tsx` to automatically calculate consecutive lesson start and end times based on configured durations.
+- **Full-System Backup & Restore**:
+  - Integrated `AppSettings` serialization into JSON backup export and import endpoints (`/api/v1/system/backup/export` and `/import`).
 
 ### 📝 Dedicated Homework Tab ("Д/З" / `/homework`)
 - **Full-Stack Parity with Mobile App**: Implemented dedicated Homework management page (`HomeworkPage.tsx`) directly accessible via navigation.
